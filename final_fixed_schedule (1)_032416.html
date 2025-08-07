@@ -313,6 +313,10 @@ const shiftTypes = {
         !popup.contains(event.target) && 
         !bell.contains(event.target)) {
         popup.style.display = 'none';
+        // Clear notification indicator when popup is dismissed
+        if (bell.innerHTML.includes('●')) {
+            bell.innerHTML = '🔔';
+        }
     }
 });
 
