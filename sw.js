@@ -1,48 +1,101 @@
-// Service Worker for Schedule NSG PWA
-const CACHE_NAME = 'schedule-nsg-v1';
-const urlsToCache = [
-  './final_fixed_schedule%20(1)_032416.html',
-  './manifest.json',
-  'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js',
-  'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',
-  'https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js'
-];
+// Cloud-First Service Worker for Schedule NSG
+// NO CACHING - All requests go directly to network
+// Online-only operation enforced
 
-// Install event - cache resources
+// Install event - skip caching, activate immediately
 self.addEventListener('install', event => {
-  event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then(cache => {
-        console.log('Opened cache');
-        return cache.addAll(urlsToCache);
+  console.log('Cloud-first service worker installed - no caching enabled');
+  self.skipWaiting(); // Activate immediately
+});
+
+// Fetch event - always fetch from network, fail if offline
+self.addEventListener('fetch', event => {
+  event.respondWith(
+    fetch(event.request)
+      .catch(error => {
+        // If network fails, return an error response instead of cached content
+        console.error('Network request failed:', error);
+        
+        // For navigation requests, return a custom offline page
+        if (event.request.mode === 'navigate') {
+          return new Response(`
+            <!DOCTYPE html>
+            <html>
+              <head>
+                <title>Connection Required</title>
+                <meta name="viewport" content="width=device-width, initial-scale=1">
+                <style>
+                  body { 
+                    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
+                    text-align: center; 
+                    padding: 50px; 
+                    background: #f0f2f5; 
+                    color: #1c293a;
+                  }
+                  .container { 
+                    max-width: 400px; 
+                    margin: 0 auto; 
+                    background: white; 
+                    padding: 40px; 
+                    border-radius: 12px; 
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+                  }
+                  h1 { color: #dc3545; margin-bottom: 20px; }
+                  .icon { font-size: 48px; margin-bottom: 20px; }
+                  .btn { 
+                    background: #0d6efd; 
+                    color: white; 
+                    border: none; 
+                    padding: 12px 24px; 
+                    border-radius: 8px; 
+                    cursor: pointer; 
+                    margin-top: 20px;
+                    font-size: 16px;
+                  }
+                  .btn:hover { background: #0b5ed7; }
+                </style>
+              </head>
+              <body>
+                <div class="container">
+                  <div class="icon">🌐</div>
+                  <h1>Connection Required</h1>
+                  <p>Schedule NSG requires an active internet connection to function.</p>
+                  <p>This application operates in cloud-first mode with real-time synchronization.</p>
+                  <p>Please check your internet connection and try again.</p>
+                  <button class="btn" onclick="window.location.reload()">Retry Connection</button>
+                </div>
+              </body>
+            </html>
+          `, {
+            status: 503,
+            statusText: 'Service Unavailable',
+            headers: { 'Content-Type': 'text/html' }
+          });
+        }
+        
+        // For other requests, return a proper error response
+        return new Response('Network connection required', {
+          status: 503,
+          statusText: 'Service Unavailable'
+        });
       })
   );
 });
 
-// Fetch event - serve from cache when offline
-self.addEventListener('fetch', event => {
-  event.respondWith(
-    caches.match(event.request)
-      .then(response => {
-        // Return cached version or fetch from network
-        return response || fetch(event.request);
-      }
-    )
-  );
-});
-
-// Activate event - clean up old caches
+// Activate event - clean up ALL caches
 self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys().then(cacheNames => {
+      console.log('Cleaning up all caches for cloud-first operation');
       return Promise.all(
         cacheNames.map(cacheName => {
-          if (cacheName !== CACHE_NAME) {
-            console.log('Deleting old cache:', cacheName);
-            return caches.delete(cacheName);
-          }
+          console.log('Deleting cache:', cacheName);
+          return caches.delete(cacheName);
         })
       );
+    }).then(() => {
+      // Take control of all pages immediately
+      return self.clients.claim();
     })
   );
 });

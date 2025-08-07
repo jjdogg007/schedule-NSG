@@ -967,10 +967,17 @@
     </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.js"></script>
+<script src="./cloud-service.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
 <script>
+    // ================== CLOUD-FIRST GLOBAL VARIABLES ==================
+    
+    // Initialize cloud service
+    let cloudService = new CloudService();
+    
+    // Replace all localStorage-based variables with cloud-driven state
     let notifications = {};
     let employees = [];
     let scheduleData = {};
@@ -991,11 +998,16 @@
 
     // New Features Variables
     let teamDirectoryData = [];
-    let announcements = JSON.parse(localStorage.getItem('announcements')) || [];
-    let auditLogs = JSON.parse(localStorage.getItem('auditLogs')) || [];
+    let announcements = [];
+    let auditLogs = [];
     let currentLocation = null;
     let workplaceLocation = { lat: 0, lng: 0, radius: 100 };
     let currentPhotoData = null;
+
+    // Authentication state
+    let isAuthenticated = false;
+    let currentUser = null;
+    let currentCompany = null;
 
     const shiftsInfo = { "10p-6a": 8, "2p-10:30p": 8.5, "10a-6:30p": 8.5, "6:30p-3a": 8.5, "5:30a-2p": 8.5, "6a-2:30p": 8.5, "1p-9:30p": 8.5, "7a-7p": 12, "9:30p-6a": 8.5 };
     const shiftTemplates = {
@@ -1003,16 +1015,191 @@
         "Weekday Standard": { "Mon": "10a-6:30p", "Tue": "10a-6:30p", "Wed": "10a-6:30p", "Thu": "10a-6:30p", "Fri": "10a-6:30p" },
         "Night Shift": { "Mon": "10p-6a", "Tue": "10p-6a", "Wed": "10p-6a", "Thu": "10p-6a", "Fri": "10p-6a" }
     };
-const shiftTypes = {
+    const shiftTypes = {
         opening: ["5:30a-2p", "6a-2:30p", "7a-7p"],
         closing: ["2p-10:30p", "6:30p-3a", "10p-6a", "9:30p-6a"]
     };
-// --- Supabase Client Setup ---
-    // --- Supabase Client Setup ---
-    const supabaseUrl = "https://ulefvfpvgfdavztlwmpu.supabase.co";
-    const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVsZWZ2ZnB2Z2ZkYXZ6dGx3bXB1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ0OTIzMDksImV4cCI6MjA3MDA2ODMwOX0.Se8nQg3BZUAYnt3bahw7iNePXm8G3X5PbH83XHY8edo";
-    const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
-    document.addEventListener('DOMContentLoaded', loadState);
+
+    // ================== CLOUD-FIRST INITIALIZATION ==================
+    
+    document.addEventListener('DOMContentLoaded', async function() {
+        console.log('Schedule NSG - Cloud-First Mode Initializing...');
+        
+        try {
+            // Check authentication state
+            currentUser = await cloudService.getCurrentUser();
+            
+            if (currentUser) {
+                isAuthenticated = true;
+                await initializeAuthenticatedApp();
+            } else {
+                showAuthenticationModal();
+            }
+        } catch (error) {
+            console.error('Initialization error:', error);
+            showConnectionError(error.message);
+        }
+    });
+
+    async function initializeAuthenticatedApp() {
+        try {
+            // Load company data
+            // For now, create a default company if none exists
+            // In production, this would be based on user's company association
+            currentCompany = { id: 'default-company-id' };
+            cloudService.currentCompany = currentCompany;
+            
+            // Set up real-time subscriptions
+            cloudService.setupRealTimeSubscriptions();
+            
+            // Load initial data from cloud
+            await loadCloudData();
+            
+            // Show main interface
+            document.getElementById('manager-view').style.display = 'block';
+            
+            // Initialize UI components
+            initializeUI();
+            
+            console.log('Cloud-first app initialized successfully');
+        } catch (error) {
+            console.error('App initialization error:', error);
+            showNotification('Failed to initialize application: ' + error.message, 'error');
+        }
+    }
+
+    async function loadCloudData() {
+        try {
+            // Load employees from cloud
+            employees = await cloudService.getEmployees();
+            
+            // Load current month's schedule if month is selected
+            const monthInput = document.getElementById('scheduleMonth');
+            if (monthInput.value) {
+                await loadScheduleForMonth(monthInput.value);
+            }
+            
+            // Load announcements
+            announcements = await cloudService.getAnnouncements();
+            
+            // Render initial UI
+            if (employees.length > 0) {
+                renderTable();
+            }
+            
+        } catch (error) {
+            console.error('Error loading cloud data:', error);
+            throw error;
+        }
+    }
+
+    async function loadScheduleForMonth(monthString) {
+        if (!monthString) return;
+        
+        const [year, month] = monthString.split('-').map(Number);
+        const startDate = new Date(year, month - 1, 1).toISOString().split('T')[0];
+        const endDate = new Date(year, month, 0).toISOString().split('T')[0];
+        
+        try {
+            // Load schedule and notes from cloud
+            scheduleData = await cloudService.getScheduleData(startDate, endDate);
+            notesData = await cloudService.getScheduleNotes(startDate, endDate);
+            
+            // Generate date range
+            const daysInMonth = new Date(year, month, 0).getDate();
+            currentDates = Array.from({ length: daysInMonth }, (_, i) => new Date(year, month - 1, i + 1));
+            
+        } catch (error) {
+            console.error('Error loading schedule data:', error);
+            throw error;
+        }
+    }
+
+    function showAuthenticationModal() {
+        // Create authentication modal
+        const modal = document.createElement('div');
+        modal.className = 'modal';
+        modal.style.display = 'block';
+        modal.style.backgroundColor = 'rgba(0,0,0,0.8)';
+        modal.innerHTML = `
+            <div class="modal-content" style="max-width: 400px; margin: 15% auto;">
+                <div style="text-align: center; margin-bottom: 30px;">
+                    <h2>🔒 Schedule NSG Cloud</h2>
+                    <p>Sign in to access your cloud-synchronized schedule</p>
+                </div>
+                <div style="margin-bottom: 20px;">
+                    <input type="email" id="auth-email" placeholder="Email" 
+                           style="width: 100%; padding: 15px; font-size: 16px; border: 2px solid #0d6efd; border-radius: 8px; margin-bottom: 10px;">
+                    <input type="password" id="auth-password" placeholder="Password" 
+                           style="width: 100%; padding: 15px; font-size: 16px; border: 2px solid #0d6efd; border-radius: 8px;"
+                           onkeypress="if(event.key==='Enter') signInUser()">
+                </div>
+                <div style="text-align: center;">
+                    <button class="btn btn-primary" onclick="signInUser()" style="width: 100%; padding: 15px; font-size: 16px; margin-bottom: 10px;">
+                        Sign In
+                    </button>
+                    <button class="btn btn-secondary" onclick="showSignUpForm()" style="width: 100%; padding: 15px; font-size: 16px;">
+                        Create Account
+                    </button>
+                </div>
+                <div id="auth-error" style="color: #dc3545; text-align: center; margin-top: 15px; display: none;">
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+    }
+
+    async function signInUser() {
+        const email = document.getElementById('auth-email').value;
+        const password = document.getElementById('auth-password').value;
+        const errorDiv = document.getElementById('auth-error');
+        
+        if (!email || !password) {
+            errorDiv.textContent = 'Please enter both email and password';
+            errorDiv.style.display = 'block';
+            return;
+        }
+        
+        try {
+            await cloudService.signIn(email, password);
+            isAuthenticated = true;
+            currentUser = cloudService.currentUser;
+            
+            // Remove auth modal
+            document.querySelector('.modal').remove();
+            
+            // Initialize app
+            await initializeAuthenticatedApp();
+            
+            showNotification('Welcome to Schedule NSG Cloud!', 'success');
+            
+        } catch (error) {
+            console.error('Sign in error:', error);
+            errorDiv.textContent = error.message || 'Sign in failed. Please try again.';
+            errorDiv.style.display = 'block';
+        }
+    }
+
+    function showConnectionError(message) {
+        const errorModal = document.createElement('div');
+        errorModal.className = 'modal';
+        errorModal.style.display = 'block';
+        errorModal.style.backgroundColor = 'rgba(0,0,0,0.8)';
+        errorModal.innerHTML = `
+            <div class="modal-content" style="max-width: 400px; margin: 15% auto;">
+                <div style="text-align: center;">
+                    <div style="font-size: 48px; margin-bottom: 20px;">🌐</div>
+                    <h2 style="color: #dc3545;">Connection Required</h2>
+                    <p>Schedule NSG requires an active internet connection.</p>
+                    <p style="font-size: 14px; color: #6c757d;">${message}</p>
+                    <button class="btn btn-primary" onclick="window.location.reload()" style="width: 100%; padding: 15px; margin-top: 20px;">
+                        Retry Connection
+                    </button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(errorModal);
+    }
     
     function generateUUID() {
         return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c =>
@@ -1020,11 +1207,95 @@ const shiftTypes = {
         );
     }
 
-    document.getElementById('scheduleMonth').addEventListener('change', (e) => {
-        recordHistory();
-        clearSchedule(false);
-        generateSchedule(e.target.value);
+    // ================== CLOUD-FIRST EVENT HANDLERS ==================
+    
+    document.getElementById('scheduleMonth').addEventListener('change', async (e) => {
+        try {
+            recordHistory();
+            clearSchedule(false);
+            await loadScheduleForMonth(e.target.value);
+            renderTable();
+        } catch (error) {
+            console.error('Error loading schedule for month:', error);
+            showNotification('Failed to load schedule: ' + error.message, 'error');
+        }
     });
+
+    // Initialize UI components
+    function initializeUI() {
+        // Set up table container for mobile scrolling
+        const table = document.getElementById('schedule-table');
+        if (table && !table.parentElement.classList.contains('table-container')) {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'table-container';
+            table.parentNode.insertBefore(wrapper, table);
+            wrapper.appendChild(table);
+        }
+        
+        // Initialize gesture support
+        initializeGestureSupport();
+        
+        // Initialize location services
+        initializeLocationServices();
+        
+        // Add CSS animations
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes slideIn {
+                from { transform: translateX(100%); opacity: 0; }
+                to { transform: translateX(0); opacity: 1; }
+            }
+            @keyframes slideOut {
+                from { transform: translateX(0); opacity: 1; }
+                to { transform: translateX(100%); opacity: 0; }
+            }
+        `;
+        document.head.appendChild(style);
+    }
+
+    // ================== CLOUD EVENT HANDLERS ==================
+    
+    // Real-time event handlers
+    window.onCloudScheduleChange = function(payload) {
+        console.log('Schedule change received:', payload);
+        // Refresh the schedule display
+        if (currentDates.length > 0) {
+            const currentMonth = document.getElementById('scheduleMonth').value;
+            if (currentMonth) {
+                loadScheduleForMonth(currentMonth).then(() => {
+                    renderTable();
+                    showNotification('Schedule updated in real-time!', 'info');
+                });
+            }
+        }
+    };
+
+    window.onCloudPTOChange = function(payload) {
+        console.log('PTO change received:', payload);
+        // Refresh PTO requests if modal is open
+        if (document.getElementById('ptoRequestsModal').style.display === 'block') {
+            loadPTORequestsModal();
+        }
+        showNotification('PTO request updated!', 'info');
+    };
+
+    window.onCloudAnnouncementChange = function(payload) {
+        console.log('Announcement change received:', payload);
+        // Refresh announcements if modal is open
+        if (document.getElementById('announcementsModal').style.display === 'block') {
+            loadAnnouncements();
+        }
+        showNotification('New announcement posted!', 'info');
+    };
+
+    window.onCloudNotificationReceived = function(payload) {
+        console.log('Notification received:', payload);
+        const notification = payload.new;
+        showNotification(notification.message, 'info');
+        
+        // Update notification bell if applicable
+        updateNotificationBell();
+    };
   window.addEventListener('click', (event) => {
     // Hide context menu
     document.getElementById('contextMenu').style.display = 'none';
@@ -1054,23 +1325,27 @@ const shiftTypes = {
         });
     }
 
+    // ================== CLOUD-FIRST SCHEDULE MANAGEMENT ==================
+    
     function generateSchedule(monthString) {
-        if (!monthString) return;
-        const [year, month] = monthString.split('-').map(Number);
-        const daysInMonth = new Date(year, month, 0).getDate();
-        currentDates = Array.from({ length: daysInMonth }, (_, i) => new Date(year, month - 1, i + 1));
-        employees.forEach(emp => { 
-            if (!scheduleData[emp.name]) scheduleData[emp.name] = {}; 
-            if (!notesData[emp.name]) notesData[emp.name] = {};
-        });
-        renderTable();
+        // This function is now replaced by loadScheduleForMonth
+        // Kept for backward compatibility
+        return loadScheduleForMonth(monthString);
     }
     
     function renderTable() {
         const table = document.getElementById('schedule-table');
         const tbody = table.querySelector('tbody') || table.appendChild(document.createElement('tbody'));
         const thead = table.querySelector('thead') || table.appendChild(document.createElement('thead'));
+        
+        if (currentDates.length === 0) {
+            thead.innerHTML = '<tr><th class="employee-name">No month selected</th></tr>';
+            tbody.innerHTML = '';
+            return;
+        }
+        
         thead.innerHTML = `<tr><th class="employee-name">Employee</th>${currentDates.map(d => `<th>${d.getDate()}<br>${d.toLocaleDateString('en-US', { weekday: 'short' })}</th>`).join('')}</tr>`;
+        
         const sortedEmployees = getSortedEmployees();
         tbody.innerHTML = sortedEmployees.map(emp => {
             const cells = currentDates.map(date => {
@@ -1078,24 +1353,31 @@ const shiftTypes = {
                 const shift = scheduleData[emp.name]?.[dateKey] || '';
                 const note = notesData[emp.name]?.[dateKey] || '';
                 let cellClass = (date.getDay() === 0 || date.getDay() === 6) ? ' weekend' : '';
+                
                 if (shift.toUpperCase() === 'PTO') {
                     // Check if this is from an approved PTO request
                     const ptoRequest = Object.values(ptoRequests || {}).find(r => 
-                        r.employeeName === emp.name && 
+                        r.employee_name === emp.name && 
                         r.status === 'approved' &&
-                        new Date(r.startDate) <= date && 
-                        new Date(r.endDate) >= date
+                        new Date(r.start_date) <= date && 
+                        new Date(r.end_date) >= date
                     );
                     cellClass += ptoRequest ? ' pto-approved' : ' pto-cell';
                 }
-                if (conflicts.some(c => c.empName === emp.name && c.dateKey === dateKey)) cellClass += ' conflict-cell';
+                
+                if (conflicts.some(c => c.empName === emp.name && c.dateKey === dateKey)) {
+                    cellClass += ' conflict-cell';
+                }
+                
                 const noteIndicator = note ? `<div class="note-indicator" title="${note}"></div>` : '';
                 return `<td class="${cellClass}" contenteditable="true" onblur="updateShift(this, '${emp.name}', '${dateKey}')" oncontextmenu="showContextMenu(event, '${emp.name}', '${dateKey}')" data-original-shift="${shift}">${shift}${noteIndicator}</td>`;
             }).join('');
+            
             return `<tr class="${emp.name.startsWith('OPEN SHIFTS') ? 'open-shift-row' : ''}"><td class="employee-name">${emp.name}</td>${cells}</tr>`;
         }).join('');
+        
         renderDashboard();
-        enhancePTODisplay(); // Add PTO visual enhancements
+        enhancePTODisplay();
     }
 
     function renderDashboard() {
@@ -1129,7 +1411,7 @@ const shiftTypes = {
         }).join('') + '</tbody>';
     }
 
-  function updateShift(element, employeeName, dateKey) {
+    async function updateShift(element, employeeName, dateKey) {
         const originalShift = element.getAttribute('data-original-shift');
         const newShift = element.textContent.trim().replace(/<div.*<\/div>/, '');
 
@@ -1139,88 +1421,163 @@ const shiftTypes = {
 
         recordHistory();
 
-        // If an existing shift was changed for a real employee, trigger notification modal
-        if (originalShift && !employeeName.startsWith('OPEN SHIFTS')) {
-            const employee = employees.find(e => e.name === employeeName);
-            if (employee) {
-                notificationInfo = {
-                    employeeName,
-                    dateKey,
-                    originalShift,
-                    newShift: newShift || "REMOVED"
-                };
-                document.getElementById('notification-text').innerHTML = `You changed a shift for <b>${employeeName}</b> from "<em>${originalShift}</em>" to "<em>${newShift || "REMOVED"}</em>".<br><br>Would you like to send an email notification?`;
-                document.getElementById('notificationModal').style.display = 'block';
-            }
-        }
-
-        if (newShift.toUpperCase() === 'PTO') {
-            executePTO(employeeName, dateKey, originalShift);
-        } else {
+        try {
+            // Update in cloud database
+            await cloudService.updateScheduleEntry(employeeName, dateKey, newShift);
+            
+            // Update local state
+            if (!scheduleData[employeeName]) scheduleData[employeeName] = {};
             scheduleData[employeeName][dateKey] = newShift;
-        }
-        
-        saveState();
-        renderTable();
-    }
 
-function clearSchedule(showAlert = true) {
-    if (showAlert && !confirm("Are you sure you want to clear the schedule grid?")) return;
-    recordHistory();
-    scheduleData = {};
-    bidsData = {};
-    notifications = {};
-    employees.forEach(emp => { scheduleData[emp.name] = {}; });
-    if (showAlert) { renderTable(); saveState(); }
-}
-
-    function autoGenerateFullSchedule() {
-        if (!confirm("This will generate a schedule based on availability and workload limits. Continue?")) return;
-        recordHistory();
-        clearSchedule(false);
-        const dayAbbreviations = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
-        let weeklyWorkload = {};
-        employees.forEach(emp => {
-            if (emp.name.startsWith('OPEN SHIFTS') || !emp.availability || !emp.shifts || emp.shifts === 'Varies') return;
-            weeklyWorkload[emp.name] = {};
-            const availability = emp.availability.toLowerCase();
-            const maxDays = parseInt(emp.maxDays) || 0;
-            currentDates.forEach(date => {
-                const dayOfWeek = dayAbbreviations[date.getDay()];
-                const dateKey = date.toISOString().split('T')[0];
-                const weekNumber = Math.ceil((date.getDate() + new Date(date.getFullYear(), date.getMonth(), 1).getUTCDay()) / 7);
-                if (availability.includes(dayOfWeek)) {
-                    if (maxDays > 0) {
-                        const daysThisWeek = weeklyWorkload[emp.name][weekNumber] || 0;
-                        if (daysThisWeek >= maxDays) return;
-                        weeklyWorkload[emp.name][weekNumber] = daysThisWeek + 1;
-                    }
-                    scheduleData[emp.name][dateKey] = emp.shifts;
+            // If an existing shift was changed for a real employee, trigger notification modal
+            if (originalShift && !employeeName.startsWith('OPEN SHIFTS')) {
+                const employee = employees.find(e => e.name === employeeName);
+                if (employee) {
+                    notificationInfo = {
+                        employeeName,
+                        dateKey,
+                        originalShift,
+                        newShift: newShift || "REMOVED"
+                    };
+                    document.getElementById('notification-text').innerHTML = `You changed a shift for <b>${employeeName}</b> from "<em>${originalShift}</em>" to "<em>${newShift || "REMOVED"}</em>".<br><br>Would you like to send an email notification?`;
+                    document.getElementById('notificationModal').style.display = 'block';
                 }
-            });
-        });
-        renderTable();
-        saveState();
-        alert('✨ Full schedule generated!');
+            }
+
+            if (newShift.toUpperCase() === 'PTO') {
+                await executePTO(employeeName, dateKey, originalShift);
+            }
+            
+            renderTable();
+            showNotification('Schedule updated successfully', 'success');
+            
+        } catch (error) {
+            console.error('Error updating shift:', error);
+            showNotification('Failed to update schedule: ' + error.message, 'error');
+            
+            // Revert the cell content on error
+            element.textContent = originalShift;
+        }
     }
 
-    function moveOpenPositionShifts() {
-        if (!confirm("This will move all shifts from 'OPEN POSITION' to 'OPEN SHIFTS (Coverage)'. Continue?")) return;
+    async function clearSchedule(showAlert = true) {
+        if (showAlert && !confirm("Are you sure you want to clear the schedule grid?")) return;
+        
         recordHistory();
-        const sourceName = 'OPEN POSITION';
-        const targetName = 'OPEN SHIFTS (Coverage)';
-        if (!scheduleData[sourceName] || !scheduleData[targetName]) { alert("Error: 'OPEN POSITION' or 'OPEN SHIFTS (Coverage)' not found in data."); return; }
-        currentDates.forEach(date => {
-            const dateKey = date.toISOString().split('T')[0];
-            const shift = scheduleData[sourceName][dateKey];
-            if (shift) {
-                scheduleData[targetName][dateKey] = scheduleData[targetName][dateKey] ? `${scheduleData[targetName][dateKey]}, ${shift}` : shift;
-                scheduleData[sourceName][dateKey] = '';
+        
+        try {
+            await cloudService.clearSchedule();
+            
+            // Clear local state
+            scheduleData = {};
+            bidsData = {};
+            notifications = {};
+            
+            // Re-initialize employee schedule objects
+            employees.forEach(emp => { 
+                scheduleData[emp.name] = {}; 
+            });
+            
+            if (showAlert) { 
+                renderTable(); 
+                showNotification('Schedule cleared successfully', 'success');
             }
-        });
-        renderTable();
-        saveState();
-        alert("✅ Shifts from 'OPEN POSITION' have been moved.");
+        } catch (error) {
+            console.error('Error clearing schedule:', error);
+            showNotification('Failed to clear schedule: ' + error.message, 'error');
+        }
+    }
+
+    async function autoGenerateFullSchedule() {
+        if (!confirm("This will generate a schedule based on availability and workload limits. Continue?")) return;
+        
+        recordHistory();
+        await clearSchedule(false);
+        
+        try {
+            const dayAbbreviations = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+            let weeklyWorkload = {};
+            
+            // Process each employee
+            for (const emp of employees) {
+                if (emp.name.startsWith('OPEN SHIFTS') || !emp.availability || !emp.regular_shifts || emp.regular_shifts === 'Varies') continue;
+                
+                weeklyWorkload[emp.name] = {};
+                const availability = emp.availability.toLowerCase();
+                const maxDays = parseInt(emp.max_days_per_week) || 0;
+                
+                // Process each date
+                for (const date of currentDates) {
+                    const dayOfWeek = dayAbbreviations[date.getDay()];
+                    const dateKey = date.toISOString().split('T')[0];
+                    const weekNumber = Math.ceil((date.getDate() + new Date(date.getFullYear(), date.getMonth(), 1).getUTCDay()) / 7);
+                    
+                    if (availability.includes(dayOfWeek)) {
+                        if (maxDays > 0) {
+                            const daysThisWeek = weeklyWorkload[emp.name][weekNumber] || 0;
+                            if (daysThisWeek >= maxDays) continue;
+                            weeklyWorkload[emp.name][weekNumber] = daysThisWeek + 1;
+                        }
+                        
+                        // Update in cloud
+                        await cloudService.updateScheduleEntry(emp.name, dateKey, emp.regular_shifts, emp.id);
+                        
+                        // Update local state
+                        if (!scheduleData[emp.name]) scheduleData[emp.name] = {};
+                        scheduleData[emp.name][dateKey] = emp.regular_shifts;
+                    }
+                }
+            }
+            
+            renderTable();
+            showNotification('✨ Full schedule generated!', 'success');
+            
+        } catch (error) {
+            console.error('Error generating schedule:', error);
+            showNotification('Failed to generate schedule: ' + error.message, 'error');
+        }
+    }
+
+    async function moveOpenPositionShifts() {
+        if (!confirm("This will move all shifts from 'OPEN POSITION' to 'OPEN SHIFTS (Coverage)'. Continue?")) return;
+        
+        recordHistory();
+        
+        try {
+            const sourceName = 'OPEN POSITION';
+            const targetName = 'OPEN SHIFTS (Coverage)';
+            
+            if (!scheduleData[sourceName] || !scheduleData[targetName]) { 
+                showNotification("Error: 'OPEN POSITION' or 'OPEN SHIFTS (Coverage)' not found in data.", 'error'); 
+                return; 
+            }
+            
+            for (const date of currentDates) {
+                const dateKey = date.toISOString().split('T')[0];
+                const shift = scheduleData[sourceName][dateKey];
+                
+                if (shift) {
+                    const targetShift = scheduleData[targetName][dateKey] ? `${scheduleData[targetName][dateKey]}, ${shift}` : shift;
+                    
+                    // Update target in cloud
+                    await cloudService.updateScheduleEntry(targetName, dateKey, targetShift);
+                    
+                    // Clear source in cloud
+                    await cloudService.updateScheduleEntry(sourceName, dateKey, '');
+                    
+                    // Update local state
+                    scheduleData[targetName][dateKey] = targetShift;
+                    scheduleData[sourceName][dateKey] = '';
+                }
+            }
+            
+            renderTable();
+            showNotification("✅ Shifts from 'OPEN POSITION' have been moved.", 'success');
+            
+        } catch (error) {
+            console.error('Error moving shifts:', error);
+            showNotification('Failed to move shifts: ' + error.message, 'error');
+        }
     }
 
     function showContextMenu(event, employeeName, dateKey) {
