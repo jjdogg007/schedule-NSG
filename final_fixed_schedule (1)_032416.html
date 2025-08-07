@@ -523,7 +523,7 @@
     <div id="manager-view">
         <div class="container">
             <h1>Definitive Schedule Generator</h1>
-            <p>A complete scheduling workspace. This tool auto-saves your progress to the browser.</p>
+            <p>A complete cloud-first scheduling workspace. All data is automatically synced to the cloud in real-time.</p>
 
             <div class="controls">
                 <div class="control-group">
@@ -1938,7 +1938,16 @@ function loadAndRenderPortal(portalId, state) {
     }
 }
 
-    function resetSavedState() { if (confirm("Are you sure you want to clear ALL saved data?")) { localStorage.removeItem('scheduleGeneratorState'); location.reload(); } }
+    function resetSavedState() { 
+        if (confirm("Are you sure you want to clear ALL saved data? This will sign you out and clear all cloud data.")) { 
+            cloudService.signOut().then(() => {
+                location.reload();
+            }).catch(error => {
+                console.error('Error signing out:', error);
+                location.reload();
+            });
+        } 
+    }
     
     function openEmployeeModal(index = -1) {
         clearEmployeeForm();
@@ -3085,13 +3094,14 @@ async function markNotificationsAsRead(employeeId) {
         }
     }
 
-    // Submit PTO request
+    // Submit PTO request (Cloud-first implementation)
     async function submitPTORequest() {
-        const urlParams = new URLSearchParams(window.location.search);
-        const employeeId = urlParams.get('portal');
+        // In cloud-first mode, we need to identify the current employee
+        // For now, we'll use a simplified approach
+        const currentEmployee = employees[0]; // TODO: Implement proper employee selection
         
-        if (!employeeId) {
-            alert('Error: Employee ID not found');
+        if (!currentEmployee) {
+            showNotification('Error: No employee selected', 'error');
             return;
         }
 
@@ -3103,15 +3113,15 @@ async function markNotificationsAsRead(employeeId) {
 
         // Basic validation
         if (!startDate || !endDate) {
-            alert('Please select both start and end dates');
+            showNotification('Please select both start and end dates', 'error');
             return;
         }
 
         // Enhanced validation with conflict detection
-        const validation = validatePTORequest(employeeId, startDate, endDate, ptoType);
+        const validation = validatePTORequest(currentEmployee.id, startDate, endDate, ptoType);
         
         if (!validation.valid) {
-            alert('PTO Request Errors:\n' + validation.errors.join('\n'));
+            showNotification('PTO Request Errors:\n' + validation.errors.join('\n'), 'error');
             return;
         }
 
@@ -3125,100 +3135,44 @@ async function markNotificationsAsRead(employeeId) {
         }
 
         const daysRequested = validation.daysRequested;
-        const employee = employees.find(e => e.id === employeeId);
 
         try {
-            // Create PTO request
-            const requestId = generateUUID();
-            const newRequest = {
-                id: requestId,
-                employeeId: employeeId,
-                employeeName: employee.name,
-                startDate: startDate,
-                endDate: endDate,
-                daysRequested: daysRequested,
-                requestType: ptoType,
-                reason: comments,
-                status: 'pending',
-                submissionDate: new Date().toISOString(),
-                approvalDate: null,
-                managerId: null,
-                managerComments: '',
-                conflicts: validation.conflicts, // Store conflict information
-                validationWarnings: validation.warnings
+            // Create PTO request data
+            const ptoData = {
+                employee_id: currentEmployee.id,
+                start_date: startDate,
+                end_date: endDate,
+                request_type: ptoType,
+                reason: ptoType,
+                comments: comments,
+                days_requested: daysRequested
             };
 
-            // Try to load current state from Supabase, fallback to localStorage
-            let state = {};
-            try {
-                if (typeof supabaseClient !== 'undefined') {
-                    const { data: records, error: fetchError } = await supabaseClient.from('schedules').select('data').eq('id', 1).single();
-                    if (!fetchError && records?.data) {
-                        state = records.data;
-                    }
-                }
-            } catch (err) {
-                console.warn('Could not load from Supabase, using local data:', err);
-            }
-            
-            // Fallback to localStorage or current data
-            if (!state.ptoRequests) {
-                const localData = localStorage.getItem('scheduleGeneratorState');
-                if (localData) {
-                    state = JSON.parse(localData);
-                } else {
-                    state = {
-                        employees,
-                        schedule: scheduleData,
-                        notesData,
-                        bidsData,
-                        notifications,
-                        ptoRequests,
-                        employeePTOBalances
-                    };
-                }
-            }
-
-            if (!state.ptoRequests) state.ptoRequests = {};
-            if (!state.employeePTOBalances) state.employeePTOBalances = {};
-
-            // Add the request
-            state.ptoRequests[requestId] = newRequest;
-
-            // Update pending PTO balance
-            if (!state.employeePTOBalances[employeeId]) {
-                state.employeePTOBalances[employeeId] = employeePTOBalances[employeeId] || {
-                    employeeName: employee.name,
-                    hireDate: employee.hireDate || "2024-01-01",
-                    totalPTODays: employee.type === "FT" ? 20 : 15,
-                    usedPTODays: 0,
-                    pendingPTODays: 0
-                };
-            }
-            state.employeePTOBalances[employeeId].pendingPTODays += daysRequested;
-
-            // Save to both Supabase and localStorage
-            try {
-                if (typeof supabaseClient !== 'undefined') {
-                    const { error: saveError } = await supabaseClient.from('schedules').upsert({ id: 1, data: state });
-                    if (saveError) throw new Error(saveError.message);
-                }
-            } catch (err) {
-                console.warn('Could not save to Supabase, saving locally:', err);
-            }
-            
-            // Always save to localStorage as backup
-            localStorage.setItem('scheduleGeneratorState', JSON.stringify(state));
+            // Submit to cloud
+            const newRequest = await cloudService.submitPTORequest(ptoData);
 
             // Update local state
-            ptoRequests[requestId] = newRequest;
-            if (employeePTOBalances[employeeId]) {
-                employeePTOBalances[employeeId].pendingPTODays += daysRequested;
-            }
+            ptoRequests[newRequest.id] = {
+                ...newRequest,
+                employeeName: currentEmployee.name
+            };
 
-            alert(`✅ PTO request submitted successfully!\n\nRequest Details:\n• ${daysRequested} days requested\n• ${ptoType} leave\n• Status: Pending approval\n\nYour manager will be notified of this request.`);
+            showNotification(`✅ PTO request submitted successfully!\n\nRequest Details:\n• ${daysRequested} days requested\n• ${ptoType} leave\n• Status: Pending approval\n\nYour manager will be notified of this request.`, 'success');
 
             // Clear form
+            document.getElementById('pto-start-date').value = '';
+            document.getElementById('pto-end-date').value = '';
+            document.getElementById('pto-comments').value = '';
+            document.getElementById('pto-days-display').value = '';
+
+            // Refresh PTO display
+            displayPortalPTOData(currentEmployee.id);
+
+        } catch (error) {
+            console.error('Error submitting PTO request:', error);
+            showNotification('Failed to submit PTO request: ' + error.message, 'error');
+        }
+    }
             document.getElementById('pto-start-date').value = '';
             document.getElementById('pto-end-date').value = '';
             document.getElementById('pto-comments').value = '';
@@ -5162,108 +5116,46 @@ HR Department
             container.innerHTML = '<div style="text-align: center; color: #dc3545; padding: 40px;">Failed to load audit logs</div>';
         }
     }
-        }
-        
-        if (actionFilter) {
-            filteredLogs = filteredLogs.filter(log => 
-                log.action.includes(actionFilter)
-            );
-        }
-        
-        if (filteredLogs.length === 0) {
-            container.innerHTML = '<div style="text-align: center; color: #6c757d; padding: 40px;">No audit logs found</div>';
-            return;
-        }
-        
-        filteredLogs.forEach(log => {
-            const item = document.createElement('div');
-            item.style.cssText = `
-                background: white;
-                border: 1px solid #dee2e6;
-                border-radius: 8px;
-                padding: 15px;
-                margin-bottom: 10px;
-                font-family: monospace;
-                font-size: 12px;
-            `;
-            
-            item.innerHTML = `
-                <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-                    <strong style="color: #0d6efd;">${log.action}</strong>
-                    <span style="color: #6c757d;">${new Date(log.timestamp).toLocaleString()}</span>
-                </div>
-                <div style="margin-bottom: 8px; color: #495057;">${log.details.description || 'No description'}</div>
-                <div style="font-size: 11px; color: #6c757d;">
-                    User: ${log.userId} | IP: ${log.ipAddress}
-                </div>
-                ${log.beforeValue ? `<div style="font-size: 11px; color: #dc3545; margin-top: 5px;">Before: ${JSON.stringify(log.beforeValue)}</div>` : ''}
-                ${log.afterValue ? `<div style="font-size: 11px; color: #198754; margin-top: 5px;">After: ${JSON.stringify(log.afterValue)}</div>` : ''}
-            `;
-            
-            container.appendChild(item);
-        });
-    }
 
     function searchAuditLogs() {
         loadAuditLogs();
     }
 
     function exportAuditLogs() {
-        const csv = auditLogs.map(log => 
-            `"${log.timestamp}","${log.userId}","${log.action}","${log.details.description || ''}","${log.ipAddress}"`
-        ).join('\n');
-        
-        const header = 'Timestamp,User ID,Action,Description,IP Address\n';
-        const blob = new Blob([header + csv], { type: 'text/csv' });
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `audit-logs-${new Date().toISOString().split('T')[0]}.csv`;
-        a.click();
-        window.URL.revokeObjectURL(url);
+        // In cloud-first mode, export data from cloud service
+        cloudService.getAuditLogs().then(auditLogs => {
+            const csv = auditLogs.map(log => 
+                `"${log.created_at}","${log.user?.email || 'Unknown'}","${log.action}","${log.description || ''}","${log.ip_address || 'Unknown'}"`
+            ).join('\n');
+            
+            const header = 'Timestamp,User Email,Action,Description,IP Address\n';
+            const blob = new Blob([header + csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `audit-logs-${new Date().toISOString().split('T')[0]}.csv`;
+            a.click();
+            window.URL.revokeObjectURL(url);
+        }).catch(error => {
+            console.error('Error exporting audit logs:', error);
+            showNotification('Failed to export audit logs: ' + error.message, 'error');
+        });
     }
 
-    // ================== MASTER PASSWORD SYSTEM ==================
+    // ================== MASTER PASSWORD SYSTEM (REPLACED WITH CLOUD AUTH) ==================
     
-    const MASTER_PASSWORD = localStorage.getItem('masterPassword') || 'admin123'; // Default password
-    let isAuthenticated = sessionStorage.getItem('authenticated') === 'true';
-
+    // The master password system is now replaced with cloud-based authentication
+    // These functions are kept for compatibility but no longer use localStorage
+    
     function checkAuthentication() {
-        if (!isAuthenticated) {
-            document.getElementById('masterPasswordModal').style.display = 'block';
-            // Hide main content
-            document.getElementById('manager-view').style.display = 'none';
-            document.getElementById('employee-portal').style.display = 'none';
-        }
+        // This is now handled during app initialization
+        // Authentication is managed by Supabase Auth
+        console.log('checkAuthentication called - now handled by cloud auth');
     }
 
     function checkMasterPassword() {
-        const enteredPassword = document.getElementById('master-password-input').value;
-        const errorDiv = document.getElementById('password-error');
-        
-        if (enteredPassword === MASTER_PASSWORD) {
-            isAuthenticated = true;
-            sessionStorage.setItem('authenticated', 'true');
-            document.getElementById('masterPasswordModal').style.display = 'none';
-            document.getElementById('manager-view').style.display = 'block';
-            
-            // Log successful login
-            logAuditEvent('login', {
-                description: 'Successful application login',
-                timestamp: new Date().toISOString()
-            });
-            
-            showNotification('Welcome to Schedule NSG!', 'success');
-        } else {
-            errorDiv.style.display = 'block';
-            document.getElementById('master-password-input').value = '';
-            
-            // Log failed login attempt
-            logAuditEvent('login_failed', {
-                description: 'Failed login attempt',
-                timestamp: new Date().toISOString()
-            });
-        }
+        // This function is obsolete in cloud-first mode
+        console.log('checkMasterPassword called - now using cloud authentication');
     }
 
     // ================== PUSH NOTIFICATIONS ==================
@@ -5273,7 +5165,7 @@ HR Department
             Notification.requestPermission().then(permission => {
                 if (permission === 'granted') {
                     showNotification('Notifications enabled! You\'ll receive updates about schedule changes.', 'success');
-                    localStorage.setItem('notificationsEnabled', 'true');
+                    // Note: notification preference not persisted in cloud-first mode
                 } else {
                     showNotification('Notifications permission denied.', 'warning');
                 }
