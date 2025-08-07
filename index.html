@@ -598,6 +598,185 @@
         .pto-calendar-day { padding: 8px; border: 1px solid #ddd; text-align: center; min-height: 40px; }
         .pto-calendar-approved { background-color: #d4edda; }
         .pto-calendar-pending { background-color: #fff3cd; }
+
+        /* Enhanced Employee Portal Styles */
+        .enhanced-portal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid #e2e8f0;
+        }
+        .view-controls {
+            display: flex;
+            gap: 0.5rem;
+        }
+        .view-controls button {
+            padding: 0.5rem 1rem;
+            border: 1px solid #d1d5db;
+            background: white;
+            border-radius: 0.375rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .view-controls button:hover {
+            background: #f3f4f6;
+        }
+        .view-controls button.active {
+            background: #3b82f6;
+            color: white;
+            border-color: #3b82f6;
+        }
+        .export-btn {
+            background: #059669 !important;
+            color: white !important;
+            border-color: #059669 !important;
+        }
+        .export-btn:hover {
+            background: #047857 !important;
+        }
+
+        /* List View Styles */
+        .list-view .month-section {
+            margin-bottom: 2rem;
+            background: white;
+            border-radius: 0.75rem;
+            border: 1px solid #e5e7eb;
+            overflow: hidden;
+        }
+        .month-header {
+            background: #f8fafc;
+            padding: 1rem 1.5rem;
+            margin: 0;
+            border-bottom: 1px solid #e5e7eb;
+            color: #374151;
+        }
+        .month-content {
+            padding: 1rem;
+        }
+        .events-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .event-item {
+            display: flex;
+            align-items: center;
+            padding: 0.75rem;
+            margin-bottom: 0.5rem;
+            border-radius: 0.5rem;
+            border-left: 4px solid #e5e7eb;
+        }
+        .event-shift {
+            background: #ecfdf5;
+            border-left-color: #10b981;
+        }
+        .event-pto {
+            background: #fef3c7;
+            border-left-color: #f59e0b;
+        }
+        .event-open {
+            background: #e0e7ff;
+            border-left-color: #6366f1;
+        }
+        .event-date {
+            min-width: 80px;
+            text-align: center;
+            margin-right: 1rem;
+        }
+        .day-name {
+            font-size: 0.75rem;
+            color: #6b7280;
+            text-transform: uppercase;
+        }
+        .date-str {
+            font-weight: 600;
+            color: #374151;
+        }
+        .event-content {
+            flex: 1;
+            font-weight: 500;
+        }
+        .no-events {
+            text-align: center;
+            color: #9ca3af;
+            font-style: italic;
+            padding: 2rem;
+        }
+
+        /* Calendar View Styles */
+        .calendar-view .calendar-month {
+            margin-bottom: 2rem;
+            background: white;
+            border-radius: 0.75rem;
+            border: 1px solid #e5e7eb;
+            overflow: hidden;
+        }
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+        }
+        .calendar-header {
+            background: #f8fafc;
+            padding: 0.75rem;
+            text-align: center;
+            font-weight: 600;
+            color: #6b7280;
+            border-bottom: 1px solid #e5e7eb;
+            border-right: 1px solid #e5e7eb;
+        }
+        .calendar-header:last-child {
+            border-right: none;
+        }
+        .calendar-day {
+            min-height: 100px;
+            padding: 0.5rem;
+            border-bottom: 1px solid #e5e7eb;
+            border-right: 1px solid #e5e7eb;
+            position: relative;
+        }
+        .calendar-day:last-child {
+            border-right: none;
+        }
+        .calendar-day.other-month {
+            background: #f9fafb;
+            color: #9ca3af;
+        }
+        .day-number {
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+        .day-event {
+            font-size: 0.75rem;
+            padding: 0.125rem 0.25rem;
+            border-radius: 0.25rem;
+            margin-bottom: 0.125rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .shift-event {
+            background: #dcfce7;
+            color: #166534;
+        }
+        .pto-event {
+            background: #fef3c7;
+            color: #92400e;
+        }
+        .open-event {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+        .calendar-day.has-shift {
+            background: #f0fdf4;
+        }
+        .calendar-day.has-pto {
+            background: #fffbeb;
+        }
+        .calendar-day.has-open {
+            background: #eff6ff;
+        }
         .pto-calendar-conflict { background-color: #f8d7da; }
         
         /* Responsive breakpoints */
@@ -683,6 +862,25 @@
     </style>
 </head>
 <body>
+    <!-- Loading Spinner -->
+    <div id="loading-spinner" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 10000; justify-content: center; align-items: center;">
+        <div style="background: white; padding: 2rem; border-radius: 0.5rem; text-align: center; max-width: 300px;">
+            <div style="font-size: 2rem; margin-bottom: 1rem;">⏳</div>
+            <div class="loading-message" style="font-weight: 600; margin-bottom: 0.5rem;">Loading...</div>
+            <div style="font-size: 0.875rem; color: #6b7280;">Please wait while we process your request</div>
+        </div>
+    </div>
+
+    <!-- Status Bar -->
+    <div id="status-bar" style="background: #f8fafc; border-bottom: 1px solid #e2e8f0; padding: 0.5rem 1rem; font-size: 0.875rem; color: #6b7280; display: flex; justify-content: space-between; align-items: center;">
+        <div>
+            <span id="connection-status">🟢 Connected</span>
+        </div>
+        <div>
+            <span id="last-saved-indicator">Ready</span>
+        </div>
+    </div>
+
     <!-- Mobile Navigation -->
     <div class="mobile-nav">
         <div class="mobile-nav-header">
@@ -1334,6 +1532,40 @@ const shiftTypes = {
         );
     }
 
+    // Update last saved indicator
+    function updateLastSavedIndicator(saveTime) {
+        const indicator = document.getElementById('last-saved-indicator');
+        if (indicator) {
+            indicator.textContent = `Last saved: ${saveTime}`;
+            indicator.style.color = '#059669'; // green color
+            
+            // Fade back to normal color after 3 seconds
+            setTimeout(() => {
+                indicator.style.color = '#6b7280'; // gray color
+            }, 3000);
+        }
+    }
+
+    // Show loading spinner
+    function showLoadingSpinner(message = 'Loading...') {
+        const spinner = document.getElementById('loading-spinner');
+        if (spinner) {
+            spinner.style.display = 'block';
+            const messageEl = spinner.querySelector('.loading-message');
+            if (messageEl) {
+                messageEl.textContent = message;
+            }
+        }
+    }
+
+    // Hide loading spinner
+    function hideLoadingSpinner() {
+        const spinner = document.getElementById('loading-spinner');
+        if (spinner) {
+            spinner.style.display = 'none';
+        }
+    }
+
     // Add event listener for schedule month with existence check
     function attachScheduleMonthListener() {
         const scheduleMonth = document.getElementById('scheduleMonth');
@@ -1709,6 +1941,19 @@ function recordHistory() {
     }
 
 async function saveState() {
+    // Prevent accidental employee wipe: warn if employee list is empty
+    if (!employees || employees.length === 0) {
+        const confirmSave = confirm(
+            "⚠️ WARNING: You are about to save with an empty employee list!\n\n" +
+            "This will permanently delete all employee data from the database.\n\n" +
+            "Are you sure you want to proceed?"
+        );
+        if (!confirmSave) {
+            console.log('Save cancelled due to empty employee list warning');
+            return;
+        }
+    }
+
     const stateToSave = {
         employees,
         schedule: scheduleData,
@@ -1735,27 +1980,498 @@ async function saveState() {
 
             if (error) {
                 console.error("Supabase save error:", error);
+                
+                // Show user-friendly error message
+                let userMessage = "Failed to save data to cloud database. ";
+                if (error.code === 'PGRST301') {
+                    userMessage += "Database connection timeout. Please check your internet connection and try again.";
+                } else if (error.code === '23505') {
+                    userMessage += "Data conflict detected. Please refresh and try again.";
+                } else if (error.message) {
+                    userMessage += `Error: ${error.message}`;
+                } else {
+                    userMessage += "Please check your internet connection and try again.";
+                }
+                
+                alert(`❌ Save Failed\n\n${userMessage}`);
                 throw new Error(`Failed to save data: ${error.message}`);
             }
             console.log('✅ Successfully saved to cloud');
+            
+            // Show success message
+            const saveTime = new Date().toLocaleTimeString();
+            updateLastSavedIndicator(saveTime);
+            
         } else {
-            throw new Error('Supabase client not available - cannot save data');
+            const errorMsg = 'Cloud database not available - cannot save data';
+            alert(`❌ Save Failed\n\n${errorMsg}\n\nPlease check your internet connection and refresh the page.`);
+            throw new Error(errorMsg);
         }
     } catch (err) {
         console.error("Save failed:", err);
-        throw err; // Re-throw error to notify user
+        
+        // Only show alert if we haven't already shown one
+        if (!err.message.includes('Failed to save data:')) {
+            alert(`❌ Unexpected Save Error\n\n${err.message || 'Unknown error occurred'}\n\nPlease try again or contact support.`);
+        }
+        
+        throw err; // Re-throw error to notify calling code
     }
 }
-// Replace your existing loadState function with this final, complete version.
 
-async function loadState() {
-    console.log('Starting loadState function...');
-    const urlParams = new URLSearchParams(window.location.search);
-    const portalId = urlParams.get('portal');
+// ================== BACKUP & RESTORE SYSTEM ==================
+
+function exportBackup() {
+    try {
+        const backupData = {
+            version: "1.0",
+            timestamp: new Date().toISOString(),
+            data: {
+                employees,
+                schedule: scheduleData,
+                notesData,
+                bidsData,
+                notifications,
+                ptoRequests,
+                employeePTOBalances,
+                announcements,
+                auditLogs,
+                month: document.getElementById('scheduleMonth')?.value || '',
+                config: {
+                    targetHours: document.getElementById('targetHours')?.value || '',
+                    minStaff: document.getElementById('minStaff')?.value || ''
+                }
+            }
+        };
+
+        const jsonString = JSON.stringify(backupData, null, 2);
+        const blob = new Blob([jsonString], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `schedule-backup-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        
+        alert('✅ Backup exported successfully!\n\nThe backup file has been downloaded and contains all your schedule data.');
+        
+    } catch (err) {
+        console.error('Export backup failed:', err);
+        alert('❌ Export Failed\n\nFailed to create backup file. Please try again.');
+    }
+}
+
+function importBackup() {
+    const fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.accept = '.json';
     
-    let records = null;
-    let error = null;
+    fileInput.onchange = async function(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        
+        try {
+            const text = await file.text();
+            const backupData = JSON.parse(text);
+            
+            // Validate backup structure
+            if (!backupData.data) {
+                throw new Error('Invalid backup file: missing data section');
+            }
+            
+            const confirmRestore = confirm(
+                `⚠️ RESTORE BACKUP\n\n` +
+                `This will replace ALL current data with the backup from:\n` +
+                `${new Date(backupData.timestamp || '').toLocaleString()}\n\n` +
+                `Current data will be permanently lost!\n\n` +
+                `Are you sure you want to proceed?`
+            );
+            
+            if (!confirmRestore) return;
+            
+            showLoadingSpinner('Restoring backup...');
+            
+            // Restore data
+            const state = backupData.data;
+            employees = state.employees || [];
+            scheduleData = state.schedule || {};
+            notesData = state.notesData || {};
+            bidsData = state.bidsData || {};
+            notifications = state.notifications || {};
+            ptoRequests = state.ptoRequests || {};
+            employeePTOBalances = state.employeePTOBalances || {};
+            announcements = state.announcements || [];
+            auditLogs = state.auditLogs || [];
+            
+            // Restore form values
+            if (state.month) {
+                const monthEl = document.getElementById('scheduleMonth');
+                if (monthEl) monthEl.value = state.month;
+            }
+            if (state.config) {
+                if (state.config.targetHours) {
+                    const targetEl = document.getElementById('targetHours');
+                    if (targetEl) targetEl.value = state.config.targetHours;
+                }
+                if (state.config.minStaff) {
+                    const minStaffEl = document.getElementById('minStaff');
+                    if (minStaffEl) minStaffEl.value = state.config.minStaff;
+                }
+            }
+            
+            // Save to cloud and regenerate display
+            await saveState();
+            renderTable();
+            updateEmployeeSummary();
+            
+            hideLoadingSpinner();
+            alert('✅ Backup restored successfully!\n\nAll data has been restored from the backup file.');
+            
+        } catch (err) {
+            hideLoadingSpinner();
+            console.error('Import backup failed:', err);
+            alert(`❌ Import Failed\n\n${err.message || 'Failed to restore backup'}\n\nPlease check that the file is a valid backup file.`);
+        }
+    };
     
+    fileInput.click();
+}
+
+async function quickBackupRestore() {
+    try {
+        showLoadingSpinner('Creating quick backup...');
+        
+        // Save current state to localStorage as emergency backup
+        const backupData = {
+            version: "1.0",
+            timestamp: new Date().toISOString(),
+            type: "emergency_backup",
+            data: {
+                employees,
+                schedule: scheduleData,
+                notesData,
+                bidsData,
+                notifications,
+                ptoRequests,
+                employeePTOBalances,
+                announcements,
+                auditLogs,
+                month: document.getElementById('scheduleMonth')?.value || '',
+                config: {
+                    targetHours: document.getElementById('targetHours')?.value || '',
+                    minStaff: document.getElementById('minStaff')?.value || ''
+                }
+            }
+        };
+        
+        localStorage.setItem('emergency_backup', JSON.stringify(backupData));
+        
+        hideLoadingSpinner();
+        alert('✅ Emergency backup created!\n\nA backup has been saved locally and can be restored using the "Restore Emergency Backup" option.');
+        
+    } catch (err) {
+        hideLoadingSpinner();
+        console.error('Quick backup failed:', err);
+        alert('❌ Quick Backup Failed\n\nFailed to create emergency backup.');
+    }
+}
+
+async function restoreEmergencyBackup() {
+    try {
+        const backupString = localStorage.getItem('emergency_backup');
+        if (!backupString) {
+            alert('❌ No Emergency Backup Found\n\nNo emergency backup is available to restore.');
+            return;
+        }
+        
+        const backupData = JSON.parse(backupString);
+        
+        const confirmRestore = confirm(
+            `⚠️ RESTORE EMERGENCY BACKUP\n\n` +
+            `This will restore the emergency backup from:\n` +
+            `${new Date(backupData.timestamp || '').toLocaleString()}\n\n` +
+            `Current data will be replaced!\n\n` +
+            `Are you sure you want to proceed?`
+        );
+        
+        if (!confirmRestore) return;
+        
+        showLoadingSpinner('Restoring emergency backup...');
+        
+        // Restore data
+        const state = backupData.data;
+        employees = state.employees || [];
+        scheduleData = state.schedule || {};
+        notesData = state.notesData || {};
+        bidsData = state.bidsData || {};
+        notifications = state.notifications || {};
+        ptoRequests = state.ptoRequests || {};
+        employeePTOBalances = state.employeePTOBalances || {};
+        announcements = state.announcements || [];
+        auditLogs = state.auditLogs || [];
+        
+        // Restore form values
+        if (state.month) {
+            const monthEl = document.getElementById('scheduleMonth');
+            if (monthEl) monthEl.value = state.month;
+        }
+        if (state.config) {
+            if (state.config.targetHours) {
+                const targetEl = document.getElementById('targetHours');
+                if (targetEl) targetEl.value = state.config.targetHours;
+            }
+            if (state.config.minStaff) {
+                const minStaffEl = document.getElementById('minStaff');
+                if (minStaffEl) minStaffEl.value = state.config.minStaff;
+            }
+        }
+        
+        // Save to cloud and regenerate display
+        await saveState();
+        renderTable();
+        updateEmployeeSummary();
+        
+        hideLoadingSpinner();
+        alert('✅ Emergency backup restored successfully!');
+        
+    } catch (err) {
+        hideLoadingSpinner();
+        console.error('Restore emergency backup failed:', err);
+        alert(`❌ Restore Failed\n\n${err.message || 'Failed to restore emergency backup'}`);
+    }
+}
+
+// ================== EMPLOYEE ARCHIVE MANAGEMENT ==================
+
+function openEmployeeArchiveModal() {
+    const inactiveEmployees = employees.filter(emp => emp.status === 'inactive');
+    
+    let modalHTML = `
+        <div class="modal" style="display: block;">
+            <div class="modal-content" style="max-width: 800px;">
+                <div class="modal-header">
+                    <h2>📂 Employee Archive</h2>
+                    <span class="close" onclick="closeAllModals()">×</span>
+                </div>
+                <div style="padding: 1rem;">
+    `;
+    
+    if (inactiveEmployees.length === 0) {
+        modalHTML += `
+            <div style="text-align: center; padding: 2rem; color: #6b7280;">
+                <div style="font-size: 3rem; margin-bottom: 1rem;">📂</div>
+                <h3>No Archived Employees</h3>
+                <p>All employees are currently active. Archived employees will appear here when you archive them.</p>
+            </div>
+        `;
+    } else {
+        modalHTML += `
+            <div style="margin-bottom: 1rem;">
+                <button class="btn btn-success" onclick="restoreAllEmployees()">✅ Restore All</button>
+                <button class="btn btn-danger" onclick="permanentlyDeleteAllInactive()" style="float: right;">🗑️ Permanently Delete All</button>
+            </div>
+            <div class="archive-list">
+        `;
+        
+        inactiveEmployees.forEach((emp, index) => {
+            const archiveDate = emp.archivedDate ? new Date(emp.archivedDate).toLocaleDateString() : 'Unknown';
+            modalHTML += `
+                <div class="archive-item" style="display: flex; justify-content: space-between; align-items: center; padding: 1rem; border: 1px solid #e5e7eb; border-radius: 0.5rem; margin-bottom: 0.5rem; background: #f9fafb;">
+                    <div>
+                        <div style="font-weight: 600;">${emp.name}</div>
+                        <div style="font-size: 0.875rem; color: #6b7280;">
+                            ${emp.type} • Archived: ${archiveDate} • Hours: ${emp.targetHours || 0}
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <button class="btn btn-success" onclick="restoreEmployee(${employees.indexOf(emp)})" style="font-size: 0.875rem; padding: 0.25rem 0.5rem;">✅ Restore</button>
+                        <button class="btn btn-danger" onclick="permanentlyDeleteEmployee(${employees.indexOf(emp)})" style="font-size: 0.875rem; padding: 0.25rem 0.5rem;">🗑️ Delete</button>
+                    </div>
+                </div>
+            `;
+        });
+        
+        modalHTML += '</div>';
+    }
+    
+    modalHTML += `
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+}
+
+function showInactiveEmployees() {
+    const inactiveCount = employees.filter(emp => emp.status === 'inactive').length;
+    
+    if (inactiveCount === 0) {
+        alert('📂 No Archived Employees\n\nAll employees are currently active.');
+        return;
+    }
+    
+    // Toggle display of inactive employees in the main employee list
+    const showInactive = confirm(
+        `📂 Show Archived Employees?\n\n` +
+        `Found ${inactiveCount} archived employee(s).\n\n` +
+        `Click OK to include them in the employee list, or Cancel to keep them hidden.`
+    );
+    
+    if (showInactive) {
+        // Re-render employee list including inactive employees
+        renderEmployeeList(true); // true = include inactive
+        alert('👻 Archived employees are now visible in the employee list with gray backgrounds.');
+    }
+}
+
+function massArchiveEmployees() {
+    const activeEmployees = employees.filter(emp => emp.status !== 'inactive');
+    
+    if (activeEmployees.length === 0) {
+        alert('❌ No Active Employees\n\nAll employees are already archived.');
+        return;
+    }
+    
+    const selectedEmployees = [];
+    let confirmationMessage = `⚠️ MASS ARCHIVE EMPLOYEES\n\nSelect employees to archive:\n\n`;
+    
+    // Show selection dialog
+    const selections = activeEmployees.map(emp => {
+        return confirm(`Archive ${emp.name} (${emp.type})?`);
+    });
+    
+    const toArchive = activeEmployees.filter((emp, index) => selections[index]);
+    
+    if (toArchive.length === 0) {
+        alert('No employees selected for archiving.');
+        return;
+    }
+    
+    const finalConfirm = confirm(
+        `⚠️ FINAL CONFIRMATION\n\n` +
+        `You are about to archive ${toArchive.length} employee(s):\n` +
+        `${toArchive.map(emp => `• ${emp.name}`).join('\n')}\n\n` +
+        `This will remove them from active schedules but preserve their history.\n\n` +
+        `Are you sure?`
+    );
+    
+    if (finalConfirm) {
+        recordHistory();
+        
+        toArchive.forEach(emp => {
+            const empIndex = employees.indexOf(emp);
+            if (empIndex !== -1) {
+                employees[empIndex].status = 'inactive';
+                employees[empIndex].archivedDate = new Date().toISOString();
+                
+                // Archive schedule data
+                if (scheduleData[emp.name]) {
+                    scheduleData[emp.name + ' (Archived)'] = scheduleData[emp.name];
+                    delete scheduleData[emp.name];
+                }
+            }
+        });
+        
+        renderEmployeeList();
+        renderTable();
+        saveState();
+        
+        alert(`✅ Mass Archive Complete\n\n${toArchive.length} employee(s) have been archived successfully.`);
+    }
+}
+
+function restoreAllEmployees() {
+    const inactiveEmployees = employees.filter(emp => emp.status === 'inactive');
+    
+    if (inactiveEmployees.length === 0) {
+        alert('📂 No Archived Employees\n\nThere are no employees to restore.');
+        return;
+    }
+    
+    const confirmRestore = confirm(
+        `✅ RESTORE ALL EMPLOYEES\n\n` +
+        `This will restore ${inactiveEmployees.length} archived employee(s) to active status:\n` +
+        `${inactiveEmployees.map(emp => `• ${emp.name}`).join('\n')}\n\n` +
+        `Are you sure?`
+    );
+    
+    if (confirmRestore) {
+        recordHistory();
+        
+        inactiveEmployees.forEach(emp => {
+            delete emp.status;
+            delete emp.archivedDate;
+            
+            // Restore schedule data if archived version exists
+            if (scheduleData[emp.name + ' (Archived)']) {
+                scheduleData[emp.name] = scheduleData[emp.name + ' (Archived)'];
+                delete scheduleData[emp.name + ' (Archived)'];
+            }
+        });
+        
+        renderEmployeeList();
+        renderTable();
+        saveState();
+        closeAllModals();
+        
+        alert(`✅ All employees restored successfully!\n\n${inactiveEmployees.length} employee(s) are now active.`);
+    }
+}
+
+function permanentlyDeleteAllInactive() {
+    const inactiveEmployees = employees.filter(emp => emp.status === 'inactive');
+    
+    if (inactiveEmployees.length === 0) {
+        alert('📂 No Archived Employees\n\nThere are no archived employees to delete.');
+        return;
+    }
+    
+    const confirmDelete = confirm(
+        `🚨 PERMANENTLY DELETE ALL ARCHIVED EMPLOYEES\n\n` +
+        `This will PERMANENTLY DELETE ${inactiveEmployees.length} archived employee(s):\n` +
+        `${inactiveEmployees.map(emp => `• ${emp.name}`).join('\n')}\n\n` +
+        `⚠️ THIS CANNOT BE UNDONE! ⚠️\n` +
+        `All their data, history, and records will be lost forever.\n\n` +
+        `Are you absolutely sure?`
+    );
+    
+    if (confirmDelete) {
+        const doubleConfirm = prompt(
+            `Type "DELETE ALL" to confirm permanent deletion of all archived employees:`,
+            ""
+        );
+        
+        if (doubleConfirm === "DELETE ALL") {
+            recordHistory();
+            
+            inactiveEmployees.forEach(emp => {
+                const empIndex = employees.indexOf(emp);
+                if (empIndex !== -1) {
+                    // Delete all data
+                    delete scheduleData[emp.name];
+                    delete scheduleData[emp.name + ' (Archived)'];
+                    delete notesData[emp.name];
+                    
+                    employees.splice(empIndex, 1);
+                }
+            });
+            
+            renderEmployeeList();
+            renderTable();
+            saveState();
+            closeAllModals();
+            
+            alert(`All archived employees have been permanently deleted.`);
+        } else {
+            alert('Deletion cancelled - incorrect confirmation.');
+        }
+    }
+}
+
 async function loadState() {
     console.log('Starting loadState function...');
     const urlParams = new URLSearchParams(window.location.search);
@@ -1796,16 +2512,31 @@ async function loadState() {
     } catch (err) {
         console.error("Could not load from cloud:", err);
         error = err;
+        
         // Show user-friendly error message
+        let userMessage = "Failed to load data from cloud database. ";
         if (err.message && err.message.includes('Supabase client not available')) {
-            alert('Error: Cloud database is not available. Please check your connection and refresh the page.');
+            userMessage = "Cloud database is not available. ";
+        } else if (err.code === 'PGRST301') {
+            userMessage = "Database connection timeout. ";
+        } else if (err.message) {
+            userMessage += `Error: ${err.message} `;
+        }
+        userMessage += "Please check your internet connection and refresh the page.";
+        
+        // Only show alert for serious errors, not missing data
+        if (err.code !== 'PGRST116') { // PGRST116 = no data found, which is normal for new instances
+            alert(`❌ Load Failed\n\n${userMessage}`);
         }
     }
 
     if (error && error.code !== 'PGRST116' && !records) {
         console.error("Error loading state:", error);
-        if (error.code !== 'PGRST116') { // Don't show error for "no data found"
-            alert('Failed to load data from cloud database. Please refresh the page and try again.');
+        // Don't show error for "no data found" (PGRST116) as this is expected for new instances
+        if (error.code !== 'PGRST116') {
+            let errorDetail = error.message || 'Unknown database error';
+            console.warn('Load error details:', errorDetail);
+            // Error message already shown in catch block above
         }
     }
 
@@ -1996,28 +2727,8 @@ function loadAndRenderPortal(portalId, state) {
         titleEl.textContent = `Your Schedule for ${new Date(state.month + '-02').toLocaleString('default', { month: 'long', year: 'numeric' })}`;
     }
 
-    // Update schedule view with null check
-    const scheduleView = document.getElementById('portal-schedule-view');
-    if (scheduleView) {
-        const employeeSchedule = state.schedule[employee.name] || {};
-        const scheduleDates = Object.keys(employeeSchedule).filter(key => employeeSchedule[key]).map(key => new Date(key + 'T12:00:00Z')).sort((a, b) => a - b);
-        let scheduleHTML = '<h2>Your Assigned Shifts</h2>';
-        if (scheduleDates.length === 0) { 
-            scheduleHTML += '<p>You have no shifts scheduled for this month.</p>'; 
-        } else {
-            scheduleHTML += '<ul class="schedule-list">';
-            scheduleDates.forEach(date => {
-                const dateKey = date.toISOString().split('T')[0];
-                const shift = employeeSchedule[dateKey];
-                const note = state.notesData[employee.name]?.[dateKey];
-                const dayName = date.toLocaleDateString('en-US', { weekday: 'long' });
-                const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-                scheduleHTML += `<li><div><span class="day-name">${dayName}, ${dateStr}</span></div><div><span>${shift}${note ? ` <em>(${note})</em>` : ''}</span></div></li>`;
-            });
-            scheduleHTML += '</ul>';
-        }
-        scheduleView.innerHTML = scheduleHTML;
-    }
+    // Update schedule view with enhanced month-in-advance portal
+    renderEnhancedPortalView(portalId, state, 'list');
 
     // Update PTO balance display
     const ptoBalanceDisplay = document.getElementById('pto-balance-details');
@@ -2139,6 +2850,354 @@ function loadAndRenderPortal(portalId, state) {
             bidsHTML += '</ul>';
         }
         bidsView.innerHTML = bidsHTML;
+    }
+}
+
+// ================== ENHANCED EMPLOYEE PORTAL ==================
+
+function generateMonthInAdvanceSchedule(employee, state, baseMonth = null) {
+    const schedules = [];
+    const today = new Date();
+    const startDate = baseMonth ? new Date(baseMonth + '-01') : new Date(today.getFullYear(), today.getMonth(), 1);
+    
+    // Generate schedules for current month and next 3 months
+    for (let monthOffset = 0; monthOffset < 4; monthOffset++) {
+        const currentDate = new Date(startDate.getFullYear(), startDate.getMonth() + monthOffset, 1);
+        const monthKey = `${currentDate.getFullYear()}-${(currentDate.getMonth() + 1).toString().padStart(2, '0')}`;
+        
+        const monthData = {
+            month: monthKey,
+            monthName: currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
+            shifts: [],
+            ptoRequests: [],
+            openShifts: []
+        };
+        
+        // Get employee schedule for this month
+        const employeeSchedule = state.schedule[employee.name] || {};
+        
+        // Get all dates in this month
+        const lastDay = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate();
+        
+        for (let day = 1; day <= lastDay; day++) {
+            const date = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
+            const dateKey = date.toISOString().split('T')[0];
+            
+            // Employee's assigned shift
+            if (employeeSchedule[dateKey]) {
+                monthData.shifts.push({
+                    date: dateKey,
+                    dateObj: date,
+                    shift: employeeSchedule[dateKey],
+                    note: state.notesData[employee.name]?.[dateKey] || null
+                });
+            }
+            
+            // Employee's PTO requests
+            const ptoRequest = state.ptoRequests?.[employee.id]?.find(pto => 
+                new Date(pto.startDate) <= date && new Date(pto.endDate) >= date
+            );
+            if (ptoRequest) {
+                monthData.ptoRequests.push({
+                    date: dateKey,
+                    dateObj: date,
+                    request: ptoRequest
+                });
+            }
+        }
+        
+        // Get open shifts for this month
+        const openShiftsEmployee = Object.keys(state.schedule).find(name => name.includes('OPEN SHIFTS'));
+        if (openShiftsEmployee) {
+            const openShiftSchedule = state.schedule[openShiftsEmployee] || {};
+            Object.keys(openShiftSchedule).forEach(dateKey => {
+                const shiftDate = new Date(dateKey + 'T12:00:00Z');
+                if (shiftDate.getFullYear() === currentDate.getFullYear() && 
+                    shiftDate.getMonth() === currentDate.getMonth()) {
+                    const shifts = openShiftSchedule[dateKey].split(',').map(s => s.trim()).filter(s => s);
+                    if (shifts.length > 0) {
+                        monthData.openShifts.push({
+                            date: dateKey,
+                            dateObj: shiftDate,
+                            shifts: shifts
+                        });
+                    }
+                }
+            });
+        }
+        
+        schedules.push(monthData);
+    }
+    
+    return schedules;
+}
+
+function renderEnhancedPortalView(portalId, state, viewMode = 'list') {
+    const employee = state.employees.find(e => e.id === portalId);
+    if (!employee) return;
+    
+    const scheduleView = document.getElementById('portal-schedule-view');
+    if (!scheduleView) return;
+    
+    const monthSchedules = generateMonthInAdvanceSchedule(employee, state);
+    
+    let html = `
+        <div class="enhanced-portal-header">
+            <h2>Your Schedule - Next 4 Months</h2>
+            <div class="view-controls">
+                <button onclick="switchPortalView('${portalId}', 'list')" class="${viewMode === 'list' ? 'active' : ''}">📋 List View</button>
+                <button onclick="switchPortalView('${portalId}', 'calendar')" class="${viewMode === 'calendar' ? 'active' : ''}">📅 Calendar View</button>
+                <button onclick="exportPersonalSchedule('${portalId}')" class="export-btn">💾 Export PDF</button>
+            </div>
+        </div>
+    `;
+    
+    if (viewMode === 'list') {
+        html += renderListView(monthSchedules);
+    } else {
+        html += renderCalendarView(monthSchedules);
+    }
+    
+    scheduleView.innerHTML = html;
+}
+
+function renderListView(monthSchedules) {
+    let html = '<div class="list-view">';
+    
+    monthSchedules.forEach(month => {
+        html += `
+            <div class="month-section">
+                <h3 class="month-header">${month.monthName}</h3>
+                <div class="month-content">
+        `;
+        
+        // Combine all events and sort by date
+        const allEvents = [];
+        
+        month.shifts.forEach(shift => {
+            allEvents.push({
+                date: shift.dateObj,
+                type: 'shift',
+                content: `🟢 Shift: ${shift.shift}${shift.note ? ` (${shift.note})` : ''}`
+            });
+        });
+        
+        month.ptoRequests.forEach(pto => {
+            allEvents.push({
+                date: pto.dateObj,
+                type: 'pto',
+                content: `🌴 PTO: ${pto.request.status} (${pto.request.reason || 'Personal'})`
+            });
+        });
+        
+        month.openShifts.forEach(openShift => {
+            allEvents.push({
+                date: openShift.dateObj,
+                type: 'open',
+                content: `🔓 Available: ${openShift.shifts.join(', ')}`
+            });
+        });
+        
+        allEvents.sort((a, b) => a.date - b.date);
+        
+        if (allEvents.length === 0) {
+            html += '<p class="no-events">No scheduled events for this month</p>';
+        } else {
+            html += '<ul class="events-list">';
+            allEvents.forEach(event => {
+                const dayName = event.date.toLocaleDateString('en-US', { weekday: 'short' });
+                const dateStr = event.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                html += `
+                    <li class="event-item event-${event.type}">
+                        <div class="event-date">
+                            <div class="day-name">${dayName}</div>
+                            <div class="date-str">${dateStr}</div>
+                        </div>
+                        <div class="event-content">${event.content}</div>
+                    </li>
+                `;
+            });
+            html += '</ul>';
+        }
+        
+        html += '</div></div>';
+    });
+    
+    html += '</div>';
+    return html;
+}
+
+function renderCalendarView(monthSchedules) {
+    let html = '<div class="calendar-view">';
+    
+    monthSchedules.forEach(month => {
+        html += `<div class="calendar-month">
+            <h3 class="month-header">${month.monthName}</h3>
+            <div class="calendar-grid">`;
+        
+        // Calendar header
+        const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+        daysOfWeek.forEach(day => {
+            html += `<div class="calendar-header">${day}</div>`;
+        });
+        
+        // Generate calendar days
+        const firstDay = new Date(month.month + '-01');
+        const lastDay = new Date(firstDay.getFullYear(), firstDay.getMonth() + 1, 0);
+        const startCalendar = new Date(firstDay);
+        startCalendar.setDate(startCalendar.getDate() - firstDay.getDay());
+        
+        for (let i = 0; i < 42; i++) { // 6 weeks * 7 days
+            const currentDate = new Date(startCalendar);
+            currentDate.setDate(startCalendar.getDate() + i);
+            
+            const isCurrentMonth = currentDate.getMonth() === firstDay.getMonth();
+            const dateKey = currentDate.toISOString().split('T')[0];
+            
+            let dayContent = '';
+            let dayClass = 'calendar-day';
+            
+            if (!isCurrentMonth) dayClass += ' other-month';
+            
+            // Check for events on this day
+            const shift = month.shifts.find(s => s.date === dateKey);
+            const pto = month.ptoRequests.find(p => p.date === dateKey);
+            const openShift = month.openShifts.find(o => o.date === dateKey);
+            
+            if (shift) {
+                dayContent += `<div class="day-event shift-event">${shift.shift}</div>`;
+                dayClass += ' has-shift';
+            }
+            
+            if (pto) {
+                dayContent += `<div class="day-event pto-event">PTO</div>`;
+                dayClass += ' has-pto';
+            }
+            
+            if (openShift) {
+                dayContent += `<div class="day-event open-event">${openShift.shifts.length} open</div>`;
+                dayClass += ' has-open';
+            }
+            
+            html += `
+                <div class="${dayClass}">
+                    <div class="day-number">${currentDate.getDate()}</div>
+                    ${dayContent}
+                </div>
+            `;
+        }
+        
+        html += '</div></div>';
+    });
+    
+    html += '</div>';
+    return html;
+}
+
+function switchPortalView(portalId, viewMode) {
+    // Re-load the current state and render with new view mode
+    fetch(window.location.href)
+        .then(() => loadState())
+        .then(() => {
+            const state = {
+                employees,
+                schedule: scheduleData,
+                notesData,
+                bidsData,
+                notifications,
+                ptoRequests,
+                employeePTOBalances,
+                announcements,
+                auditLogs
+            };
+            renderEnhancedPortalView(portalId, state, viewMode);
+        })
+        .catch(err => {
+            console.error('Failed to switch view:', err);
+            alert('Failed to switch view. Please refresh the page.');
+        });
+}
+
+function exportPersonalSchedule(portalId) {
+    try {
+        const employee = employees.find(e => e.id === portalId);
+        if (!employee) {
+            alert('Employee not found');
+            return;
+        }
+        
+        const state = {
+            employees,
+            schedule: scheduleData,
+            notesData,
+            bidsData,
+            notifications,
+            ptoRequests,
+            employeePTOBalances,
+            announcements,
+            auditLogs
+        };
+        
+        const monthSchedules = generateMonthInAdvanceSchedule(employee, state);
+        
+        // Generate text content for export
+        let exportContent = `${employee.name} - Personal Schedule\n`;
+        exportContent += `Generated: ${new Date().toLocaleString()}\n\n`;
+        
+        monthSchedules.forEach(month => {
+            exportContent += `${month.monthName}\n`;
+            exportContent += '='.repeat(month.monthName.length) + '\n\n';
+            
+            const allEvents = [];
+            
+            month.shifts.forEach(shift => {
+                allEvents.push({
+                    date: shift.dateObj,
+                    content: `Shift: ${shift.shift}${shift.note ? ` (${shift.note})` : ''}`
+                });
+            });
+            
+            month.ptoRequests.forEach(pto => {
+                allEvents.push({
+                    date: pto.dateObj,
+                    content: `PTO: ${pto.request.status} (${pto.request.reason || 'Personal'})`
+                });
+            });
+            
+            allEvents.sort((a, b) => a.date - b.date);
+            
+            if (allEvents.length === 0) {
+                exportContent += 'No scheduled events\n\n';
+            } else {
+                allEvents.forEach(event => {
+                    const dateStr = event.date.toLocaleDateString('en-US', { 
+                        weekday: 'long', 
+                        month: 'long', 
+                        day: 'numeric' 
+                    });
+                    exportContent += `${dateStr}: ${event.content}\n`;
+                });
+                exportContent += '\n';
+            }
+        });
+        
+        // Create downloadable file
+        const blob = new Blob([exportContent], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${employee.name.replace(/\s+/g, '_')}_schedule_${new Date().toISOString().slice(0, 10)}.txt`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        
+        alert('✅ Schedule exported successfully!');
+        
+    } catch (err) {
+        console.error('Export failed:', err);
+        alert('❌ Export failed. Please try again.');
     }
 }
 
@@ -2276,15 +3335,102 @@ function loadAndRenderPortal(portalId, state) {
     }
     
     function deleteEmployee(index) { 
-        if (confirm(`Are you sure you want to delete ${employees[index].name}?`)) { 
+        const employee = employees[index];
+        if (!employee) return;
+        
+        const choice = confirm(
+            `⚠️ Archive Employee: ${employee.name}\n\n` +
+            `Choose an option:\n` +
+            `• OK = Archive employee (preserve history, hide from schedule)\n` +
+            `• Cancel = Keep employee active\n\n` +
+            `Note: Archived employees can be restored later.`
+        );
+        
+        if (choice) {
             recordHistory(); 
-            delete scheduleData[employees[index].name]; 
-            delete notesData[employees[index].name]; 
-            employees.splice(index, 1); 
+            
+            // Mark employee as inactive instead of deleting
+            employees[index].status = 'inactive';
+            employees[index].archivedDate = new Date().toISOString();
+            
+            // Remove from active schedule but preserve historical data
+            if (scheduleData[employee.name]) {
+                // Keep the schedule data but mark it as archived
+                scheduleData[employee.name + ' (Archived)'] = scheduleData[employee.name];
+                delete scheduleData[employee.name];
+            }
+            
             renderEmployeeList(); 
             renderTable(); 
             saveState(); 
+            
+            alert(`✅ ${employee.name} has been archived.\n\nTheir history is preserved and they can be restored from the admin panel.`);
         } 
+    }
+
+    function permanentlyDeleteEmployee(index) {
+        const employee = employees[index];
+        if (!employee) return;
+        
+        const confirmDelete = confirm(
+            `🚨 PERMANENT DELETE: ${employee.name}\n\n` +
+            `This will permanently delete ALL data for this employee:\n` +
+            `• Personal information\n` +
+            `• Schedule history\n` +
+            `• Notes and records\n\n` +
+            `This action CANNOT be undone!\n\n` +
+            `Are you absolutely sure?`
+        );
+        
+        if (confirmDelete) {
+            const doubleConfirm = prompt(
+                `Type "DELETE" to confirm permanent deletion of ${employee.name}:`,
+                ""
+            );
+            
+            if (doubleConfirm === "DELETE") {
+                recordHistory(); 
+                delete scheduleData[employee.name]; 
+                delete notesData[employee.name]; 
+                
+                // Also delete archived version if it exists
+                delete scheduleData[employee.name + ' (Archived)'];
+                
+                employees.splice(index, 1); 
+                renderEmployeeList(); 
+                renderTable(); 
+                saveState(); 
+                
+                alert(`${employee.name} has been permanently deleted.`);
+            } else {
+                alert('Deletion cancelled - incorrect confirmation.');
+            }
+        }
+    }
+
+    function restoreEmployee(index) {
+        const employee = employees[index];
+        if (!employee || employee.status !== 'inactive') return;
+        
+        if (confirm(`Restore ${employee.name} to active status?`)) {
+            recordHistory();
+            
+            // Restore employee to active status
+            delete employee.status;
+            delete employee.archivedDate;
+            
+            // Restore schedule data if archived version exists
+            if (scheduleData[employee.name + ' (Archived)']) {
+                scheduleData[employee.name] = scheduleData[employee.name + ' (Archived)'];
+                delete scheduleData[employee.name + ' (Archived)'];
+            }
+            
+            renderEmployeeList();
+            renderTable();
+            saveState();
+            
+            alert(`✅ ${employee.name} has been restored to active status.`);
+        }
     }
 
     function openNoteModal() {
@@ -2956,9 +4102,9 @@ function sendChangeNotification() {
         });
 
         renderTable(); 
-    await saveState(); 
-    openBidsModal(); 
-    alert(`Shift assigned to ${winner.name}. Notifications have been sent to the portal.`);
+        await saveState(); 
+        openBidsModal(); 
+        alert(`Shift assigned to ${winner.name}. Notifications have been sent to the portal.`);
 }  // <--- CLOSING BRACE HERE!
 
     async function denyBid(employeeId, dateKey, shift) {
@@ -6358,11 +7504,17 @@ HR Department
                         <span class="card-icon">💾</span>
                         <h3 class="card-title">Data Management</h3>
                     </div>
-                    <p class="card-description">Import, export, backup and manage your scheduling data</p>
+                    <p class="card-description">Backup, restore, import, export and manage your scheduling data</p>
                     <div class="quick-actions">
-                        <button class="btn btn-primary" onclick="openImportExportModal()">📊 Import/Export</button>
-                        <button class="btn btn-outline" onclick="openExcelImportModal()">📄 Excel Import</button>
-                        <button class="btn btn-outline" onclick="printSchedule()">🖨️ Print</button>
+                        <button class="btn btn-primary" onclick="exportBackup()">📥 Export Backup</button>
+                        <button class="btn btn-outline" onclick="importBackup()">📤 Import Backup</button>
+                        <button class="btn btn-outline" onclick="quickBackupRestore()">⚡ Quick Backup</button>
+                    </div>
+                    <div class="card-stats">
+                        <div style="display: flex; justify-content: space-between; font-size: 0.75rem; color: #6b7280;">
+                            <span>Emergency Restore:</span>
+                            <button onclick="restoreEmergencyBackup()" style="font-size: 0.75rem; padding: 0.125rem 0.25rem; background: #f59e0b; color: white; border: none; border-radius: 0.25rem; cursor: pointer;">Restore</button>
+                        </div>
                     </div>
                 </div>
 
@@ -6376,6 +7528,19 @@ HR Department
                         <button class="btn btn-primary" onclick="openBidsModal()">🙋 Manage Bids</button>
                         <button class="btn btn-outline" onclick="openEmailModal()">📧 Email Schedule</button>
                         <button class="btn btn-danger" onclick="resetSavedState()">🔄 Reset Data</button>
+                    </div>
+                </div>
+
+                <div class="action-card">
+                    <div class="card-header">
+                        <span class="card-icon">⚠️</span>
+                        <h3 class="card-title">Employee Archive</h3>
+                    </div>
+                    <p class="card-description">Manage inactive employees and restore archived staff</p>
+                    <div class="quick-actions">
+                        <button class="btn btn-primary" onclick="openEmployeeArchiveModal()">📂 View Archive</button>
+                        <button class="btn btn-outline" onclick="showInactiveEmployees()">👻 Show Inactive</button>
+                        <button class="btn btn-outline" onclick="massArchiveEmployees()">📥 Mass Archive</button>
                     </div>
                 </div>
             </div>
@@ -6655,7 +7820,7 @@ HR Department
         loadAnnouncements();
     }
 
-    function createAnnouncement() {
+    async function createAnnouncement() {
         const title = document.getElementById('announcement-title').value;
         const content = document.getElementById('announcement-content').value;
         const priority = document.getElementById('announcement-priority').value;
