@@ -307,33 +307,7 @@
             gap: 8px;
         }
         
-        /* GPS and location styles */
-        .location-status {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 10px;
-            border-radius: 6px;
-            margin: 10px 0;
-        }
-        
-        .location-verified {
-            background: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-        
-        .location-pending {
-            background: #fff3cd;
-            color: #856404;
-            border: 1px solid #ffeaa7;
-        }
-        
-        .location-error {
-            background: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
+
         td.pto-cell { background-color: #fff3cd !important; }
         td.pto-approved { background-color: #d4edda !important; }
         td.pto-pending { background-color: #f8d7da !important; }
@@ -611,19 +585,7 @@
             <button class="btn btn-success" onclick="toggleQuickScheduleWidget()" style="margin: 5px;">📅 Quick Schedule</button>
         </div>
         
-        <!-- Clock In/Out Section -->
-        <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 20px 0; border: 1px solid #dee2e6;">
-            <h4>🕒 Clock In/Out</h4>
-            <div id="location-status" class="location-status location-pending" style="display: none;">
-                <span id="location-icon">📍</span>
-                <span id="location-text">Verifying location...</span>
-            </div>
-            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                <button class="btn btn-success" onclick="clockIn()" style="flex: 1; min-width: 120px;">🟢 Clock In</button>
-                <button class="btn btn-danger" onclick="clockOut()" style="flex: 1; min-width: 120px;">🔴 Clock Out</button>
-                <button class="btn btn-secondary" onclick="viewTimesheet()" style="flex: 1; min-width: 120px;">📊 Timesheet</button>
-            </div>
-        </div>
+
         
         <!-- Quick Schedule Widget -->
         <div id="quick-schedule-widget" style="display: none; background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 20px 0; border: 1px solid #dee2e6;">
@@ -972,8 +934,6 @@
     let teamDirectoryData = [];
     let announcements = JSON.parse(localStorage.getItem('announcements')) || [];
     let auditLogs = JSON.parse(localStorage.getItem('auditLogs')) || [];
-    let currentLocation = null;
-    let workplaceLocation = { lat: 0, lng: 0, radius: 100 };
     let currentPhotoData = null;
 
     const shiftsInfo = { "10p-6a": 8, "2p-10:30p": 8.5, "10a-6:30p": 8.5, "6:30p-3a": 8.5, "5:30a-2p": 8.5, "6a-2:30p": 8.5, "1p-9:30p": 8.5, "7a-7p": 12, "9:30p-6a": 8.5 };
@@ -5135,9 +5095,6 @@ HR Department
         
         // Initialize gesture support
         initializeGestureSupport();
-        
-        // Initialize location services
-        initializeLocationServices();
     });
 
     // ================== MOBILE GESTURE SUPPORT ==================
@@ -5325,218 +5282,9 @@ HR Department
         }
     }
 
-    // ================== GPS LOCATION VERIFICATION ==================
-
-    function initializeLocationServices() {
-        // Request location permission on page load
-        if ('geolocation' in navigator) {
-            navigator.geolocation.getCurrentPosition(
-                (position) => {
-                    currentLocation = {
-                        lat: position.coords.latitude,
-                        lng: position.coords.longitude,
-                        accuracy: position.coords.accuracy
-                    };
-                    updateLocationStatus('verified', 'Location verified');
-                },
-                (error) => {
-                    updateLocationStatus('error', 'Location access denied');
-                },
-                { enableHighAccuracy: true, timeout: 10000, maximumAge: 300000 }
-            );
-        } else {
-            updateLocationStatus('error', 'Geolocation not supported');
-        }
-    }
+    // ================== GPS LOCATION VERIFICATION (REMOVED) ==================
     
-    function updateLocationStatus(status, message) {
-        const statusDiv = document.getElementById('location-status');
-        const iconSpan = document.getElementById('location-icon');
-        const textSpan = document.getElementById('location-text');
-        
-        if (statusDiv) {
-            statusDiv.style.display = 'flex';
-            statusDiv.className = `location-status location-${status}`;
-            
-            switch (status) {
-                case 'verified':
-                    iconSpan.textContent = '✅';
-                    break;
-                case 'pending':
-                    iconSpan.textContent = '📍';
-                    break;
-                case 'error':
-                    iconSpan.textContent = '❌';
-                    break;
-            }
-            
-            textSpan.textContent = message;
-        }
-    }
-    
-    function verifyLocationForClockIn() {
-        return new Promise((resolve, reject) => {
-            if (!currentLocation) {
-                reject('Location not available');
-                return;
-            }
-            
-            // Calculate distance to workplace
-            const distance = calculateDistance(
-                currentLocation.lat, 
-                currentLocation.lng,
-                workplaceLocation.lat,
-                workplaceLocation.lng
-            );
-            
-            if (distance <= workplaceLocation.radius) {
-                resolve({ verified: true, distance });
-            } else {
-                reject(`Too far from workplace (${Math.round(distance)}m away)`);
-            }
-        });
-    }
-    
-    function calculateDistance(lat1, lng1, lat2, lng2) {
-        const R = 6371e3; // Earth's radius in meters
-        const φ1 = lat1 * Math.PI / 180;
-        const φ2 = lat2 * Math.PI / 180;
-        const Δφ = (lat2 - lat1) * Math.PI / 180;
-        const Δλ = (lng2 - lng1) * Math.PI / 180;
-        
-        const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
-                  Math.cos(φ1) * Math.cos(φ2) *
-                  Math.sin(Δλ/2) * Math.sin(Δλ/2);
-        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-        
-        return R * c;
-    }
-    
-    async function clockIn() {
-        try {
-            const locationVerification = await verifyLocationForClockIn();
-            
-            const clockInTime = new Date();
-            const timeEntry = {
-                id: generateUUID(),
-                type: 'clock_in',
-                timestamp: clockInTime.toISOString(),
-                location: currentLocation,
-                employee: localStorage.getItem('currentEmployee') || 'Unknown',
-                verified: locationVerification.verified
-            };
-            
-            // Store timesheet entry
-            let timesheet = JSON.parse(localStorage.getItem('timesheet')) || [];
-            timesheet.push(timeEntry);
-            localStorage.setItem('timesheet', JSON.stringify(timesheet));
-            
-            // Log audit event
-            logAuditEvent('clock_in', {
-                description: `Employee clocked in at ${clockInTime.toLocaleString()}`,
-                employee: timeEntry.employee,
-                location: currentLocation,
-                verified: true
-            });
-            
-            showNotification(`Clocked in successfully at ${clockInTime.toLocaleTimeString()}`, 'success');
-            
-        } catch (error) {
-            showNotification(`Clock in failed: ${error}`, 'error');
-            
-            // Log failed attempt
-            logAuditEvent('clock_in_failed', {
-                description: `Failed clock in attempt: ${error}`,
-                employee: localStorage.getItem('currentEmployee') || 'Unknown',
-                location: currentLocation
-            });
-        }
-    }
-    
-    async function clockOut() {
-        try {
-            const locationVerification = await verifyLocationForClockIn();
-            
-            const clockOutTime = new Date();
-            const timeEntry = {
-                id: generateUUID(),
-                type: 'clock_out',
-                timestamp: clockOutTime.toISOString(),
-                location: currentLocation,
-                employee: localStorage.getItem('currentEmployee') || 'Unknown',
-                verified: locationVerification.verified
-            };
-            
-            // Store timesheet entry
-            let timesheet = JSON.parse(localStorage.getItem('timesheet')) || [];
-            timesheet.push(timeEntry);
-            localStorage.setItem('timesheet', JSON.stringify(timesheet));
-            
-            // Log audit event
-            logAuditEvent('clock_out', {
-                description: `Employee clocked out at ${clockOutTime.toLocaleString()}`,
-                employee: timeEntry.employee,
-                location: currentLocation,
-                verified: true
-            });
-            
-            showNotification(`Clocked out successfully at ${clockOutTime.toLocaleTimeString()}`, 'success');
-            
-        } catch (error) {
-            showNotification(`Clock out failed: ${error}`, 'error');
-            
-            // Log failed attempt
-            logAuditEvent('clock_out_failed', {
-                description: `Failed clock out attempt: ${error}`,
-                employee: localStorage.getItem('currentEmployee') || 'Unknown',
-                location: currentLocation
-            });
-        }
-    }
-    
-    function viewTimesheet() {
-        const timesheet = JSON.parse(localStorage.getItem('timesheet')) || [];
-        const currentEmployee = localStorage.getItem('currentEmployee');
-        
-        const employeeTimesheet = timesheet.filter(entry => 
-            entry.employee === currentEmployee
-        ).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-        
-        const modal = document.createElement('div');
-        modal.className = 'modal';
-        modal.style.display = 'block';
-        modal.innerHTML = `
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h3>📊 Your Timesheet</h3>
-                    <span class="close" onclick="this.closest('.modal').remove()">×</span>
-                </div>
-                <div style="max-height: 400px; overflow-y: auto;">
-                    ${employeeTimesheet.length === 0 ? 
-                        '<p style="text-align: center; color: #6c757d;">No time entries found</p>' :
-                        employeeTimesheet.map(entry => `
-                            <div style="padding: 10px; border-bottom: 1px solid #dee2e6; display: flex; justify-content: space-between; align-items: center;">
-                                <div>
-                                    <strong>${entry.type === 'clock_in' ? '🟢 Clock In' : '🔴 Clock Out'}</strong>
-                                    <div style="font-size: 12px; color: #6c757d;">
-                                        ${new Date(entry.timestamp).toLocaleString()}
-                                    </div>
-                                </div>
-                                <div style="text-align: right;">
-                                    ${entry.verified ? '✅ Verified' : '❌ Unverified'}
-                                </div>
-                            </div>
-                        `).join('')
-                    }
-                </div>
-                <div style="margin-top: 15px;">
-                    <button class="btn btn-secondary" onclick="this.closest('.modal').remove()">Close</button>
-                </div>
-            </div>
-        `;
-        
-        document.body.appendChild(modal);
-    }
+    // Location services removed - clock in/out functionality simplified
 
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
