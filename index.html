@@ -1746,16 +1746,7 @@ async function saveState() {
         throw err; // Re-throw error to notify user
     }
 }
-// Replace your existing loadState function with this final, complete version.
 
-async function loadState() {
-    console.log('Starting loadState function...');
-    const urlParams = new URLSearchParams(window.location.search);
-    const portalId = urlParams.get('portal');
-    
-    let records = null;
-    let error = null;
-    
 async function loadState() {
     console.log('Starting loadState function...');
     const urlParams = new URLSearchParams(window.location.search);
@@ -2956,9 +2947,9 @@ function sendChangeNotification() {
         });
 
         renderTable(); 
-    await saveState(); 
-    openBidsModal(); 
-    alert(`Shift assigned to ${winner.name}. Notifications have been sent to the portal.`);
+        await saveState(); 
+        openBidsModal(); 
+        alert(`Shift assigned to ${winner.name}. Notifications have been sent to the portal.`);
 }  // <--- CLOSING BRACE HERE!
 
     async function denyBid(employeeId, dateKey, shift) {
@@ -6655,7 +6646,7 @@ HR Department
         loadAnnouncements();
     }
 
-    function createAnnouncement() {
+    async function createAnnouncement() {
         const title = document.getElementById('announcement-title').value;
         const content = document.getElementById('announcement-content').value;
         const priority = document.getElementById('announcement-priority').value;
