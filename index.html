@@ -596,6 +596,108 @@
             margin-bottom: 4px;
         }
         
+        /* ==== NEW FEATURES CSS ==== */
+        
+        /* Training modal hover effects */
+        .training-option:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            border-color: #3b82f6;
+        }
+        
+        /* Floating Help Button - In-Portal Training/Onboarding */
+        .floating-help-button {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 56px;
+            height: 56px;
+            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+            border: none;
+            border-radius: 50%;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+            transition: all 0.3s ease;
+            z-index: 999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .floating-help-button:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 20px rgba(59, 130, 246, 0.6);
+        }
+
+        @media (max-width: 767px) {
+            .floating-help-button {
+                bottom: 90px; /* Move above bottom nav on mobile */
+            }
+        }
+
+        /* Shift Claim UI - Shift Claim Waitlist */
+        .shift-claim-button {
+            font-size: 0.75rem;
+            padding: 0.25rem 0.5rem;
+            margin: 0.125rem;
+            border-radius: 0.375rem;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-block;
+        }
+
+        .shift-claim-available {
+            background-color: #10b981;
+            color: white;
+        }
+
+        .shift-claim-available:hover {
+            background-color: #059669;
+        }
+
+        .shift-waitlist {
+            background-color: #f59e0b;
+            color: white;
+        }
+
+        .shift-waitlist:hover {
+            background-color: #d97706;
+        }
+
+        .shift-claimed {
+            background-color: #6b7280;
+            color: white;
+            cursor: not-allowed;
+        }
+
+        /* Reminder Badge - Automated Shift Reminders */
+        .reminder-badge {
+            display: inline-block;
+            background: #ef4444;
+            color: white;
+            font-size: 0.625rem;
+            padding: 0.125rem 0.375rem;
+            border-radius: 0.75rem;
+            margin-left: 0.25rem;
+            font-weight: 600;
+        }
+
+        .waitlist-indicator {
+            display: inline-block;
+            background: #f59e0b;
+            color: white;
+            font-size: 0.625rem;
+            padding: 0.125rem 0.375rem;
+            border-radius: 0.75rem;
+            margin-left: 0.25rem;
+            font-weight: 600;
+        }
+        
+        /* ==== END NEW FEATURES CSS ==== */
+        
         /* Modal responsive improvements */
         .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.4); }
         .modal-content { 
@@ -1034,6 +1136,11 @@
             </a>
         </div>
     </div>
+
+    <!-- NEW FEATURE: Floating Help Button for In-Portal Training/Onboarding -->
+    <button class="floating-help-button" onclick="openTrainingModal()" title="Help & Training">
+        ❓
+    </button>
 
     <div id="manager-view"></div>
     
@@ -1705,6 +1812,112 @@
         </div>
     </div>
 
+    <!-- NEW FEATURE: In-Portal Training/Onboarding Modal -->
+    <div id="trainingModal" class="modal">
+        <div class="modal-content" style="max-width: 800px;">
+            <div class="modal-header">
+                <h2>🎓 Welcome to the Scheduler Training</h2>
+                <span class="close" onclick="closeAllModals()">×</span>
+            </div>
+            <div style="padding: 20px 0;">
+                <!-- Training content will be dynamically populated -->
+                <div id="training-content">
+                    <div style="text-align: center; margin-bottom: 30px;">
+                        <h3>Choose Your Training Path</h3>
+                        <p style="color: #64748b;">Select the area you'd like to learn about:</p>
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px;">
+                        <div class="training-option" onclick="startTraining('manager')" style="border: 1px solid #e2e8f0; border-radius: 10px; padding: 20px; cursor: pointer; text-align: center; transition: all 0.2s ease;">
+                            <div style="font-size: 2rem; margin-bottom: 10px;">⚙️</div>
+                            <h4>Manager Training</h4>
+                            <p style="font-size: 0.875rem; color: #64748b;">Learn scheduling, PTO management, and team oversight</p>
+                        </div>
+                        
+                        <div class="training-option" onclick="startTraining('employee')" style="border: 1px solid #e2e8f0; border-radius: 10px; padding: 20px; cursor: pointer; text-align: center; transition: all 0.2s ease;">
+                            <div style="font-size: 2rem; margin-bottom: 10px;">👤</div>
+                            <h4>Employee Portal</h4>
+                            <p style="font-size: 0.875rem; color: #64748b;">Navigate your schedule, request time off, and claim shifts</p>
+                        </div>
+                        
+                        <div class="training-option" onclick="startTraining('shifts')" style="border: 1px solid #e2e8f0; border-radius: 10px; padding: 20px; cursor: pointer; text-align: center; transition: all 0.2s ease;">
+                            <div style="font-size: 2rem; margin-bottom: 10px;">🎯</div>
+                            <h4>Shift Management</h4>
+                            <p style="font-size: 0.875rem; color: #64748b;">Learn about claiming shifts, waitlists, and reminders</p>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-top: 30px; padding: 20px; background: #f8fafc; border-radius: 10px;">
+                        <h4>💡 Quick Tips</h4>
+                        <ul style="margin: 10px 0; padding-left: 20px; color: #64748b;">
+                            <li>Use the floating ❓ button anytime for help</li>
+                            <li>Check the 📋 Audit Logs to track all schedule changes</li>
+                            <li>Enable notifications 🔔 for important updates</li>
+                            <li>Use the mobile app for easy access on-the-go</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <!-- Individual training modules will be loaded here -->
+                <div id="training-module" style="display: none;">
+                    <!-- Dynamic training content -->
+                </div>
+            </div>
+            
+            <div style="text-align: center; margin-top: 20px;">
+                <button class="btn btn-secondary" onclick="closeAllModals()">Close Training</button>
+                <button class="btn btn-primary" onclick="resetTraining()" style="margin-left: 10px;">Start Over</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- NEW FEATURE: Shift Claim/Waitlist Modal -->
+    <div id="shiftClaimModal" class="modal">
+        <div class="modal-content" style="max-width: 600px;">
+            <div class="modal-header">
+                <h2 id="shift-claim-title">🎯 Claim Open Shift</h2>
+                <span class="close" onclick="closeAllModals()">×</span>
+            </div>
+            <div id="shift-claim-content">
+                <!-- Content will be populated dynamically -->
+                <div style="text-align: center; padding: 20px;">
+                    <div style="font-size: 3rem; margin-bottom: 20px;">⏳</div>
+                    <p>Loading shift details...</p>
+                </div>
+            </div>
+            <div id="shift-claim-actions" style="text-align: center; margin-top: 20px;">
+                <button class="btn btn-secondary" onclick="closeAllModals()">Cancel</button>
+                <button class="btn btn-success" id="claim-shift-btn" onclick="claimShift()" style="margin-left: 10px; display: none;">
+                    🎯 Claim This Shift
+                </button>
+                <button class="btn btn-warning" id="join-waitlist-btn" onclick="joinWaitlist()" style="margin-left: 10px; display: none;">
+                    ⏰ Join Waitlist
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- NEW FEATURE: Shift Waitlist Management Modal (Manager View) -->
+    <div id="waitlistManagementModal" class="modal">
+        <div class="modal-content" style="max-width: 1000px;">
+            <div class="modal-header">
+                <h2>⏰ Shift Waitlist Management</h2>
+                <span class="close" onclick="closeAllModals()">×</span>
+            </div>
+            <div style="margin-bottom: 20px;">
+                <p style="color: #64748b;">Manage employee waitlists for open shifts and claimed positions.</p>
+            </div>
+            <div id="waitlist-management-content">
+                <!-- Content will be populated dynamically -->
+                <div style="text-align: center; padding: 40px;">
+                    <div style="font-size: 2rem; margin-bottom: 20px;">📋</div>
+                    <p>No active waitlists found.</p>
+                    <p style="font-size: 0.875rem; color: #64748b;">Waitlists will appear here when employees join them for open shifts.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
 
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.js"></script>
@@ -1724,6 +1937,11 @@
     let historyIndex = -1;
     let notificationInfo = null; 
     let bidsData = {};
+    
+    // NEW FEATURE: Global variables for shift waitlist system
+    let shiftWaitlists = JSON.parse(localStorage.getItem('shiftWaitlists')) || {};
+    let claimedShifts = JSON.parse(localStorage.getItem('claimedShifts')) || {};
+    let currentShiftClaim = null; // Stores current shift being claimed
     
     // PTO Management System Variables
     let ptoRequests = {};
@@ -3579,6 +3797,37 @@ const shiftTypes = {
                     const shiftNoteIndicator = shiftNote ? `<span class="shift-note-icon" onclick="openShiftNotesModal('${emp.name}', '${dateKey}', '${shift}', true)" title="Has shift notes">📝</span>` : '';
                     const feedbackButton = shift ? `<span class="feedback-icon" onclick="openShiftFeedbackModal('${emp.name}', '${dateKey}', '${shift}')" title="Report issue/feedback">💬</span>` : '';
                     
+                    // NEW FEATURE: Shift Claim/Waitlist buttons for OPEN SHIFTS row
+                    let shiftClaimButton = '';
+                    if (emp.name.startsWith('OPEN SHIFTS') && shift && shift.trim() !== '') {
+                        const shiftKey = `${dateKey}_${shift}`;
+                        const isShiftClaimed = claimedShifts[shiftKey];
+                        const waitlistCount = shiftWaitlists[shiftKey] ? shiftWaitlists[shiftKey].length : 0;
+                        
+                        if (isShiftClaimed) {
+                            shiftClaimButton = `
+                                <div style="margin-top: 4px;">
+                                    <button class="shift-claim-button shift-claimed" disabled title="Claimed by ${isShiftClaimed.employeeName}">
+                                        🎯 Claimed
+                                    </button>
+                                    ${isShiftClaimed.reminderEnabled ? '<span class="reminder-badge">REMINDER</span>' : ''}
+                                    ${waitlistCount > 0 ? `<span class="waitlist-indicator">${waitlistCount} waiting</span>` : ''}
+                                </div>
+                            `;
+                        } else {
+                            shiftClaimButton = `
+                                <div style="margin-top: 4px;">
+                                    <button class="shift-claim-button shift-claim-available" 
+                                            onclick="openShiftClaimModal('EMPLOYEE', '${dateKey}', '${shift}', '${shift}')" 
+                                            title="Click to claim this open shift">
+                                        🎯 Claim Shift
+                                    </button>
+                                    ${waitlistCount > 0 ? `<span class="waitlist-indicator">${waitlistCount} waiting</span>` : ''}
+                                </div>
+                            `;
+                        }
+                    }
+                    
                     // Add drag-and-drop attributes for manager functionality
                     const dragAttributes = !emp.name.startsWith('OPEN SHIFTS') && shift ? 
                         `draggable="true" ondragstart="handleDragStart(event, '${emp.name}', '${dateKey}', '${shift}')"` : '';
@@ -3599,6 +3848,7 @@ const shiftTypes = {
                                         ${shiftNoteIndicator}
                                         ${feedbackButton}
                                     </div>
+                                    ${shiftClaimButton}
                                 </div>
                                 ${noteIndicator}
                             </td>`;
@@ -9454,8 +9704,33 @@ HR Department
                     <p class="card-description">Advanced tools, bidding system, and system maintenance</p>
                     <div class="quick-actions">
                         <button class="btn btn-primary" onclick="openBidsModal()">🙋 Manage Bids</button>
+                        <button class="btn btn-outline" onclick="openAuditLogsModal()">📋 Audit Logs</button>
                         <button class="btn btn-outline" onclick="openEmailModal()">📧 Email Schedule</button>
                         <button class="btn btn-danger" onclick="resetSavedState()">🔄 Reset Data</button>
+                    </div>
+                </div>
+
+                <!-- NEW FEATURE: Shift Waitlist Management Card -->
+                <div class="action-card">
+                    <div class="card-header">
+                        <span class="card-icon">⏰</span>
+                        <h3 class="card-title">Shift Waitlists</h3>
+                    </div>
+                    <p class="card-description">Manage employee waitlists for open shifts and claimed positions</p>
+                    <div class="quick-actions">
+                        <button class="btn btn-primary" onclick="openWaitlistManagementModal()">⏰ Manage Waitlists</button>
+                        <button class="btn btn-outline" onclick="viewShiftClaimHistory()">📋 Claim History</button>
+                        <button class="btn btn-outline" onclick="configureReminderSettings()">🔔 Reminder Settings</button>
+                    </div>
+                    <div class="card-stats">
+                        <div class="stat-item">
+                            <div class="stat-value" id="active-waitlists-count">0</div>
+                            <div class="stat-label">Active Waitlists</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value" id="pending-claims-count">0</div>
+                            <div class="stat-label">Pending Claims</div>
+                        </div>
                     </div>
                 </div>
 
@@ -10289,6 +10564,556 @@ HR Department
         
         document.body.appendChild(modal);
     }
+
+    // ==== NEW FEATURES: JavaScript Functions ====
+    
+    /**
+     * NEW FEATURE: In-Portal Training/Onboarding
+     * Opens the training modal with guided tour functionality
+     */
+    function openTrainingModal() {
+        document.getElementById('trainingModal').style.display = 'block';
+        resetTraining(); // Show the main training menu
+    }
+
+    function startTraining(type) {
+        const trainingContent = document.getElementById('training-content');
+        const trainingModule = document.getElementById('training-module');
+        
+        trainingContent.style.display = 'none';
+        trainingModule.style.display = 'block';
+        
+        let moduleContent = '';
+        
+        switch(type) {
+            case 'manager':
+                moduleContent = `
+                    <div style="text-align: center; margin-bottom: 30px;">
+                        <h3>⚙️ Manager Training Module</h3>
+                        <p style="color: #64748b;">Master the tools you need to manage your team effectively</p>
+                    </div>
+                    
+                    <div style="display: grid; gap: 20px;">
+                        <div style="border: 1px solid #e2e8f0; border-radius: 10px; padding: 20px;">
+                            <h4>📊 Dashboard Overview</h4>
+                            <ul style="color: #64748b; margin: 10px 0;">
+                                <li>Monitor key metrics like coverage and conflicts</li>
+                                <li>Access all management tools from action cards</li>
+                                <li>View real-time workload distribution</li>
+                            </ul>
+                        </div>
+                        
+                        <div style="border: 1px solid #e2e8f0; border-radius: 10px; padding: 20px;">
+                            <h4>👥 Team Management</h4>
+                            <ul style="color: #64748b; margin: 10px 0;">
+                                <li>Add/edit employee information and availability</li>
+                                <li>Manage PTO requests and approvals</li>
+                                <li>Track team directory and contact info</li>
+                            </ul>
+                        </div>
+                        
+                        <div style="border: 1px solid #e2e8f0; border-radius: 10px; padding: 20px;">
+                            <h4>⏰ NEW: Shift Waitlist Management</h4>
+                            <ul style="color: #64748b; margin: 10px 0;">
+                                <li>View employee waitlists for open shifts</li>
+                                <li>Approve or deny shift claims</li>
+                                <li>Configure automatic reminder settings</li>
+                            </ul>
+                        </div>
+                    </div>
+                `;
+                break;
+                
+            case 'employee':
+                moduleContent = `
+                    <div style="text-align: center; margin-bottom: 30px;">
+                        <h3>👤 Employee Portal Training</h3>
+                        <p style="color: #64748b;">Learn how to navigate your personal workspace</p>
+                    </div>
+                    
+                    <div style="display: grid; gap: 20px;">
+                        <div style="border: 1px solid #e2e8f0; border-radius: 10px; padding: 20px;">
+                            <h4>📅 Your Schedule</h4>
+                            <ul style="color: #64748b; margin: 10px 0;">
+                                <li>View your current and upcoming shifts</li>
+                                <li>See shift history and past activities</li>
+                                <li>Export calendar to your personal devices</li>
+                            </ul>
+                        </div>
+                        
+                        <div style="border: 1px solid #e2e8f0; border-radius: 10px; padding: 20px;">
+                            <h4>🏖️ Time Off Requests</h4>
+                            <ul style="color: #64748b; margin: 10px 0;">
+                                <li>Submit PTO requests for approval</li>
+                                <li>Track request status and history</li>
+                                <li>View your time off balance</li>
+                            </ul>
+                        </div>
+                        
+                        <div style="border: 1px solid #e2e8f0; border-radius: 10px; padding: 20px;">
+                            <h4>🎯 NEW: Claim Open Shifts</h4>
+                            <ul style="color: #64748b; margin: 10px 0;">
+                                <li>Browse and claim available open shifts</li>
+                                <li>Join waitlists when shifts are already claimed</li>
+                                <li>Get automatic reminders for picked-up shifts</li>
+                            </ul>
+                        </div>
+                    </div>
+                `;
+                break;
+                
+            case 'shifts':
+                moduleContent = `
+                    <div style="text-align: center; margin-bottom: 30px;">
+                        <h3>🎯 Shift Management Training</h3>
+                        <p style="color: #64748b;">Master the new shift claiming and waitlist system</p>
+                    </div>
+                    
+                    <div style="display: grid; gap: 20px;">
+                        <div style="border: 1px solid #e2e8f0; border-radius: 10px; padding: 20px;">
+                            <h4>🎯 How to Claim Shifts</h4>
+                            <ol style="color: #64748b; margin: 10px 0;">
+                                <li>Look for green "Claim Shift" buttons in the schedule</li>
+                                <li>Click to view shift details and requirements</li>
+                                <li>Confirm your claim to secure the shift</li>
+                                <li>Receive automatic reminders before the shift</li>
+                            </ol>
+                        </div>
+                        
+                        <div style="border: 1px solid #e2e8f0; border-radius: 10px; padding: 20px;">
+                            <h4>⏰ Waitlist System</h4>
+                            <ol style="color: #64748b; margin: 10px 0;">
+                                <li>If a shift is already claimed, you can join the waitlist</li>
+                                <li>You'll be notified if the primary claimer cancels</li>
+                                <li>First on waitlist gets the shift automatically</li>
+                                <li>Multiple people can be on the same waitlist</li>
+                            </ol>
+                        </div>
+                        
+                        <div style="border: 1px solid #e2e8f0; border-radius: 10px; padding: 20px;">
+                            <h4>🔔 Automatic Reminders</h4>
+                            <ul style="color: #64748b; margin: 10px 0;">
+                                <li><span class="reminder-badge">REMINDER</span> badges show which shifts have reminders</li>
+                                <li>Only picked-up/claimed shifts get reminders</li>
+                                <li>Regular assigned shifts don't trigger reminders</li>
+                                <li>Reminders sent 24h and 2h before shift start</li>
+                            </ul>
+                        </div>
+                    </div>
+                `;
+                break;
+        }
+        
+        trainingModule.innerHTML = moduleContent;
+    }
+
+    function resetTraining() {
+        const trainingContent = document.getElementById('training-content');
+        const trainingModule = document.getElementById('training-module');
+        
+        trainingContent.style.display = 'block';
+        trainingModule.style.display = 'none';
+    }
+
+    /**
+     * NEW FEATURE: Shift Claim Waitlist System
+     */
+
+    function openShiftClaimModal(employeeId, date, shiftType, shiftDetails) {
+        currentShiftClaim = { employeeId, date, shiftType, shiftDetails };
+        
+        const modal = document.getElementById('shiftClaimModal');
+        const title = document.getElementById('shift-claim-title');
+        const content = document.getElementById('shift-claim-content');
+        const claimBtn = document.getElementById('claim-shift-btn');
+        const waitlistBtn = document.getElementById('join-waitlist-btn');
+        
+        // Check if shift is already claimed
+        const shiftKey = `${date}_${shiftType}`;
+        const isShiftClaimed = claimedShifts[shiftKey];
+        const isOnWaitlist = shiftWaitlists[shiftKey] && 
+                           shiftWaitlists[shiftKey].some(w => w.employeeId === employeeId);
+        
+        // Update modal content
+        content.innerHTML = `
+            <div style="text-align: center; padding: 20px;">
+                <div style="font-size: 3rem; margin-bottom: 20px;">🎯</div>
+                <h3>Shift Details</h3>
+                <div style="background: #f8fafc; border-radius: 10px; padding: 20px; margin: 20px 0; text-align: left;">
+                    <p><strong>Date:</strong> ${new Date(date).toLocaleDateString()}</p>
+                    <p><strong>Shift:</strong> ${shiftType}</p>
+                    <p><strong>Details:</strong> ${shiftDetails || 'Open position available'}</p>
+                    ${isShiftClaimed ? `<p><strong>Status:</strong> <span style="color: #f59e0b;">⏰ Already claimed by ${isShiftClaimed.employeeName}</span></p>` : 
+                                     '<p><strong>Status:</strong> <span style="color: #10b981;">✅ Available for claiming</span></p>'}
+                </div>
+                
+                ${isOnWaitlist ? `
+                    <div style="background: #fef3c7; border: 1px solid #f59e0b; border-radius: 10px; padding: 15px; margin: 20px 0;">
+                        <p style="color: #92400e; margin: 0;"><strong>⏰ You're already on the waitlist for this shift</strong></p>
+                    </div>
+                ` : ''}
+            </div>
+        `;
+        
+        // Show/hide appropriate buttons
+        if (isShiftClaimed) {
+            claimBtn.style.display = 'none';
+            waitlistBtn.style.display = isOnWaitlist ? 'none' : 'inline-block';
+            waitlistBtn.textContent = '⏰ Join Waitlist';
+        } else {
+            claimBtn.style.display = 'inline-block';
+            waitlistBtn.style.display = 'none';
+            claimBtn.textContent = '🎯 Claim This Shift';
+        }
+        
+        modal.style.display = 'block';
+    }
+
+    function claimShift() {
+        if (!currentShiftClaim) return;
+        
+        const { employeeId, date, shiftType, shiftDetails } = currentShiftClaim;
+        const shiftKey = `${date}_${shiftType}`;
+        
+        // Get employee name
+        const employee = employees.find(emp => emp.name === employeeId);
+        const employeeName = employee ? employee.name : employeeId;
+        
+        // Claim the shift
+        claimedShifts[shiftKey] = {
+            employeeId,
+            employeeName,
+            claimedAt: new Date().toISOString(),
+            reminderEnabled: true // NEW: Enable reminders for claimed shifts
+        };
+        
+        // Save to localStorage
+        localStorage.setItem('claimedShifts', JSON.stringify(claimedShifts));
+        
+        // Log the action for audit trail
+        if (typeof addAuditLog === 'function') {
+            addAuditLog({
+                action: 'shift_claim',
+                user: employeeName,
+                details: `Claimed shift: ${shiftType} on ${date}`,
+                timestamp: new Date().toISOString()
+            });
+        }
+        
+        alert(`✅ Shift claimed successfully!\n\nYou will receive automatic reminders for this picked-up shift.`);
+        closeAllModals();
+        
+        // Refresh the schedule if visible
+        if (typeof renderTable === 'function') renderTable();
+    }
+
+    function joinWaitlist() {
+        if (!currentShiftClaim) return;
+        
+        const { employeeId, date, shiftType } = currentShiftClaim;
+        const shiftKey = `${date}_${shiftType}`;
+        
+        // Get employee name
+        const employee = employees.find(emp => emp.name === employeeId);
+        const employeeName = employee ? employee.name : employeeId;
+        
+        // Initialize waitlist if it doesn't exist
+        if (!shiftWaitlists[shiftKey]) {
+            shiftWaitlists[shiftKey] = [];
+        }
+        
+        // Check if already on waitlist
+        const isAlreadyOnWaitlist = shiftWaitlists[shiftKey].some(w => w.employeeId === employeeId);
+        if (isAlreadyOnWaitlist) {
+            alert('You are already on the waitlist for this shift.');
+            return;
+        }
+        
+        // Add to waitlist
+        shiftWaitlists[shiftKey].push({
+            employeeId,
+            employeeName,
+            joinedAt: new Date().toISOString(),
+            position: shiftWaitlists[shiftKey].length + 1
+        });
+        
+        // Save to localStorage
+        localStorage.setItem('shiftWaitlists', JSON.stringify(shiftWaitlists));
+        
+        // Log the action for audit trail
+        if (typeof addAuditLog === 'function') {
+            addAuditLog({
+                action: 'waitlist_join',
+                user: employeeName,
+                details: `Joined waitlist for shift: ${shiftType} on ${date}`,
+                timestamp: new Date().toISOString()
+            });
+        }
+        
+        alert(`⏰ Added to waitlist!\n\nYou are position #${shiftWaitlists[shiftKey].length} on the waitlist.`);
+        closeAllModals();
+    }
+
+    /**
+     * NEW FEATURE: Waitlist Management Modal (Manager View)
+     */
+    function openWaitlistManagementModal() {
+        const modal = document.getElementById('waitlistManagementModal');
+        const content = document.getElementById('waitlist-management-content');
+        
+        // Load current waitlists and claimed shifts
+        shiftWaitlists = JSON.parse(localStorage.getItem('shiftWaitlists')) || {};
+        claimedShifts = JSON.parse(localStorage.getItem('claimedShifts')) || {};
+        
+        let contentHTML = '';
+        const hasWaitlists = Object.keys(shiftWaitlists).length > 0 || Object.keys(claimedShifts).length > 0;
+        
+        if (!hasWaitlists) {
+            contentHTML = `
+                <div style="text-align: center; padding: 40px;">
+                    <div style="font-size: 2rem; margin-bottom: 20px;">📋</div>
+                    <p>No active waitlists or claimed shifts found.</p>
+                    <p style="font-size: 0.875rem; color: #64748b;">Waitlists will appear here when employees join them for open shifts.</p>
+                </div>
+            `;
+        } else {
+            contentHTML = '<div style="display: grid; gap: 20px;">';
+            
+            // Show claimed shifts
+            if (Object.keys(claimedShifts).length > 0) {
+                contentHTML += `
+                    <div style="border: 1px solid #e2e8f0; border-radius: 10px; padding: 20px;">
+                        <h3 style="margin-top: 0;">🎯 Claimed Shifts</h3>
+                        <div style="display: grid; gap: 10px;">
+                `;
+                
+                Object.entries(claimedShifts).forEach(([shiftKey, claim]) => {
+                    const [date, shiftType] = shiftKey.split('_');
+                    const waitlistCount = shiftWaitlists[shiftKey] ? shiftWaitlists[shiftKey].length : 0;
+                    
+                    contentHTML += `
+                        <div style="background: #f8fafc; border-radius: 8px; padding: 15px; display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <strong>${shiftType}</strong> on ${new Date(date).toLocaleDateString()}
+                                <div style="font-size: 0.875rem; color: #64748b;">
+                                    Claimed by: ${claim.employeeName}
+                                    ${claim.reminderEnabled ? '<span class="reminder-badge">REMINDER</span>' : ''}
+                                    ${waitlistCount > 0 ? `<span class="waitlist-indicator">${waitlistCount} waiting</span>` : ''}
+                                </div>
+                            </div>
+                            <div>
+                                <button class="btn btn-outline" onclick="releaseClaimedShift('${shiftKey}')" style="font-size: 0.75rem; padding: 0.25rem 0.5rem;">
+                                    Release Claim
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                contentHTML += '</div></div>';
+            }
+            
+            // Show waitlists
+            if (Object.keys(shiftWaitlists).length > 0) {
+                contentHTML += `
+                    <div style="border: 1px solid #e2e8f0; border-radius: 10px; padding: 20px;">
+                        <h3 style="margin-top: 0;">⏰ Active Waitlists</h3>
+                        <div style="display: grid; gap: 15px;">
+                `;
+                
+                Object.entries(shiftWaitlists).forEach(([shiftKey, waitlist]) => {
+                    if (waitlist && waitlist.length > 0) {
+                        const [date, shiftType] = shiftKey.split('_');
+                        const isClaimed = claimedShifts[shiftKey];
+                        
+                        contentHTML += `
+                            <div style="background: #fef3c7; border-radius: 8px; padding: 15px;">
+                                <div style="font-weight: 600; margin-bottom: 10px;">
+                                    ${shiftType} on ${new Date(date).toLocaleDateString()}
+                                    ${isClaimed ? ` (Claimed by ${isClaimed.employeeName})` : ' (Open)'}
+                                </div>
+                                <div style="display: grid; gap: 8px;">
+                        `;
+                        
+                        waitlist.forEach((person, index) => {
+                            contentHTML += `
+                                <div style="background: white; border-radius: 6px; padding: 10px; display: flex; justify-content: space-between; align-items: center;">
+                                    <div>
+                                        <strong>#${index + 1} ${person.employeeName}</strong>
+                                        <div style="font-size: 0.75rem; color: #64748b;">
+                                            Joined: ${new Date(person.joinedAt).toLocaleDateString()}
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <button class="btn btn-success" onclick="promoteFromWaitlist('${shiftKey}', ${index})" style="font-size: 0.75rem; padding: 0.25rem 0.5rem; margin-right: 0.25rem;">
+                                            Promote
+                                        </button>
+                                        <button class="btn btn-outline" onclick="removeFromWaitlist('${shiftKey}', ${index})" style="font-size: 0.75rem; padding: 0.25rem 0.5rem;">
+                                            Remove
+                                        </button>
+                                    </div>
+                                </div>
+                            `;
+                        });
+                        
+                        contentHTML += '</div></div>';
+                    }
+                });
+                
+                contentHTML += '</div></div>';
+            }
+            
+            contentHTML += '</div>';
+        }
+        
+        content.innerHTML = contentHTML;
+        modal.style.display = 'block';
+        
+        // Update dashboard metrics
+        updateWaitlistMetrics();
+    }
+
+    function releaseClaimedShift(shiftKey) {
+        if (!confirm('Are you sure you want to release this claimed shift?')) return;
+        
+        const claimInfo = claimedShifts[shiftKey];
+        delete claimedShifts[shiftKey];
+        localStorage.setItem('claimedShifts', JSON.stringify(claimedShifts));
+        
+        // Check if there's a waitlist for this shift
+        if (shiftWaitlists[shiftKey] && shiftWaitlists[shiftKey].length > 0) {
+            const nextInLine = shiftWaitlists[shiftKey][0];
+            
+            if (confirm(`Promote ${nextInLine.employeeName} from waitlist to claim this shift?`)) {
+                promoteFromWaitlist(shiftKey, 0);
+            }
+        }
+        
+        // Refresh the modal
+        openWaitlistManagementModal();
+        
+        // Log the action
+        if (typeof addAuditLog === 'function') {
+            addAuditLog({
+                action: 'shift_release',
+                user: 'Manager',
+                details: `Released claimed shift: ${shiftKey.replace('_', ' on ')}`,
+                timestamp: new Date().toISOString()
+            });
+        }
+    }
+
+    function promoteFromWaitlist(shiftKey, waitlistIndex) {
+        const waitlist = shiftWaitlists[shiftKey];
+        if (!waitlist || waitlistIndex >= waitlist.length) return;
+        
+        const promotedPerson = waitlist[waitlistIndex];
+        
+        // Claim the shift for the promoted person
+        claimedShifts[shiftKey] = {
+            employeeId: promotedPerson.employeeId,
+            employeeName: promotedPerson.employeeName,
+            claimedAt: new Date().toISOString(),
+            reminderEnabled: true,
+            promotedFromWaitlist: true
+        };
+        
+        // Remove from waitlist
+        waitlist.splice(waitlistIndex, 1);
+        
+        // Update position numbers for remaining waitlist
+        waitlist.forEach((person, index) => {
+            person.position = index + 1;
+        });
+        
+        // Clean up empty waitlist
+        if (waitlist.length === 0) {
+            delete shiftWaitlists[shiftKey];
+        }
+        
+        // Save changes
+        localStorage.setItem('claimedShifts', JSON.stringify(claimedShifts));
+        localStorage.setItem('shiftWaitlists', JSON.stringify(shiftWaitlists));
+        
+        // Log the action
+        if (typeof addAuditLog === 'function') {
+            addAuditLog({
+                action: 'waitlist_promotion',
+                user: 'Manager',
+                details: `Promoted ${promotedPerson.employeeName} from waitlist to claim shift: ${shiftKey.replace('_', ' on ')}`,
+                timestamp: new Date().toISOString()
+            });
+        }
+        
+        alert(`✅ ${promotedPerson.employeeName} has been promoted and now claims this shift!`);
+        openWaitlistManagementModal(); // Refresh
+    }
+
+    function removeFromWaitlist(shiftKey, waitlistIndex) {
+        if (!confirm('Remove this person from the waitlist?')) return;
+        
+        const waitlist = shiftWaitlists[shiftKey];
+        const removedPerson = waitlist[waitlistIndex];
+        
+        waitlist.splice(waitlistIndex, 1);
+        
+        // Update position numbers
+        waitlist.forEach((person, index) => {
+            person.position = index + 1;
+        });
+        
+        // Clean up empty waitlist
+        if (waitlist.length === 0) {
+            delete shiftWaitlists[shiftKey];
+        }
+        
+        localStorage.setItem('shiftWaitlists', JSON.stringify(shiftWaitlists));
+        
+        // Log the action
+        if (typeof addAuditLog === 'function') {
+            addAuditLog({
+                action: 'waitlist_removal',
+                user: 'Manager',
+                details: `Removed ${removedPerson.employeeName} from waitlist for shift: ${shiftKey.replace('_', ' on ')}`,
+                timestamp: new Date().toISOString()
+            });
+        }
+        
+        openWaitlistManagementModal(); // Refresh
+    }
+
+    function updateWaitlistMetrics() {
+        const activeWaitlistsCount = Object.keys(shiftWaitlists).length;
+        const pendingClaimsCount = Object.keys(claimedShifts).length;
+        
+        // Update metrics in dashboard if elements exist
+        const waitlistCountEl = document.getElementById('active-waitlists-count');
+        const claimsCountEl = document.getElementById('pending-claims-count');
+        
+        if (waitlistCountEl) waitlistCountEl.textContent = activeWaitlistsCount;
+        if (claimsCountEl) claimsCountEl.textContent = pendingClaimsCount;
+    }
+
+    /**
+     * NEW FEATURE: Helper functions for shift claiming UI
+     */
+    function viewShiftClaimHistory() {
+        // TODO: Implement shift claim history view
+        alert('🚧 Shift Claim History feature will be implemented in the next update!');
+    }
+
+    function configureReminderSettings() {
+        // TODO: Implement reminder configuration
+        alert('🚧 Reminder Settings configuration will be implemented in the next update!');
+    }
+
+    // Initialize waitlist metrics on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        updateWaitlistMetrics();
+    });
+
+    // ==== END NEW FEATURES ====
+
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </body>
