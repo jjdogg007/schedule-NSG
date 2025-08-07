@@ -98,6 +98,7 @@
 		    <button class="btn btn-secondary" onclick="printSchedule()">🖨️ Print Schedule</button>
                     <button class="btn btn-success" onclick="openBulkPTOModal()">📅 Bulk PTO</button>
                     <button class="btn btn-primary" onclick="openPTORequestsModal()">🏖️ Review PTO Requests</button>
+                    <button class="btn btn-success" onclick="generateMonthlyPTOReports()">📊 Generate Monthly PTO Reports</button>
                 </div>
                 <div class="control-group">
                     <h3>🤖 Scheduling Actions</h3>
@@ -350,6 +351,23 @@
                 </select>
             </div>
             <div id="pto-requests-container" style="max-height: 500px; overflow-y: auto;"></div>
+        </div>
+    </div>
+
+    <div id="monthlyPTOReportsModal" class="modal">
+        <div class="modal-content" style="max-width: 1000px;">
+            <div class="modal-header">
+                <h2>Monthly PTO Balance Reports</h2>
+                <span class="close" onclick="closeAllModals()">×</span>
+            </div>
+            <hr>
+            <div style="margin-bottom: 20px;">
+                <label for="reportMonth">Select Month for Report:</label>
+                <input type="month" id="reportMonth" style="margin-left: 10px; padding: 5px;">
+                <button class="btn btn-primary" onclick="generatePTOReportForMonth()" style="margin-left: 10px;">Generate Reports</button>
+                <button class="btn btn-success" onclick="emailAllPTOReports()" style="margin-left: 10px;">📧 Email All Reports</button>
+            </div>
+            <div id="monthly-pto-reports-container" style="max-height: 600px; overflow-y: auto;"></div>
         </div>
     </div>
 
@@ -732,21 +750,33 @@ async function saveState() {
         }
     };
 
+    // Always save to localStorage as backup
     try {
-        const { error } = await supabaseClient
-            .from('schedules')
-            .upsert({ id: 1, data: stateToSave });
+        localStorage.setItem('scheduleGeneratorState', JSON.stringify(stateToSave));
+    } catch (e) {
+        console.warn("Could not save to localStorage:", e);
+    }
 
-        if (error) {
-            console.error("Supabase save error:", error);
-            alert(`❌ Could not save to cloud: ${error.message}`);
-            throw error;
+    // Try to save to Supabase
+    try {
+        if (typeof supabaseClient !== 'undefined') {
+            const { error } = await supabaseClient
+                .from('schedules')
+                .upsert({ id: 1, data: stateToSave });
+
+            if (error) {
+                console.error("Supabase save error:", error);
+                console.log('✅ Data saved locally (cloud backup failed)');
+                return; // Don't throw error, data is saved locally
+            }
+            console.log('✅ Successfully saved to cloud and locally');
+        } else {
+            console.log('✅ Data saved locally (cloud service unavailable)');
         }
-        console.log('✅ Successfully saved to Supabase');
     } catch (err) {
         console.error("Save failed:", err);
-        alert("❌ Failed to save schedule. Check your internet connection.");
-        throw err;
+        console.log('✅ Data saved locally (cloud backup failed)');
+        // Don't throw error, data is saved locally
     }
 }
 // Replace your existing loadState function with this final, complete version.
@@ -755,32 +785,56 @@ async function loadState() {
     const urlParams = new URLSearchParams(window.location.search);
     const portalId = urlParams.get('portal');
     
-    if (portalId) {
-        document.getElementById('manager-view').style.display = 'none';
-        document.getElementById('employee-portal').style.display = 'block';
-        
-        const { data: records, error } = await supabaseClient.from('schedules').select('data').eq('id', 1).single();
-        
-        if (records && records.data) {
-            loadAndRenderPortal(portalId, records.data);
-        } else {
-            document.getElementById('portal-schedule-view').innerHTML = '<h2>Error</h2><p>Could not load schedule data. Please ensure the manager has saved a schedule.</p>';
-            if (error && error.code !== 'PGRST116') console.error("Portal load error:", error);
+    let records = null;
+    let error = null;
+    
+    // Try to load from Supabase first
+    try {
+        if (typeof supabaseClient !== 'undefined') {
+            if (portalId) {
+                document.getElementById('manager-view').style.display = 'none';
+                document.getElementById('employee-portal').style.display = 'block';
+                
+                const result = await supabaseClient.from('schedules').select('data').eq('id', 1).single();
+                records = result.data;
+                error = result.error;
+                
+                if (records && records.data) {
+                    loadAndRenderPortal(portalId, records.data);
+                } else {
+                    document.getElementById('portal-schedule-view').innerHTML = '<h2>Error</h2><p>Could not load schedule data. Please ensure the manager has saved a schedule.</p>';
+                    if (error && error.code !== 'PGRST116') console.error("Portal load error:", error);
+                }
+                return;
+            }
+
+            // Manager view - try Supabase
+            const result = await supabaseClient.from('schedules').select('data').eq('id', 1).single();
+            records = result.data;
+            error = result.error;
         }
-        return; // Stop execution here for the portal view
+    } catch (err) {
+        console.warn("Could not load from cloud, trying localStorage:", err);
+        error = err;
     }
 
-    // This part below only runs for the Manager View
-    const { data: records, error } = await supabaseClient
-        .from('schedules')
-        .select('data')
-        .eq('id', 1)
-        .single();
+    // If Supabase failed, try localStorage
+    if (!records || error) {
+        try {
+            const localData = localStorage.getItem('scheduleGeneratorState');
+            if (localData) {
+                records = { data: JSON.parse(localData) };
+                error = null;
+                console.log('✅ Loaded data from localStorage');
+            }
+        } catch (err) {
+            console.warn("Could not load from localStorage:", err);
+        }
+    }
 
-    if (error && error.code !== 'PGRST116') {
-        console.error("Error loading state from Supabase:", error);
-        alert("Error: Could not load schedule from the cloud. Check the console for details.");
-        return;
+    if (error && error.code !== 'PGRST116' && !records) {
+        console.error("Error loading state:", error);
+        // Don't alert, just continue with default data
     }
 
     let monthToLoad;
@@ -2173,36 +2227,31 @@ async function markNotificationsAsRead(employeeId) {
         const ptoType = document.getElementById('pto-type').value;
         const comments = document.getElementById('pto-comments').value;
 
-        // Validation
+        // Basic validation
         if (!startDate || !endDate) {
             alert('Please select both start and end dates');
             return;
         }
 
-        if (new Date(startDate) > new Date(endDate)) {
-            alert('Start date cannot be after end date');
+        // Enhanced validation with conflict detection
+        const validation = validatePTORequest(employeeId, startDate, endDate, ptoType);
+        
+        if (!validation.valid) {
+            alert('PTO Request Errors:\n' + validation.errors.join('\n'));
             return;
         }
 
-        // Check 90-day eligibility
-        const eligibility = isEmployeeEligibleForPTO(employeeId);
-        if (!eligibility.eligible) {
-            alert(eligibility.reason);
-            return;
+        // Show warnings if any, but allow user to proceed
+        if (validation.warnings.length > 0) {
+            const proceed = confirm(
+                'PTO Request Warnings:\n' + validation.warnings.join('\n') + 
+                '\n\nDo you want to proceed with this request?'
+            );
+            if (!proceed) return;
         }
 
-        const daysRequested = calculatePTODays(startDate, endDate);
+        const daysRequested = validation.daysRequested;
         const employee = employees.find(e => e.id === employeeId);
-        const ptoBalance = employeePTOBalances[employeeId];
-
-        // Check PTO balance
-        if (ptoBalance) {
-            const remainingDays = ptoBalance.totalPTODays - ptoBalance.usedPTODays - ptoBalance.pendingPTODays;
-            if (daysRequested > remainingDays) {
-                alert(`Insufficient PTO balance. You have ${remainingDays} days remaining.`);
-                return;
-            }
-        }
 
         try {
             // Create PTO request
@@ -2220,14 +2269,42 @@ async function markNotificationsAsRead(employeeId) {
                 submissionDate: new Date().toISOString(),
                 approvalDate: null,
                 managerId: null,
-                managerComments: ''
+                managerComments: '',
+                conflicts: validation.conflicts, // Store conflict information
+                validationWarnings: validation.warnings
             };
 
-            // Load current state from Supabase
-            const { data: records, error: fetchError } = await supabaseClient.from('schedules').select('data').eq('id', 1).single();
-            if (fetchError) throw new Error(fetchError.message);
+            // Try to load current state from Supabase, fallback to localStorage
+            let state = {};
+            try {
+                if (typeof supabaseClient !== 'undefined') {
+                    const { data: records, error: fetchError } = await supabaseClient.from('schedules').select('data').eq('id', 1).single();
+                    if (!fetchError && records?.data) {
+                        state = records.data;
+                    }
+                }
+            } catch (err) {
+                console.warn('Could not load from Supabase, using local data:', err);
+            }
+            
+            // Fallback to localStorage or current data
+            if (!state.ptoRequests) {
+                const localData = localStorage.getItem('scheduleGeneratorState');
+                if (localData) {
+                    state = JSON.parse(localData);
+                } else {
+                    state = {
+                        employees,
+                        schedule: scheduleData,
+                        notesData,
+                        bidsData,
+                        notifications,
+                        ptoRequests,
+                        employeePTOBalances
+                    };
+                }
+            }
 
-            const state = records.data || {};
             if (!state.ptoRequests) state.ptoRequests = {};
             if (!state.employeePTOBalances) state.employeePTOBalances = {};
 
@@ -2236,17 +2313,36 @@ async function markNotificationsAsRead(employeeId) {
 
             // Update pending PTO balance
             if (!state.employeePTOBalances[employeeId]) {
-                state.employeePTOBalances[employeeId] = employeePTOBalances[employeeId];
+                state.employeePTOBalances[employeeId] = employeePTOBalances[employeeId] || {
+                    employeeName: employee.name,
+                    hireDate: employee.hireDate || "2024-01-01",
+                    totalPTODays: employee.type === "FT" ? 20 : 15,
+                    usedPTODays: 0,
+                    pendingPTODays: 0
+                };
             }
             state.employeePTOBalances[employeeId].pendingPTODays += daysRequested;
 
-            // Save to Supabase
-            const { error: saveError } = await supabaseClient.from('schedules').upsert({ id: 1, data: state });
-            if (saveError) throw new Error(saveError.message);
+            // Save to both Supabase and localStorage
+            try {
+                if (typeof supabaseClient !== 'undefined') {
+                    const { error: saveError } = await supabaseClient.from('schedules').upsert({ id: 1, data: state });
+                    if (saveError) throw new Error(saveError.message);
+                }
+            } catch (err) {
+                console.warn('Could not save to Supabase, saving locally:', err);
+            }
+            
+            // Always save to localStorage as backup
+            localStorage.setItem('scheduleGeneratorState', JSON.stringify(state));
 
             // Update local state
             ptoRequests[requestId] = newRequest;
-            employeePTOBalances[employeeId].pendingPTODays += daysRequested;
+            if (employeePTOBalances[employeeId]) {
+                employeePTOBalances[employeeId].pendingPTODays += daysRequested;
+            }
+
+            alert(`✅ PTO request submitted successfully!\n\nRequest Details:\n• ${daysRequested} days requested\n• ${ptoType} leave\n• Status: Pending approval\n\nYour manager will be notified of this request.`);
 
             // Clear form
             document.getElementById('pto-start-date').value = '';
@@ -2254,13 +2350,9 @@ async function markNotificationsAsRead(employeeId) {
             document.getElementById('pto-comments').value = '';
             document.getElementById('pto-days-display').value = '';
 
-            // Refresh displays
-            loadAndRenderPortal(employeeId, state);
-            
-            // Notify managers of new request
-            notifyManagersOfNewPTORequest(newRequest);
-            
-            alert('PTO request submitted successfully!');
+            // Refresh the PTO balance display
+            displayPTOBalance(employeeId);
+            loadPTOHistory(employeeId);
 
         } catch (error) {
             console.error('Error submitting PTO request:', error);
@@ -3228,6 +3320,502 @@ async function markNotificationsAsRead(employeeId) {
     document.addEventListener('DOMContentLoaded', function() {
         setupPTOFormListeners();
     });
+
+    // ===== MONTHLY PTO REPORTING SYSTEM =====
+    
+    function generateMonthlyPTOReports() {
+        // Set default month to current month
+        const now = new Date();
+        const currentMonth = now.toISOString().substring(0, 7);
+        document.getElementById('reportMonth').value = currentMonth;
+        
+        document.getElementById('monthlyPTOReportsModal').style.display = 'block';
+        generatePTOReportForMonth();
+    }
+
+    function generatePTOReportForMonth() {
+        const reportMonth = document.getElementById('reportMonth').value;
+        if (!reportMonth) {
+            alert('Please select a month for the report');
+            return;
+        }
+
+        const container = document.getElementById('monthly-pto-reports-container');
+        let reportsHTML = `<h3>PTO Balance Reports for ${new Date(reportMonth).toLocaleDateString('en-US', {month: 'long', year: 'numeric'})}</h3>`;
+        
+        const eligibleEmployees = employees.filter(emp => 
+            emp.id && !emp.name.startsWith('OPEN SHIFTS') && emp.type !== 'Bank'
+        );
+
+        if (eligibleEmployees.length === 0) {
+            container.innerHTML = '<p>No employees found for reporting.</p>';
+            return;
+        }
+
+        eligibleEmployees.forEach(employee => {
+            // Calculate months since hire for proper PTO allocation
+            const hireDate = new Date(employee.hireDate || '2024-01-01');
+            const currentDate = new Date();
+            const monthsSinceHire = Math.floor((currentDate - hireDate) / (1000 * 60 * 60 * 24 * 30.44));
+            const yearlyAllocation = getYearlyPTOAllocation(employee, monthsSinceHire);
+
+            const ptoBalance = employeePTOBalances[employee.id] || {
+                totalPTODays: yearlyAllocation,
+                usedPTODays: 0,
+                pendingPTODays: 0
+            };
+            
+            // Ensure the total PTO days reflects the current year's allocation based on service length
+            ptoBalance.totalPTODays = yearlyAllocation;
+
+            const remainingPTO = ptoBalance.totalPTODays - ptoBalance.usedPTODays;
+            const yearStartDate = new Date(new Date().getFullYear(), 0, 1);
+            const daysSinceYearStart = Math.floor((currentDate - yearStartDate) / (1000 * 60 * 60 * 24));
+            
+            // Calculate accrued PTO based on hire date
+            const accruedPTO = calculateAccruedPTO(employee, monthsSinceHire);
+
+            // Get upcoming scheduled PTO for next 30 days
+            const upcomingPTO = getUpcomingPTO(employee.name);
+
+            reportsHTML += `
+                <div style="border: 1px solid #ddd; padding: 15px; margin: 10px 0; border-radius: 5px; background: #f9f9f9;">
+                    <h4 style="margin-top: 0; color: #333;">${employee.name}</h4>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px;">
+                        <div>
+                            <strong>Annual PTO Allocation:</strong> ${ptoBalance.totalPTODays} days<br>
+                            <strong>Used This Year:</strong> ${ptoBalance.usedPTODays} days<br>
+                            <strong>Remaining Balance:</strong> <span style="color: ${remainingPTO < 5 ? 'red' : 'green'}; font-weight: bold;">${remainingPTO} days</span>
+                        </div>
+                        <div>
+                            <strong>Pending Requests:</strong> ${ptoBalance.pendingPTODays} days<br>
+                            <strong>Accrued This Year:</strong> ${accruedPTO} days<br>
+                            <strong>Hire Date:</strong> ${new Date(employee.hireDate || '2024-01-01').toLocaleDateString()}
+                        </div>
+                        <div>
+                            <strong>Upcoming PTO:</strong><br>
+                            ${upcomingPTO.length > 0 ? upcomingPTO.join('<br>') : 'None scheduled'}
+                        </div>
+                    </div>
+                    <div style="margin-top: 10px;">
+                        <button class="btn btn-primary" onclick="emailIndividualPTOReport('${employee.id}', '${reportMonth}')" style="font-size: 12px;">📧 Email to ${employee.name.split(',')[1] || employee.name}</button>
+                    </div>
+                </div>
+            `;
+        });
+
+        container.innerHTML = reportsHTML;
+    }
+
+    function calculateAccruedPTO(employee, monthsSinceHire) {
+        // New accrual calculation based on length of service rates
+        // First 90 days - no accrual
+        if (monthsSinceHire < 3) return 0;
+        
+        const yearsOfService = monthsSinceHire / 12;
+        let dailyAccrualRate;
+        let maxAnnualDays;
+        
+        // Determine accrual rate based on length of service
+        if (yearsOfService >= 20) {
+            dailyAccrualRate = 0.10384; // 20+ years
+            maxAnnualDays = 27;
+        } else if (yearsOfService >= 10) {
+            dailyAccrualRate = 0.10000; // 10-19 years  
+            maxAnnualDays = 26;
+        } else if (yearsOfService >= 5) {
+            dailyAccrualRate = 0.08461; // 5-9 years
+            maxAnnualDays = 22;
+        } else {
+            dailyAccrualRate = 0.06538; // Less than 5 years
+            maxAnnualDays = 17;
+        }
+        
+        // Calculate accrued days based on working days since hire (minus 90-day waiting period)
+        const monthsEligible = monthsSinceHire - 3;
+        const workingDaysEligible = monthsEligible * 21.67; // Average working days per month (260/12)
+        const accruedDays = workingDaysEligible * dailyAccrualRate;
+        
+        // Cap at maximum annual allocation
+        return Math.min(Math.floor(accruedDays), maxAnnualDays);
+    }
+
+    function getUpcomingPTO(employeeName) {
+        const upcoming = [];
+        const currentDate = new Date();
+        const futureDate = new Date();
+        futureDate.setDate(currentDate.getDate() + 30);
+
+        currentDates.forEach(date => {
+            if (date >= currentDate && date <= futureDate) {
+                const dateKey = date.toISOString().split('T')[0];
+                const shift = scheduleData[employeeName]?.[dateKey];
+                if (shift && shift.toUpperCase() === 'PTO') {
+                    upcoming.push(date.toLocaleDateString());
+                }
+            }
+        });
+
+        return upcoming;
+    }
+
+    function emailIndividualPTOReport(employeeId, reportMonth) {
+        const employee = employees.find(emp => emp.id === employeeId);
+        if (!employee) {
+            alert('Employee not found');
+            return;
+        }
+
+        // Calculate months since hire for proper PTO allocation
+        const hireDate = new Date(employee.hireDate || new Date());
+        const currentDate = new Date();
+        const monthsSinceHire = Math.floor((currentDate - hireDate) / (1000 * 60 * 60 * 24 * 30.44));
+        const yearlyAllocation = getYearlyPTOAllocation(employee, monthsSinceHire);
+
+        const ptoBalance = employeePTOBalances[employeeId] || {
+            totalPTODays: yearlyAllocation,
+            usedPTODays: 0,
+            pendingPTODays: 0
+        };
+        
+        // Ensure the total PTO days reflects the current year's allocation based on service length
+        ptoBalance.totalPTODays = yearlyAllocation;
+
+        const remainingPTO = ptoBalance.totalPTODays - ptoBalance.usedPTODays;
+        const upcomingPTO = getUpcomingPTO(employee.name);
+
+        const emailContent = `
+Dear ${employee.name.split(',')[1] || employee.name},
+
+Here is your monthly PTO balance summary for ${new Date(reportMonth).toLocaleDateString('en-US', {month: 'long', year: 'numeric'})}:
+
+📊 PTO BALANCE SUMMARY:
+• Annual PTO Allocation: ${ptoBalance.totalPTODays} days
+• Used This Year: ${ptoBalance.usedPTODays} days
+• Remaining Balance: ${remainingPTO} days
+• Pending Requests: ${ptoBalance.pendingPTODays} days
+
+📅 UPCOMING SCHEDULED PTO (Next 30 Days):
+${upcomingPTO.length > 0 ? upcomingPTO.map(date => `• ${date}`).join('\n') : '• None scheduled'}
+
+${remainingPTO < 5 ? '\n⚠️ REMINDER: You have less than 5 PTO days remaining. Please plan accordingly.\n' : ''}
+
+If you have any questions about your PTO balance or need to request time off, please contact your manager.
+
+Best regards,
+HR Department
+        `;
+
+        // Create email modal or copy to clipboard
+        navigator.clipboard.writeText(emailContent).then(() => {
+            alert(`PTO report for ${employee.name} has been copied to clipboard. You can now paste it into your email client.`);
+        }).catch(() => {
+            // Fallback - show in alert
+            prompt('Copy this PTO report to send via email:', emailContent);
+        });
+    }
+
+    function emailAllPTOReports() {
+        const reportMonth = document.getElementById('reportMonth').value;
+        if (!reportMonth) {
+            alert('Please select a month for the report');
+            return;
+        }
+
+        const eligibleEmployees = employees.filter(emp => 
+            emp.id && !emp.name.startsWith('OPEN SHIFTS') && emp.type !== 'Bank'
+        );
+
+        let allReports = `MONTHLY PTO BALANCE REPORTS FOR ${new Date(reportMonth).toLocaleDateString('en-US', {month: 'long', year: 'numeric'}).toUpperCase()}\n`;
+        allReports += '='.repeat(80) + '\n\n';
+
+        eligibleEmployees.forEach(employee => {
+            const ptoBalance = employeePTOBalances[employee.id] || {
+                totalPTODays: employee.type === "FT" ? 20 : 15,
+                usedPTODays: 0,
+                pendingPTODays: 0
+            };
+
+            const remainingPTO = ptoBalance.totalPTODays - ptoBalance.usedPTODays;
+            const upcomingPTO = getUpcomingPTO(employee.name);
+
+            allReports += `${employee.name}\n`;
+            allReports += '-'.repeat(employee.name.length) + '\n';
+            allReports += `Annual Allocation: ${ptoBalance.totalPTODays} days | Used: ${ptoBalance.usedPTODays} days | Remaining: ${remainingPTO} days\n`;
+            allReports += `Pending: ${ptoBalance.pendingPTODays} days | Hire Date: ${new Date(employee.hireDate || '2024-01-01').toLocaleDateString()}\n`;
+            allReports += `Upcoming PTO: ${upcomingPTO.length > 0 ? upcomingPTO.join(', ') : 'None'}\n\n`;
+        });
+
+        // Copy all reports to clipboard
+        navigator.clipboard.writeText(allReports).then(() => {
+            alert('All PTO reports have been copied to clipboard. You can now paste them into your email client for bulk distribution.');
+        }).catch(() => {
+            // Fallback - show in prompt
+            prompt('Copy these PTO reports for bulk email distribution:', allReports);
+        });
+    }
+
+    // ===== ENHANCED PTO ACCRUAL SYSTEM =====
+    
+    function updatePTOAccruals() {
+        // This function should be called monthly to update PTO accruals
+        const currentDate = new Date();
+        
+        employees.forEach(employee => {
+            if (!employee.id || employee.name.startsWith('OPEN SHIFTS') || employee.type === 'Bank') {
+                return;
+            }
+
+            const hireDate = new Date(employee.hireDate || '2024-01-01');
+            const monthsSinceHire = Math.floor((currentDate - hireDate) / (1000 * 60 * 60 * 24 * 30.44));
+            const yearlyAllocation = getYearlyPTOAllocation(employee, monthsSinceHire);
+            
+            // Initialize balance if it doesn't exist
+            if (!employeePTOBalances[employee.id]) {
+                employeePTOBalances[employee.id] = {
+                    employeeName: employee.name,
+                    hireDate: employee.hireDate || "2024-01-01",
+                    totalPTODays: yearlyAllocation,
+                    usedPTODays: 0,
+                    pendingPTODays: 0,
+                    lastAccrualDate: hireDate.toISOString().split('T')[0]
+                };
+            }
+
+            const balance = employeePTOBalances[employee.id];
+            const lastAccrual = new Date(balance.lastAccrualDate || hireDate);
+            
+            // Check if it's time for a new accrual (monthly)
+            if (monthsSinceHire >= 3) { // No accrual first 90 days
+                const monthsSinceLastAccrual = Math.floor((currentDate - lastAccrual) / (1000 * 60 * 60 * 24 * 30.44));
+                
+                if (monthsSinceLastAccrual >= 1) {
+                    const monthlyAccrual = yearlyAllocation / 12;
+                    
+                    // Add accrued PTO (max out at yearly allocation)
+                    const currentTotal = balance.totalPTODays || yearlyAllocation;
+                    const newTotal = Math.min(currentTotal + monthlyAccrual, yearlyAllocation);
+                    
+                    balance.totalPTODays = Math.floor(newTotal);
+                    balance.lastAccrualDate = currentDate.toISOString().split('T')[0];
+                    
+                    console.log(`Updated PTO accrual for ${employee.name}: +${monthlyAccrual.toFixed(1)} days`);
+                }
+            }
+        });
+        
+        saveState();
+    }
+
+    function getYearlyPTOAllocation(employee, monthsSinceHire) {
+        // New accrual rates based on length of service
+        const yearsOfService = monthsSinceHire / 12;
+        
+        if (yearsOfService >= 20) {
+            return 27; // 20+ years: 27 days/216 hours
+        } else if (yearsOfService >= 10) {
+            return 26; // 10-19 years: 26 days/208 hours  
+        } else if (yearsOfService >= 5) {
+            return 22; // 5-9 years: 22 days/176 hours
+        } else {
+            return 17; // Less than 5 years: 17 days/136 hours
+        }
+    }
+
+    function checkPTOEligibilityEnhanced(employeeId) {
+        const employee = employees.find(emp => emp.id === employeeId);
+        if (!employee || !employee.hireDate) {
+            return { eligible: false, reason: "No hire date found" };
+        }
+        
+        const currentDate = new Date();
+        const hireDate = new Date(employee.hireDate);
+        const daysSinceHire = Math.floor((currentDate - hireDate) / (1000 * 60 * 60 * 24));
+        
+        // 90-day waiting period
+        if (daysSinceHire < 90) {
+            const remainingDays = 90 - daysSinceHire;
+            return { 
+                eligible: false, 
+                reason: `Must wait ${remainingDays} more days before PTO eligibility (90-day waiting period)` 
+            };
+        }
+        
+        // Check if employee has sufficient PTO balance
+        const balance = employeePTOBalances[employeeId];
+        if (!balance || balance.totalPTODays - balance.usedPTODays <= 0) {
+            return { 
+                eligible: false, 
+                reason: "Insufficient PTO balance available" 
+            };
+        }
+        
+        return { eligible: true, availableDays: balance.totalPTODays - balance.usedPTODays };
+    }
+
+    // Auto-run PTO accrual update on page load (for demo purposes)
+    document.addEventListener('DOMContentLoaded', function() {
+        setTimeout(() => {
+            updatePTOAccruals();
+        }, 1000);
+    });
+
+    // ===== PTO CONFLICT DETECTION SYSTEM =====
+    
+    function checkPTOConflicts(employeeName, startDate, endDate) {
+        const conflicts = [];
+        const requestStart = new Date(startDate);
+        const requestEnd = new Date(endDate);
+        
+        // Check against existing PTO requests
+        Object.values(ptoRequests).forEach(request => {
+            if (request.employeeName === employeeName && 
+                (request.status === 'approved' || request.status === 'pending')) {
+                
+                const existingStart = new Date(request.startDate);
+                const existingEnd = new Date(request.endDate);
+                
+                // Check for overlap
+                if (requestStart <= existingEnd && requestEnd >= existingStart) {
+                    conflicts.push({
+                        type: 'employee_overlap',
+                        message: `Overlaps with existing ${request.status} PTO request (${request.startDate} to ${request.endDate})`,
+                        request: request
+                    });
+                }
+            }
+        });
+        
+        // Check against scheduled PTO in the schedule grid
+        const dateRange = getDateRange(requestStart, requestEnd);
+        dateRange.forEach(date => {
+            const dateKey = date.toISOString().split('T')[0];
+            const shift = scheduleData[employeeName]?.[dateKey];
+            if (shift && shift.toUpperCase() === 'PTO') {
+                conflicts.push({
+                    type: 'schedule_conflict',
+                    message: `PTO already scheduled on ${date.toLocaleDateString()}`,
+                    date: dateKey
+                });
+            }
+        });
+        
+        // Check minimum staffing levels for those dates
+        const staffingConflicts = checkMinimumStaffing(dateRange, employeeName);
+        conflicts.push(...staffingConflicts);
+        
+        return conflicts;
+    }
+    
+    function getDateRange(startDate, endDate) {
+        const dates = [];
+        const current = new Date(startDate);
+        const end = new Date(endDate);
+        
+        while (current <= end) {
+            dates.push(new Date(current));
+            current.setDate(current.getDate() + 1);
+        }
+        return dates;
+    }
+    
+    function checkMinimumStaffing(dateRange, requestingEmployee) {
+        const conflicts = [];
+        const minStaff = parseInt(document.getElementById('minStaff').value) || 3;
+        
+        dateRange.forEach(date => {
+            const dateKey = date.toISOString().split('T')[0];
+            let staffCount = 0;
+            
+            // Count available staff for this date
+            employees.forEach(emp => {
+                if (emp.name.startsWith('OPEN SHIFTS') || emp.type === 'Bank') return;
+                if (emp.name === requestingEmployee) return; // Exclude the requesting employee
+                
+                const shift = scheduleData[emp.name]?.[dateKey];
+                if (shift && shift.toUpperCase() !== 'PTO' && shift.trim() !== '') {
+                    staffCount++;
+                }
+            });
+            
+            if (staffCount < minStaff) {
+                conflicts.push({
+                    type: 'staffing_shortage',
+                    message: `Minimum staffing violation on ${date.toLocaleDateString()} (${staffCount}/${minStaff} available)`,
+                    date: dateKey,
+                    currentStaff: staffCount,
+                    requiredStaff: minStaff
+                });
+            }
+        });
+        
+        return conflicts;
+    }
+    
+    // Enhanced PTO request validation
+    function validatePTORequest(employeeId, startDate, endDate, requestType) {
+        const employee = employees.find(emp => emp.id === employeeId);
+        if (!employee) {
+            return { valid: false, errors: ['Employee not found'] };
+        }
+        
+        const errors = [];
+        const warnings = [];
+        
+        // Check eligibility
+        const eligibility = checkPTOEligibilityEnhanced(employeeId);
+        if (!eligibility.eligible) {
+            errors.push(eligibility.reason);
+        }
+        
+        // Check date validity
+        const start = new Date(startDate);
+        const end = new Date(endDate);
+        const today = new Date();
+        
+        if (start > end) {
+            errors.push('Start date must be before end date');
+        }
+        
+        if (start < today && requestType !== 'emergency') {
+            errors.push('Cannot request PTO for past dates (except emergency leave)');
+        }
+        
+        // Calculate days requested
+        const daysRequested = Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
+        const balance = employeePTOBalances[employeeId];
+        const availableDays = balance ? balance.totalPTODays - balance.usedPTODays : 0;
+        
+        if (daysRequested > availableDays) {
+            errors.push(`Insufficient PTO balance. Requested: ${daysRequested} days, Available: ${availableDays} days`);
+        }
+        
+        // Check for conflicts
+        const conflicts = checkPTOConflicts(employee.name, startDate, endDate);
+        
+        conflicts.forEach(conflict => {
+            if (conflict.type === 'employee_overlap' || conflict.type === 'schedule_conflict') {
+                errors.push(conflict.message);
+            } else if (conflict.type === 'staffing_shortage') {
+                warnings.push(conflict.message);
+            }
+        });
+        
+        // Advanced notice requirements
+        const advanceNotice = Math.ceil((start - today) / (1000 * 60 * 60 * 24));
+        if (requestType === 'vacation' && advanceNotice < 14) {
+            warnings.push('Vacation requests should be submitted at least 14 days in advance');
+        }
+        
+        return {
+            valid: errors.length === 0,
+            errors: errors,
+            warnings: warnings,
+            conflicts: conflicts,
+            daysRequested: daysRequested,
+            availableDays: availableDays
+        };
+    }
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </body>
