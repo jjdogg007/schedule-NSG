@@ -2,33 +2,264 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Definitive Schedule Generator</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Schedule NSG">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#0d6efd">
+    <title>Schedule NSG - Employee Scheduling System</title>
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="./manifest.json">
+    
+    <!-- Apple Touch Icons -->
+    <link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTkyIiBoZWlnaHQ9IjE5MiIgdmlld0JveD0iMCAwIDE5MiAxOTIiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxOTIiIGhlaWdodD0iMTkyIiByeD0iMTYiIGZpbGw9IiMwZDZlZmQiLz4KPHN2ZyB4PSI0OCIgeT0iNDgiIHdpZHRoPSI5NiIgaGVpZ2h0PSI5NiIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIj4KPHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSI+CjxwYXRoIGQ9Ik0xOSAzSDVjLTEuMSAwLTIgLjktMiAydjE0YzAgMS4xLjkgMiAyIDJoMTRjMS4xIDAgMi0uOSAyLTJWNWMwLTEuMS0uOS0yLTItMnoiIGZpbGw9IndoaXRlIi8+CjxwYXRoIGQ9Ik0xOSA3SDV2MTBoMTRWN3oiIGZpbGw9IiMwZDZlZmQiLz4KPC9zdmc+">
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #f0f2f5; padding: 20px; }
-        .container { max-width: 1600px; margin: auto; background: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-        h1, h2, h3 { color: #1c293a; }
-        .controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 20px; align-items: start; }
-        .control-group { background: #f8f9fa; padding: 20px; border-radius: 6px; border: 1px solid #dee2e6; }
-        .btn { font-size: 14px; padding: 10px 15px; border: none; border-radius: 5px; cursor: pointer; transition: all 0.2s; margin-top: 5px; }
-        .btn:disabled { background-color: #adb5bd; cursor: not-allowed; }
+        /* Base styles */
+        * { box-sizing: border-box; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+            background-color: #f0f2f5; 
+            padding: 10px; 
+            margin: 0;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        .container { 
+            max-width: 1600px; 
+            margin: auto; 
+            background: white; 
+            padding: 15px; 
+            border-radius: 8px; 
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1, h2, h3 { color: #1c293a; margin-top: 0; }
+        
+        /* Mobile-first responsive grid */
+        .controls { 
+            display: grid; 
+            grid-template-columns: 1fr; 
+            gap: 15px; 
+            align-items: start; 
+        }
+        .control-group { 
+            background: #f8f9fa; 
+            padding: 15px; 
+            border-radius: 6px; 
+            border: 1px solid #dee2e6; 
+        }
+        
+        /* Mobile-friendly buttons */
+        .btn { 
+            font-size: 14px; 
+            padding: 12px 16px; 
+            border: none; 
+            border-radius: 8px; 
+            cursor: pointer; 
+            transition: all 0.2s; 
+            margin: 4px 0; 
+            width: 100%;
+            display: block;
+            text-align: center;
+            text-decoration: none;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .btn:hover, .btn:focus { transform: translateY(-1px); box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+        .btn:active { transform: translateY(0); }
+        .btn:disabled { background-color: #adb5bd; cursor: not-allowed; transform: none; }
         .btn-primary { background-color: #0d6efd; color: white; }
         .btn-danger { background-color: #dc3545; color: white; }
         .btn-secondary { background-color: #6c757d; color: white; }
         .btn-success { background-color: #198754; color: white; }
         .btn-warning { background-color: #ffc107; color: black; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        
+        /* Mobile-responsive table */
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 11px; }
         thead th { position: sticky; top: 0; background-color: #f8f9fa; z-index: 10; }
-        th, td { border: 1px solid #dee2e6; padding: 6px; text-align: center; font-size: 12px; min-width: 75px; }
-        .employee-name { text-align: left; font-weight: bold; position: sticky; left: 0; background-color: #f8f9fa; z-index: 5; width: 160px; min-width: 160px; }
+        th, td { border: 1px solid #dee2e6; padding: 4px; text-align: center; min-width: 60px; }
+        .employee-name { 
+            text-align: left; 
+            font-weight: bold; 
+            position: sticky; 
+            left: 0; 
+            background-color: #f8f9fa; 
+            z-index: 5; 
+            width: 120px; 
+            min-width: 120px; 
+            font-size: 10px;
+        }
         .open-shift-row { background-color: #fffbe6; font-weight: bold; }
         td[contenteditable="true"]:hover { background-color: #e9ecef; cursor: pointer; }
         td[contenteditable="true"]:focus { background-color: #d1e7fd; outline: 2px solid #0d6efd; }
-        input, select { width: 100%; box-sizing: border-box; padding: 8px; border-radius: 4px; border: 1px solid #ced4da; margin-bottom: 10px; }
+        
+        /* Mobile-friendly form inputs */
+        input, select, textarea { 
+            width: 100%; 
+            box-sizing: border-box; 
+            padding: 12px; 
+            border-radius: 8px; 
+            border: 1px solid #ced4da; 
+            margin-bottom: 10px; 
+            font-size: 16px; /* Prevents zoom on iOS */
+            -webkit-appearance: none;
+        }
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #0d6efd;
+            box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.1);
+        }
+        
+        /* Mobile navigation */
+        .mobile-nav { 
+            display: none; 
+            position: fixed; 
+            top: 0; 
+            left: 0; 
+            right: 0; 
+            background: #0d6efd; 
+            color: white; 
+            padding: 15px; 
+            z-index: 1002; 
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .mobile-nav-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .hamburger {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+            padding: 5px;
+        }
+        .mobile-menu {
+            display: none;
+            position: fixed;
+            top: 60px;
+            left: 0;
+            right: 0;
+            background: white;
+            border-top: 1px solid #dee2e6;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            z-index: 1001;
+            max-height: calc(100vh - 60px);
+            overflow-y: auto;
+        }
+        .mobile-menu.show { display: block; }
+        .mobile-menu-item {
+            padding: 15px 20px;
+            border-bottom: 1px solid #dee2e6;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .mobile-menu-item:hover { background-color: #f8f9fa; }
+        
+        /* PWA Install Banner */
+        .pwa-install-banner {
+            display: none;
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            right: 20px;
+            background: #0d6efd;
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            z-index: 1003;
+        }
+        .pwa-install-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 15px;
+        }
+        .pwa-install-text {
+            flex: 1;
+            font-size: 14px;
+        }
+        .pwa-install-buttons {
+            display: flex;
+            gap: 10px;
+        }
+        .pwa-install-btn {
+            background: white;
+            color: #0d6efd;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+        }
+        .pwa-dismiss-btn {
+            background: none;
+            color: white;
+            border: 1px solid white;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+        
+        /* Bottom navigation for mobile */
+        .bottom-nav {
+            display: none;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            border-top: 1px solid #dee2e6;
+            padding: 10px 0;
+            z-index: 1001;
+        }
+        .bottom-nav-items {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+        }
+        .bottom-nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-decoration: none;
+            color: #6c757d;
+            font-size: 12px;
+            padding: 5px;
+            min-width: 60px;
+        }
+        .bottom-nav-item.active {
+            color: #0d6efd;
+        }
+        .bottom-nav-icon {
+            font-size: 20px;
+            margin-bottom: 4px;
+        }
+        
+        /* Modal responsive improvements */
         .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.4); }
-        .modal-content { background-color: #fefefe; margin: 5% auto; padding: 20px; border: 1px solid #888; width: 90%; max-width: 900px; border-radius: 8px; }
-        .modal-header { display: flex; justify-content: space-between; align-items: center; }
+        .modal-content { 
+            background-color: #fefefe; 
+            margin: 5% auto; 
+            padding: 20px; 
+            border: 1px solid #888; 
+            width: 95%; 
+            max-width: 900px; 
+            border-radius: 8px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
         .close { color: #aaa; font-size: 28px; font-weight: bold; cursor: pointer; }
+        .close:hover, .close:focus { color: #000; text-decoration: none; }
+        
+        /* Touch-friendly improvements */
         td.pto-cell { background-color: #fff3cd !important; }
         td.pto-approved { background-color: #d4edda !important; }
         td.pto-pending { background-color: #f8d7da !important; }
@@ -37,19 +268,45 @@
         .shift-overtime { background-color: #f8d7da !important; }
         .shift-undertime { background-color: #fff3cd !important; }
         .holiday { background-color: #e2e3e5 !important; border: 2px solid #6c757d !important; }
-        .employee-stats { font-size: 10px; color: #666; display: block; }
+        .employee-stats { font-size: 9px; color: #666; display: block; }
         .submenu { display: none; position: absolute; left: 100%; top: 0; background: white; border: 1px solid #ccc; min-width: 150px; z-index: 10001; }
-        .submenu div { padding: 8px 15px; cursor: pointer; }
+        .submenu div { padding: 12px 15px; cursor: pointer; }
         .submenu div:hover { background-color: #0d6efd; color: white; }
         .bulk-select { background-color: #e3f2fd !important; }
         .conflict-cell { background-color: #f8d7da !important; border: 2px solid #dc3545 !important; }
-        #contextMenu { display: none; position: absolute; background-color: white; border: 1px solid #ccc; box-shadow: 0 2px 5px rgba(0,0,0,0.2); padding: 5px 0; border-radius: 5px; z-index: 10000; }
-        #contextMenu div { padding: 8px 15px; cursor: pointer; }
+        #contextMenu { 
+            display: none; 
+            position: absolute; 
+            background-color: white; 
+            border: 1px solid #ccc; 
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2); 
+            padding: 5px 0; 
+            border-radius: 5px; 
+            z-index: 10000;
+            min-width: 180px;
+        }
+        #contextMenu div { padding: 12px 15px; cursor: pointer; }
         #contextMenu div:hover { background-color: #0d6efd; color: white; }
         .note-indicator { position: absolute; top: 2px; right: 2px; width: 0; height: 0; border-left: 6px solid transparent; border-top: 6px solid #0d6efd; }
-        .dashboard-under { background-color: #cfe2ff; } .dashboard-over { background-color: #f8d7da; } .dashboard-low-staff { background-color: #fff3cd; }
-        #employee-portal h1 { text-align: center; } #employee-portal .schedule-list { list-style-type: none; padding: 0; } #employee-portal .schedule-list li { background: #fff; border: 1px solid #ddd; padding: 10px; margin-bottom: 8px; border-radius: 4px; display: flex; justify-content: space-between; } #employee-portal .schedule-list .day-name { font-weight: bold; }
-        .pto-request-item { background: #fff; border: 1px solid #ddd; border-radius: 5px; padding: 15px; margin-bottom: 10px; }
+        .dashboard-under { background-color: #cfe2ff; } 
+        .dashboard-over { background-color: #f8d7da; } 
+        .dashboard-low-staff { background-color: #fff3cd; }
+        
+        /* Employee portal mobile improvements */
+        #employee-portal h1 { text-align: center; } 
+        #employee-portal .schedule-list { list-style-type: none; padding: 0; } 
+        #employee-portal .schedule-list li { 
+            background: #fff; 
+            border: 1px solid #ddd; 
+            padding: 15px; 
+            margin-bottom: 8px; 
+            border-radius: 8px; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center;
+        } 
+        #employee-portal .schedule-list .day-name { font-weight: bold; }
+        .pto-request-item { background: #fff; border: 1px solid #ddd; border-radius: 8px; padding: 15px; margin-bottom: 10px; }
         .pto-status-pending { border-left: 4px solid #ffc107; }
         .pto-status-approved { border-left: 4px solid #28a745; }
         .pto-status-denied { border-left: 4px solid #dc3545; }
@@ -61,9 +318,57 @@
         .pto-calendar-approved { background-color: #d4edda; }
         .pto-calendar-pending { background-color: #fff3cd; }
         .pto-calendar-conflict { background-color: #f8d7da; }
+        
+        /* Responsive breakpoints */
+        @media (min-width: 768px) {
+            body { padding: 20px; }
+            .container { padding: 25px; }
+            .controls { grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 20px; }
+            .control-group { padding: 20px; }
+            .btn { 
+                width: auto; 
+                display: inline-block; 
+                margin: 5px 5px 5px 0; 
+                padding: 10px 15px;
+            }
+            th, td { padding: 6px; font-size: 12px; min-width: 75px; }
+            .employee-name { width: 160px; min-width: 160px; font-size: 12px; }
+            table { font-size: 12px; }
+        }
+        
+        @media (max-width: 767px) {
+            .mobile-nav { display: block; }
+            .bottom-nav { display: block; }
+            .container { 
+                margin-top: 60px; 
+                margin-bottom: 70px; 
+                border-radius: 0;
+                min-height: calc(100vh - 130px);
+            }
+            body { padding: 0; }
+            .modal-content { 
+                width: 98%; 
+                margin: 2% auto; 
+                padding: 15px;
+                border-radius: 0;
+                max-height: 96vh;
+            }
+            
+            /* Hide desktop-specific elements on mobile */
+            .desktop-only { display: none !important; }
+            
+            /* Make tables horizontally scrollable on mobile */
+            .table-container {
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+                border: 1px solid #dee2e6;
+                border-radius: 8px;
+            }
+        }
+        
         @media print {
             body { background-color: white; padding: 0; margin: 0; }
-            .container, .controls, .dashboard, hr, .modal, #contextMenu { display: none; }
+            .container, .controls, .dashboard, hr, .modal, #contextMenu, .mobile-nav, .bottom-nav, .pwa-install-banner { display: none; }
             #schedule-table { display: table !important; width: 100%; }
             thead th, .employee-name { position: static; }
             td, th { font-size: 9pt; padding: 4px; color: black !important; }
@@ -76,6 +381,70 @@
     </style>
 </head>
 <body>
+    <!-- Mobile Navigation -->
+    <div class="mobile-nav">
+        <div class="mobile-nav-header">
+            <button class="hamburger" onclick="toggleMobileMenu()">☰</button>
+            <h1 style="margin: 0; font-size: 18px;">Schedule NSG</h1>
+            <div style="width: 32px;"></div> <!-- Spacer for centering -->
+        </div>
+        <div class="mobile-menu" id="mobile-menu">
+            <div class="mobile-menu-item" onclick="showManagerView()">
+                <span>⚙️</span> Manager Dashboard
+            </div>
+            <div class="mobile-menu-item" onclick="showEmployeePortal()">
+                <span>👤</span> Employee Portal
+            </div>
+            <div class="mobile-menu-item" onclick="openTeamDirectory()">
+                <span>👥</span> Team Directory
+            </div>
+            <div class="mobile-menu-item" onclick="openAnnouncementsModal()">
+                <span>📢</span> Announcements
+            </div>
+            <div class="mobile-menu-item" onclick="openAuditLogsModal()">
+                <span>📋</span> Audit Logs
+            </div>
+            <div class="mobile-menu-item" onclick="requestNotificationPermission()">
+                <span>🔔</span> Enable Notifications
+            </div>
+        </div>
+    </div>
+
+    <!-- PWA Install Banner -->
+    <div class="pwa-install-banner" id="pwa-install-banner">
+        <div class="pwa-install-content">
+            <div class="pwa-install-text">
+                <strong>Install Schedule NSG</strong><br>
+                Get the app experience with offline access and notifications.
+            </div>
+            <div class="pwa-install-buttons">
+                <button class="pwa-install-btn" onclick="installPWA()">Install</button>
+                <button class="pwa-dismiss-btn" onclick="dismissPWABanner()">Not Now</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bottom Navigation for Mobile -->
+    <div class="bottom-nav">
+        <div class="bottom-nav-items">
+            <a href="#" class="bottom-nav-item active" onclick="showManagerView(); setActiveBottomNav(this)">
+                <div class="bottom-nav-icon">⚙️</div>
+                <div>Manager</div>
+            </a>
+            <a href="#" class="bottom-nav-item" onclick="showEmployeePortal(); setActiveBottomNav(this)">
+                <div class="bottom-nav-icon">👤</div>
+                <div>Portal</div>
+            </a>
+            <a href="#" class="bottom-nav-item" onclick="openTeamDirectory(); setActiveBottomNav(this)">
+                <div class="bottom-nav-icon">👥</div>
+                <div>Team</div>
+            </a>
+            <a href="#" class="bottom-nav-item" onclick="openAnnouncementsModal(); setActiveBottomNav(this)">
+                <div class="bottom-nav-icon">📢</div>
+                <div>News</div>
+            </a>
+        </div>
+    </div>
 
     <div id="manager-view">
         <div class="container">
@@ -160,6 +529,24 @@
         </h1>
         <div id="notification-popup" style="display: none; position: absolute; right: 20px; top: 80px; background: white; border: 1px solid #ccc; box-shadow: 0 2px 10px rgba(0,0,0,0.2); border-radius: 5px; width: 300px; z-index: 1001;"></div>
         <h3 id="portal-employee-name" style="text-align:center; margin-top: -10px;"></h3>
+        
+        <!-- Quick Actions Section -->
+        <div style="text-align: center; margin: 20px 0;">
+            <button class="btn btn-primary" onclick="openTeamDirectory()" style="margin: 5px;">👥 Team Directory</button>
+            <button class="btn btn-secondary" onclick="openAnnouncementsModal()" style="margin: 5px;">📢 Announcements</button>
+            <button class="btn btn-success" onclick="toggleQuickScheduleWidget()" style="margin: 5px;">📅 Quick Schedule</button>
+        </div>
+        
+        <!-- Quick Schedule Widget -->
+        <div id="quick-schedule-widget" style="display: none; background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 20px 0; border: 1px solid #dee2e6;">
+            <h4>📅 Today's Schedule</h4>
+            <div id="today-schedule-content">Loading...</div>
+            <div style="margin-top: 10px;">
+                <button class="btn btn-primary" onclick="openOneTapPTO()" style="margin-right: 10px;">🏖️ Quick PTO</button>
+                <button class="btn btn-secondary" onclick="openShiftTrading()">🔄 Trade Shift</button>
+            </div>
+        </div>
+        
         <div id="portal-schedule-view"></div>
         <hr>
         <!-- PTO Request Section -->
@@ -227,6 +614,10 @@
                  </div>
                  <input id="newAvailability" placeholder="Availability (e.g., Mon,Tue,Fri)" type="text" style="grid-column: 1 / span 2;"/>
 		 <input id="newEmail" placeholder="employee@email.com" type="email" style="grid-column: 1 / span 2;"/>
+                 <div style="grid-column: 1 / span 2; display: flex; align-items: center; gap: 10px;">
+                    <input id="newContactOptIn" type="checkbox" style="width: auto; margin: 0;"/>
+                    <label for="newContactOptIn" style="font-size: 14px; margin: 0;">Allow contact info sharing in Team Directory</label>
+                 </div>
                  <div>
                     <label for="newHireDate" style="font-size:12px;display:block;">Hire Date*</label>
                     <input id="newHireDate" type="date" required/>
@@ -371,6 +762,110 @@
         </div>
     </div>
 
+    <!-- Team Directory Modal -->
+    <div id="teamDirectoryModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>👥 Team Directory</h2>
+                <span class="close" onclick="closeAllModals()">×</span>
+            </div>
+            <div style="margin-bottom: 20px;">
+                <input type="text" id="team-search" placeholder="Search team members..." 
+                       style="width: 100%; padding: 12px; border: 1px solid #ced4da; border-radius: 8px; margin-bottom: 15px;"
+                       oninput="filterTeamDirectory()">
+                <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 15px;">
+                    <button class="btn btn-secondary" onclick="filterTeamByDepartment('all')">All</button>
+                    <button class="btn btn-secondary" onclick="filterTeamByDepartment('management')">Management</button>
+                    <button class="btn btn-secondary" onclick="filterTeamByDepartment('staff')">Staff</button>
+                    <button class="btn btn-secondary" onclick="filterTeamByDepartment('part-time')">Part-time</button>
+                </div>
+            </div>
+            <div id="team-directory-list" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 15px; max-height: 500px; overflow-y: auto;">
+                <!-- Team member cards will be populated here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Announcements Modal -->
+    <div id="announcementsModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>📢 Announcements</h2>
+                <span class="close" onclick="closeAllModals()">×</span>
+            </div>
+            <div id="admin-announcement-controls" style="display: none; margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+                <h4>Create New Announcement</h4>
+                <input type="text" id="announcement-title" placeholder="Announcement title..." style="width: 100%; margin-bottom: 10px;">
+                <textarea id="announcement-content" placeholder="Announcement content..." rows="4" style="width: 100%; margin-bottom: 10px;"></textarea>
+                <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                    <select id="announcement-priority" style="flex: 1;">
+                        <option value="normal">Normal Priority</option>
+                        <option value="high">High Priority</option>
+                        <option value="urgent">Urgent</option>
+                    </select>
+                    <select id="announcement-audience" style="flex: 1;">
+                        <option value="all">All Employees</option>
+                        <option value="management">Management Only</option>
+                        <option value="staff">Staff Only</option>
+                    </select>
+                </div>
+                <button class="btn btn-primary" onclick="createAnnouncement()">Post Announcement</button>
+            </div>
+            <div id="announcements-list" style="max-height: 500px; overflow-y: auto;">
+                <!-- Announcements will be populated here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Audit Logs Modal -->
+    <div id="auditLogsModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>📋 Audit Logs</h2>
+                <span class="close" onclick="closeAllModals()">×</span>
+            </div>
+            <div style="display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;">
+                <input type="date" id="audit-start-date" style="flex: 1; min-width: 150px;">
+                <input type="date" id="audit-end-date" style="flex: 1; min-width: 150px;">
+                <select id="audit-action-filter" style="flex: 1; min-width: 150px;">
+                    <option value="">All Actions</option>
+                    <option value="login">Logins</option>
+                    <option value="schedule_change">Schedule Changes</option>
+                    <option value="pto_request">PTO Requests</option>
+                    <option value="employee_update">Employee Updates</option>
+                </select>
+                <button class="btn btn-primary" onclick="searchAuditLogs()">Search</button>
+                <button class="btn btn-secondary" onclick="exportAuditLogs()">Export CSV</button>
+            </div>
+            <div id="audit-logs-list" style="max-height: 500px; overflow-y: auto;">
+                <!-- Audit logs will be populated here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Master Password Modal -->
+    <div id="masterPasswordModal" class="modal" style="background-color: rgba(0,0,0,0.8);">
+        <div class="modal-content" style="max-width: 400px; margin: 15% auto;">
+            <div style="text-align: center; margin-bottom: 30px;">
+                <h2>🔒 Access Required</h2>
+                <p>Please enter the master password to access Schedule NSG</p>
+            </div>
+            <div style="margin-bottom: 20px;">
+                <input type="password" id="master-password-input" placeholder="Master Password" 
+                       style="width: 100%; padding: 15px; font-size: 16px; text-align: center; border: 2px solid #0d6efd; border-radius: 8px;"
+                       onkeypress="if(event.key==='Enter') checkMasterPassword()">
+            </div>
+            <div style="text-align: center;">
+                <button class="btn btn-primary" onclick="checkMasterPassword()" style="width: 100%; padding: 15px; font-size: 16px;">
+                    Enter Application
+                </button>
+            </div>
+            <div id="password-error" style="color: #dc3545; text-align: center; margin-top: 15px; display: none;">
+                Incorrect password. Please try again.
+            </div>
+        </div>
+    </div>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -393,6 +888,11 @@
     let ptoRequests = {};
     let employeePTOBalances = {};
     let ptoConflicts = [];
+
+    // New Features Variables
+    let teamDirectoryData = [];
+    let announcements = JSON.parse(localStorage.getItem('announcements')) || [];
+    let auditLogs = JSON.parse(localStorage.getItem('auditLogs')) || [];
 
     const shiftsInfo = { "10p-6a": 8, "2p-10:30p": 8.5, "10a-6:30p": 8.5, "6:30p-3a": 8.5, "5:30a-2p": 8.5, "6a-2:30p": 8.5, "1p-9:30p": 8.5, "7a-7p": 12, "9:30p-6a": 8.5 };
     const shiftTemplates = {
@@ -3816,6 +4316,661 @@ HR Department
             availableDays: availableDays
         };
     }
+
+    // ================== PWA AND MOBILE FEATURES ==================
+    
+    // PWA Installation
+    let deferredPrompt;
+    window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredPrompt = e;
+        showPWAInstallBanner();
+    });
+
+    function showPWAInstallBanner() {
+        if (!localStorage.getItem('pwa-dismissed')) {
+            document.getElementById('pwa-install-banner').style.display = 'block';
+        }
+    }
+
+    function installPWA() {
+        if (deferredPrompt) {
+            deferredPrompt.prompt();
+            deferredPrompt.userChoice.then((choiceResult) => {
+                if (choiceResult.outcome === 'accepted') {
+                    console.log('User accepted the PWA install prompt');
+                    dismissPWABanner();
+                }
+                deferredPrompt = null;
+            });
+        }
+    }
+
+    function dismissPWABanner() {
+        document.getElementById('pwa-install-banner').style.display = 'none';
+        localStorage.setItem('pwa-dismissed', 'true');
+    }
+
+    // Service Worker Registration
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('./sw.js')
+                .then((registration) => {
+                    console.log('SW registered: ', registration);
+                })
+                .catch((registrationError) => {
+                    console.log('SW registration failed: ', registrationError);
+                });
+        });
+    }
+
+    // Mobile Navigation
+    function toggleMobileMenu() {
+        const menu = document.getElementById('mobile-menu');
+        menu.classList.toggle('show');
+    }
+
+    function setActiveBottomNav(element) {
+        document.querySelectorAll('.bottom-nav-item').forEach(item => {
+            item.classList.remove('active');
+        });
+        element.classList.add('active');
+        toggleMobileMenu(); // Close mobile menu if open
+    }
+
+    // Show/Hide Views
+    function showManagerView() {
+        document.getElementById('manager-view').style.display = 'block';
+        document.getElementById('employee-portal').style.display = 'none';
+        closeAllModals();
+    }
+
+    function showEmployeePortal() {
+        document.getElementById('manager-view').style.display = 'none';
+        document.getElementById('employee-portal').style.display = 'block';
+        closeAllModals();
+        updateQuickScheduleWidget();
+    }
+
+    // Quick Schedule Widget
+    function toggleQuickScheduleWidget() {
+        const widget = document.getElementById('quick-schedule-widget');
+        widget.style.display = widget.style.display === 'none' ? 'block' : 'none';
+        if (widget.style.display === 'block') {
+            updateQuickScheduleWidget();
+        }
+    }
+
+    function updateQuickScheduleWidget() {
+        const today = new Date();
+        const dateKey = today.toISOString().split('T')[0];
+        const dayName = today.toLocaleDateString('en-US', { weekday: 'long' });
+        const currentEmployee = localStorage.getItem('currentEmployee');
+        
+        let content = `<strong>${dayName}, ${today.toLocaleDateString()}</strong><br>`;
+        
+        if (currentEmployee && scheduleData[currentEmployee]) {
+            const shift = scheduleData[currentEmployee][dateKey];
+            if (shift && shift.trim() !== '') {
+                content += `Your shift: <span style="color: #0d6efd; font-weight: bold;">${shift}</span>`;
+            } else {
+                content += '<span style="color: #6c757d;">No shift scheduled</span>';
+            }
+        } else {
+            content += '<span style="color: #6c757d;">Select an employee to view schedule</span>';
+        }
+        
+        document.getElementById('today-schedule-content').innerHTML = content;
+    }
+
+    // One-tap PTO Request
+    function openOneTapPTO() {
+        const modal = document.createElement('div');
+        modal.className = 'modal';
+        modal.style.display = 'block';
+        modal.innerHTML = `
+            <div class="modal-content" style="max-width: 400px;">
+                <div class="modal-header">
+                    <h3>🏖️ Quick PTO Request</h3>
+                    <span class="close" onclick="this.closest('.modal').remove()">×</span>
+                </div>
+                <div>
+                    <label>Request Date:</label>
+                    <input type="date" id="quick-pto-date" style="width: 100%; margin-bottom: 15px;">
+                    <label>Reason:</label>
+                    <select id="quick-pto-reason" style="width: 100%; margin-bottom: 15px;">
+                        <option value="sick">Sick Day</option>
+                        <option value="personal">Personal</option>
+                        <option value="vacation">Vacation</option>
+                        <option value="emergency">Emergency</option>
+                    </select>
+                    <button class="btn btn-primary" onclick="submitQuickPTO()" style="width: 100%;">Submit Request</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+    }
+
+    function submitQuickPTO() {
+        const date = document.getElementById('quick-pto-date').value;
+        const reason = document.getElementById('quick-pto-reason').value;
+        
+        if (!date) {
+            alert('Please select a date');
+            return;
+        }
+        
+        // Use existing PTO submission logic
+        document.getElementById('pto-start-date').value = date;
+        document.getElementById('pto-end-date').value = date;
+        document.getElementById('pto-type').value = reason;
+        
+        submitPTORequest();
+        document.querySelector('.modal').remove();
+        showNotification('Quick PTO request submitted!', 'success');
+    }
+
+    // Shift Trading Interface
+    function openShiftTrading() {
+        const modal = document.createElement('div');
+        modal.className = 'modal';
+        modal.style.display = 'block';
+        modal.innerHTML = `
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>🔄 Shift Trading</h3>
+                    <span class="close" onclick="this.closest('.modal').remove()">×</span>
+                </div>
+                <div>
+                    <p><em>Shift trading feature coming soon! Contact your manager to arrange shift trades.</em></p>
+                    <button class="btn btn-secondary" onclick="this.closest('.modal').remove()">Close</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+    }
+
+    // ================== TEAM DIRECTORY ==================
+
+    function openTeamDirectory() {
+        document.getElementById('teamDirectoryModal').style.display = 'block';
+        loadTeamDirectory();
+    }
+
+    function loadTeamDirectory() {
+        // Build team directory from employees data
+        teamDirectoryData = employees.filter(emp => !emp.name.startsWith('OPEN SHIFTS')).map(emp => ({
+            id: emp.id,
+            name: emp.name,
+            email: emp.email || 'Not provided',
+            type: emp.type,
+            shifts: emp.shifts || 'Variable',
+            availability: emp.availability || 'Not specified',
+            hireDate: emp.hireDate || 'Unknown',
+            contactOptIn: emp.contactOptIn || false,
+            photo: null // Will be implemented later
+        }));
+        
+        renderTeamDirectory();
+    }
+
+    function renderTeamDirectory() {
+        const container = document.getElementById('team-directory-list');
+        container.innerHTML = '';
+        
+        teamDirectoryData.forEach(member => {
+            const card = document.createElement('div');
+            card.className = 'team-member-card';
+            card.style.cssText = `
+                background: white;
+                border: 1px solid #dee2e6;
+                border-radius: 8px;
+                padding: 15px;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                transition: transform 0.2s;
+            `;
+            
+            const photoHtml = member.photo ? 
+                `<img src="${member.photo}" style="width: 60px; height: 60px; border-radius: 50%; object-fit: cover;">` :
+                `<div style="width: 60px; height: 60px; border-radius: 50%; background: #0d6efd; color: white; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 24px;">${member.name.charAt(0)}</div>`;
+            
+            const contactInfo = member.contactOptIn ? 
+                `<div style="font-size: 12px; color: #6c757d; margin-top: 5px;">📧 ${member.email}</div>` :
+                `<div style="font-size: 12px; color: #6c757d; margin-top: 5px;">Contact info private</div>`;
+            
+            card.innerHTML = `
+                <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 10px;">
+                    ${photoHtml}
+                    <div style="flex: 1;">
+                        <div style="font-weight: bold; font-size: 16px;">${member.name}</div>
+                        <div style="color: #6c757d; font-size: 14px;">${member.type} Employee</div>
+                        ${contactInfo}
+                    </div>
+                </div>
+                <div style="font-size: 12px; color: #6c757d;">
+                    <div><strong>Regular Shifts:</strong> ${member.shifts}</div>
+                    <div><strong>Availability:</strong> ${member.availability}</div>
+                    <div><strong>Hire Date:</strong> ${member.hireDate}</div>
+                </div>
+            `;
+            
+            card.addEventListener('mouseenter', () => {
+                card.style.transform = 'translateY(-2px)';
+            });
+            
+            card.addEventListener('mouseleave', () => {
+                card.style.transform = 'translateY(0)';
+            });
+            
+            container.appendChild(card);
+        });
+    }
+
+    function filterTeamDirectory() {
+        const searchTerm = document.getElementById('team-search').value.toLowerCase();
+        const cards = document.querySelectorAll('.team-member-card');
+        
+        cards.forEach(card => {
+            const text = card.textContent.toLowerCase();
+            card.style.display = text.includes(searchTerm) ? 'block' : 'none';
+        });
+    }
+
+    function filterTeamByDepartment(department) {
+        const cards = document.querySelectorAll('.team-member-card');
+        
+        cards.forEach(card => {
+            if (department === 'all') {
+                card.style.display = 'block';
+            } else {
+                const type = card.textContent.includes('PT') ? 'part-time' : 
+                            card.textContent.includes('FT') ? 'staff' : 'management';
+                card.style.display = type === department ? 'block' : 'none';
+            }
+        });
+    }
+
+    // ================== ANNOUNCEMENTS SYSTEM ==================
+
+    function openAnnouncementsModal() {
+        document.getElementById('announcementsModal').style.display = 'block';
+        
+        // Show admin controls if user is admin (simplified check)
+        const isAdmin = localStorage.getItem('isAdmin') === 'true';
+        document.getElementById('admin-announcement-controls').style.display = isAdmin ? 'block' : 'none';
+        
+        loadAnnouncements();
+    }
+
+    function createAnnouncement() {
+        const title = document.getElementById('announcement-title').value;
+        const content = document.getElementById('announcement-content').value;
+        const priority = document.getElementById('announcement-priority').value;
+        const audience = document.getElementById('announcement-audience').value;
+        
+        if (!title || !content) {
+            alert('Please fill in both title and content');
+            return;
+        }
+        
+        const announcement = {
+            id: generateUUID(),
+            title,
+            content,
+            priority,
+            audience,
+            author: 'Admin',
+            createdAt: new Date().toISOString(),
+            readBy: []
+        };
+        
+        announcements.unshift(announcement);
+        localStorage.setItem('announcements', JSON.stringify(announcements));
+        
+        // Clear form
+        document.getElementById('announcement-title').value = '';
+        document.getElementById('announcement-content').value = '';
+        
+        loadAnnouncements();
+        showNotification('Announcement posted successfully!', 'success');
+        
+        // Send push notification for urgent announcements
+        if (priority === 'urgent') {
+            sendPushNotification('Urgent Announcement', title);
+        }
+    }
+
+    function loadAnnouncements() {
+        const container = document.getElementById('announcements-list');
+        container.innerHTML = '';
+        
+        if (announcements.length === 0) {
+            container.innerHTML = '<div style="text-align: center; color: #6c757d; padding: 40px;">No announcements yet</div>';
+            return;
+        }
+        
+        announcements.forEach(announcement => {
+            const item = document.createElement('div');
+            item.style.cssText = `
+                background: white;
+                border: 1px solid #dee2e6;
+                border-radius: 8px;
+                padding: 15px;
+                margin-bottom: 15px;
+                border-left: 4px solid ${getPriorityColor(announcement.priority)};
+            `;
+            
+            const priorityBadge = `<span style="background: ${getPriorityColor(announcement.priority)}; color: white; padding: 2px 8px; border-radius: 12px; font-size: 12px; font-weight: bold;">${announcement.priority.toUpperCase()}</span>`;
+            
+            item.innerHTML = `
+                <div style="display: flex; justify-content: between; align-items: flex-start; margin-bottom: 10px;">
+                    <div style="flex: 1;">
+                        <h4 style="margin: 0; color: #1c293a;">${announcement.title}</h4>
+                        <div style="font-size: 12px; color: #6c757d; margin-top: 5px;">
+                            ${announcement.author} • ${new Date(announcement.createdAt).toLocaleDateString()} • ${priorityBadge}
+                        </div>
+                    </div>
+                </div>
+                <div style="margin-bottom: 10px; line-height: 1.5;">${announcement.content}</div>
+                <div style="font-size: 12px; color: #6c757d;">
+                    Target: ${announcement.audience.charAt(0).toUpperCase() + announcement.audience.slice(1)}
+                </div>
+            `;
+            
+            container.appendChild(item);
+        });
+    }
+
+    function getPriorityColor(priority) {
+        switch (priority) {
+            case 'urgent': return '#dc3545';
+            case 'high': return '#fd7e14';
+            case 'normal': default: return '#0d6efd';
+        }
+    }
+
+    // ================== AUDIT LOGS SYSTEM ==================
+
+    function logAuditEvent(action, details, userId = 'unknown') {
+        const logEntry = {
+            id: generateUUID(),
+            timestamp: new Date().toISOString(),
+            userId,
+            userAgent: navigator.userAgent,
+            ipAddress: 'client-side', // In a real app, this would come from server
+            action,
+            details,
+            beforeValue: details.before || null,
+            afterValue: details.after || null
+        };
+        
+        auditLogs.unshift(logEntry);
+        
+        // Keep only last 1000 entries to prevent storage bloat
+        if (auditLogs.length > 1000) {
+            auditLogs = auditLogs.slice(0, 1000);
+        }
+        
+        localStorage.setItem('auditLogs', JSON.stringify(auditLogs));
+    }
+
+    function openAuditLogsModal() {
+        // Check if user has admin access
+        if (localStorage.getItem('isAdmin') !== 'true') {
+            alert('Access denied. Admin privileges required.');
+            return;
+        }
+        
+        document.getElementById('auditLogsModal').style.display = 'block';
+        loadAuditLogs();
+    }
+
+    function loadAuditLogs() {
+        const container = document.getElementById('audit-logs-list');
+        container.innerHTML = '';
+        
+        let filteredLogs = [...auditLogs];
+        
+        // Apply filters
+        const startDate = document.getElementById('audit-start-date').value;
+        const endDate = document.getElementById('audit-end-date').value;
+        const actionFilter = document.getElementById('audit-action-filter').value;
+        
+        if (startDate) {
+            filteredLogs = filteredLogs.filter(log => 
+                new Date(log.timestamp) >= new Date(startDate)
+            );
+        }
+        
+        if (endDate) {
+            filteredLogs = filteredLogs.filter(log => 
+                new Date(log.timestamp) <= new Date(endDate + 'T23:59:59')
+            );
+        }
+        
+        if (actionFilter) {
+            filteredLogs = filteredLogs.filter(log => 
+                log.action.includes(actionFilter)
+            );
+        }
+        
+        if (filteredLogs.length === 0) {
+            container.innerHTML = '<div style="text-align: center; color: #6c757d; padding: 40px;">No audit logs found</div>';
+            return;
+        }
+        
+        filteredLogs.forEach(log => {
+            const item = document.createElement('div');
+            item.style.cssText = `
+                background: white;
+                border: 1px solid #dee2e6;
+                border-radius: 8px;
+                padding: 15px;
+                margin-bottom: 10px;
+                font-family: monospace;
+                font-size: 12px;
+            `;
+            
+            item.innerHTML = `
+                <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                    <strong style="color: #0d6efd;">${log.action}</strong>
+                    <span style="color: #6c757d;">${new Date(log.timestamp).toLocaleString()}</span>
+                </div>
+                <div style="margin-bottom: 8px; color: #495057;">${log.details.description || 'No description'}</div>
+                <div style="font-size: 11px; color: #6c757d;">
+                    User: ${log.userId} | IP: ${log.ipAddress}
+                </div>
+                ${log.beforeValue ? `<div style="font-size: 11px; color: #dc3545; margin-top: 5px;">Before: ${JSON.stringify(log.beforeValue)}</div>` : ''}
+                ${log.afterValue ? `<div style="font-size: 11px; color: #198754; margin-top: 5px;">After: ${JSON.stringify(log.afterValue)}</div>` : ''}
+            `;
+            
+            container.appendChild(item);
+        });
+    }
+
+    function searchAuditLogs() {
+        loadAuditLogs();
+    }
+
+    function exportAuditLogs() {
+        const csv = auditLogs.map(log => 
+            `"${log.timestamp}","${log.userId}","${log.action}","${log.details.description || ''}","${log.ipAddress}"`
+        ).join('\n');
+        
+        const header = 'Timestamp,User ID,Action,Description,IP Address\n';
+        const blob = new Blob([header + csv], { type: 'text/csv' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `audit-logs-${new Date().toISOString().split('T')[0]}.csv`;
+        a.click();
+        window.URL.revokeObjectURL(url);
+    }
+
+    // ================== MASTER PASSWORD SYSTEM ==================
+    
+    const MASTER_PASSWORD = localStorage.getItem('masterPassword') || 'admin123'; // Default password
+    let isAuthenticated = sessionStorage.getItem('authenticated') === 'true';
+
+    function checkAuthentication() {
+        if (!isAuthenticated) {
+            document.getElementById('masterPasswordModal').style.display = 'block';
+            // Hide main content
+            document.getElementById('manager-view').style.display = 'none';
+            document.getElementById('employee-portal').style.display = 'none';
+        }
+    }
+
+    function checkMasterPassword() {
+        const enteredPassword = document.getElementById('master-password-input').value;
+        const errorDiv = document.getElementById('password-error');
+        
+        if (enteredPassword === MASTER_PASSWORD) {
+            isAuthenticated = true;
+            sessionStorage.setItem('authenticated', 'true');
+            document.getElementById('masterPasswordModal').style.display = 'none';
+            document.getElementById('manager-view').style.display = 'block';
+            
+            // Log successful login
+            logAuditEvent('login', {
+                description: 'Successful application login',
+                timestamp: new Date().toISOString()
+            });
+            
+            showNotification('Welcome to Schedule NSG!', 'success');
+        } else {
+            errorDiv.style.display = 'block';
+            document.getElementById('master-password-input').value = '';
+            
+            // Log failed login attempt
+            logAuditEvent('login_failed', {
+                description: 'Failed login attempt',
+                timestamp: new Date().toISOString()
+            });
+        }
+    }
+
+    // ================== PUSH NOTIFICATIONS ==================
+    
+    function requestNotificationPermission() {
+        if ('Notification' in window) {
+            Notification.requestPermission().then(permission => {
+                if (permission === 'granted') {
+                    showNotification('Notifications enabled! You\'ll receive updates about schedule changes.', 'success');
+                    localStorage.setItem('notificationsEnabled', 'true');
+                } else {
+                    showNotification('Notifications permission denied.', 'warning');
+                }
+            });
+        } else {
+            showNotification('This browser doesn\'t support notifications.', 'warning');
+        }
+    }
+
+    function sendPushNotification(title, body, data = {}) {
+        if ('Notification' in window && Notification.permission === 'granted') {
+            new Notification(title, {
+                body,
+                icon: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTkyIiBoZWlnaHQ9IjE5MiIgdmlld0JveD0iMCAwIDE5MiAxOTIiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxOTIiIGhlaWdodD0iMTkyIiByeD0iMTYiIGZpbGw9IiMwZDZlZmQiLz4KPHN2ZyB4PSI0OCIgeT0iNDgiIHdpZHRoPSI5NiIgaGVpZ2h0PSI5NiIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIj4KPHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSI+CjxwYXRoIGQ9Ik0xOSAzSDVjLTEuMSAwLTIgLjktMiAydjE0YzAgMS4xLjkgMiAyIDJoMTRjMS4xIDAgMi0uOSAyLTJWNWMwLTEuMS0uOS0yLTItMnoiIGZpbGw9IndoaXRlIi8+CjxwYXRoIGQ9Ik0xOSA3SDV2MTBoMTRWN3oiIGZpbGw9IiMwZDZlZmQiLz4KPC9zdmc+',
+                data
+            });
+        }
+    }
+
+    function showNotification(message, type = 'info') {
+        const notification = document.createElement('div');
+        notification.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: ${type === 'success' ? '#198754' : type === 'warning' ? '#ffc107' : type === 'error' ? '#dc3545' : '#0d6efd'};
+            color: ${type === 'warning' ? '#000' : '#fff'};
+            padding: 15px 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            z-index: 10000;
+            max-width: 300px;
+            animation: slideIn 0.3s ease-out;
+        `;
+        
+        notification.innerHTML = `
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <span>${type === 'success' ? '✓' : type === 'warning' ? '⚠' : type === 'error' ? '✗' : 'ℹ'}</span>
+                <span>${message}</span>
+            </div>
+        `;
+        
+        document.body.appendChild(notification);
+        
+        setTimeout(() => {
+            notification.style.animation = 'slideOut 0.3s ease-in';
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.parentNode.removeChild(notification);
+                }
+            }, 300);
+        }, 4000);
+    }
+
+    // Enhanced saveEmployee function to include email and opt-in
+    const originalSaveEmployee = window.saveEmployee;
+    window.saveEmployee = function() {
+        // Get the email and opt-in values
+        const email = document.getElementById('newEmail').value;
+        const contactOptIn = document.getElementById('newContactOptIn').checked;
+        
+        // Call original function first
+        if (originalSaveEmployee) {
+            originalSaveEmployee();
+        }
+        
+        // Update the employee with email and opt-in info
+        const empIndex = document.getElementById('empIndex').value;
+        if (empIndex !== '' && employees[empIndex]) {
+            employees[empIndex].email = email;
+            employees[empIndex].contactOptIn = contactOptIn;
+            
+            // Log the audit event
+            logAuditEvent('employee_update', {
+                description: `Updated employee: ${employees[empIndex].name}`,
+                employeeId: employees[empIndex].id,
+                before: { email: employees[empIndex].email || '', contactOptIn: employees[empIndex].contactOptIn || false },
+                after: { email, contactOptIn }
+            });
+        }
+        
+        saveState();
+    };
+
+    // Initialize authentication check on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        // Add CSS animations
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes slideIn {
+                from { transform: translateX(100%); opacity: 0; }
+                to { transform: translateX(0); opacity: 1; }
+            }
+            @keyframes slideOut {
+                from { transform: translateX(0); opacity: 1; }
+                to { transform: translateX(100%); opacity: 0; }
+            }
+        `;
+        document.head.appendChild(style);
+        
+        // Check authentication
+        setTimeout(checkAuthentication, 500);
+        
+        // Set up table container for mobile scrolling
+        const table = document.getElementById('schedule-table');
+        if (table && !table.parentElement.classList.contains('table-container')) {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'table-container';
+            table.parentNode.insertBefore(wrapper, table);
+            wrapper.appendChild(table);
+        }
+    });
+
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </body>
