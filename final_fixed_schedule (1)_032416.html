@@ -275,37 +275,7 @@
             transition: transform 0.3s ease-out;
         }
         
-        /* Camera integration styles */
-        .photo-upload-container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 10px;
-            padding: 20px;
-            border: 2px dashed #dee2e6;
-            border-radius: 8px;
-            background: #f8f9fa;
-        }
-        
-        .photo-preview {
-            width: 100px;
-            height: 100px;
-            border-radius: 50%;
-            object-fit: cover;
-            border: 3px solid #0d6efd;
-        }
-        
-        .camera-btn {
-            background: #0d6efd;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 6px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
+
         
 
         td.pto-cell { background-color: #fff3cd !important; }
@@ -668,18 +638,7 @@
                     <input id="newContactOptIn" type="checkbox" style="width: auto; margin: 0;"/>
                     <label for="newContactOptIn" style="font-size: 14px; margin: 0;">Allow contact info sharing in Team Directory</label>
                  </div>
-                 <div style="grid-column: 1 / span 2;">
-                    <h4 style="margin: 10px 0 5px 0;">Profile Photo</h4>
-                    <div class="photo-upload-container">
-                        <img id="photo-preview" class="photo-preview" style="display: none;" alt="Profile photo preview">
-                        <div id="photo-placeholder" style="width: 100px; height: 100px; border-radius: 50%; background: #dee2e6; display: flex; align-items: center; justify-content: center; color: #6c757d; font-size: 36px;">📷</div>
-                        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                            <button type="button" class="camera-btn" onclick="capturePhoto()">📷 Take Photo</button>
-                            <input type="file" id="photo-file-input" accept="image/*" style="display: none;" onchange="handlePhotoSelect(event)">
-                            <button type="button" class="camera-btn" onclick="document.getElementById('photo-file-input').click()">📁 Choose File</button>
-                        </div>
-                    </div>
-                 </div>
+
                  <div>
                     <label for="newHireDate" style="font-size:12px;display:block;">Hire Date*</label>
                     <input id="newHireDate" type="date" required/>
@@ -934,7 +893,7 @@
     let teamDirectoryData = [];
     let announcements = JSON.parse(localStorage.getItem('announcements')) || [];
     let auditLogs = JSON.parse(localStorage.getItem('auditLogs')) || [];
-    let currentPhotoData = null;
+
 
     const shiftsInfo = { "10p-6a": 8, "2p-10:30p": 8.5, "10a-6:30p": 8.5, "6:30p-3a": 8.5, "5:30a-2p": 8.5, "6a-2:30p": 8.5, "1p-9:30p": 8.5, "7a-7p": 12, "9:30p-6a": 8.5 };
     const shiftTemplates = {
@@ -4652,8 +4611,7 @@ HR Department
             shifts: emp.shifts || 'Variable',
             availability: emp.availability || 'Not specified',
             hireDate: emp.hireDate || 'Unknown',
-            contactOptIn: emp.contactOptIn || false,
-            photo: emp.photo || null
+            contactOptIn: emp.contactOptIn || false
         }));
         
         renderTeamDirectory();
@@ -4675,9 +4633,7 @@ HR Department
                 transition: transform 0.2s;
             `;
             
-            const photoHtml = member.photo ? 
-                `<img src="${member.photo}" style="width: 60px; height: 60px; border-radius: 50%; object-fit: cover;">` :
-                `<div style="width: 60px; height: 60px; border-radius: 50%; background: #0d6efd; color: white; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 24px;">${member.name.charAt(0)}</div>`;
+            const photoHtml = `<div style="width: 60px; height: 60px; border-radius: 50%; background: #0d6efd; color: white; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 24px;">${member.name.charAt(0)}</div>`;
             
             const contactInfo = member.contactOptIn ? 
                 `<div style="font-size: 12px; color: #6c757d; margin-top: 5px;">📧 ${member.email}</div>` :
@@ -5026,44 +4982,37 @@ HR Department
         }, 4000);
     }
 
-    // Enhanced saveEmployee function to include email, opt-in, and photo
+    // Enhanced saveEmployee function to include email and opt-in (photo handling removed)
     const originalSaveEmployee = window.saveEmployee;
     window.saveEmployee = function() {
-        // Get the email, opt-in, and photo values
+        // Get the email and opt-in values (photo handling removed)
         const email = document.getElementById('newEmail').value;
         const contactOptIn = document.getElementById('newContactOptIn').checked;
-        const photo = currentPhotoData;
         
         // Call original function first
         if (originalSaveEmployee) {
             originalSaveEmployee();
         }
         
-        // Update the employee with email, opt-in, and photo info
+        // Update the employee with email and opt-in info (photo removed)
         const empIndex = document.getElementById('empIndex').value;
         if (empIndex !== '' && employees[empIndex]) {
             const oldData = {
                 email: employees[empIndex].email || '',
-                contactOptIn: employees[empIndex].contactOptIn || false,
-                photo: employees[empIndex].photo || null
+                contactOptIn: employees[empIndex].contactOptIn || false
             };
             
             employees[empIndex].email = email;
             employees[empIndex].contactOptIn = contactOptIn;
-            employees[empIndex].photo = photo;
             
             // Log the audit event
             logAuditEvent('employee_update', {
                 description: `Updated employee: ${employees[empIndex].name}`,
                 employeeId: employees[empIndex].id,
                 before: oldData,
-                after: { email, contactOptIn, photo: photo ? 'Photo updated' : 'No photo' }
+                after: { email, contactOptIn }
             });
         }
-        
-        // Clear the photo data
-        currentPhotoData = null;
-        updatePhotoPreview(null);
         
         saveState();
     };
@@ -5183,104 +5132,9 @@ HR Department
         showNotification(`Switched to ${currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}`, 'info');
     }
 
-    // ================== CAMERA INTEGRATION ==================
-
-    async function capturePhoto() {
-        try {
-            const stream = await navigator.mediaDevices.getUserMedia({
-                video: { facingMode: 'user' }
-            });
-            
-            // Create camera modal
-            const modal = document.createElement('div');
-            modal.className = 'modal';
-            modal.style.display = 'block';
-            modal.innerHTML = `
-                <div class="modal-content" style="max-width: 500px;">
-                    <div class="modal-header">
-                        <h3>📷 Take Profile Photo</h3>
-                        <span class="close" onclick="this.closest('.modal').remove(); stopCamera()">×</span>
-                    </div>
-                    <div style="text-align: center;">
-                        <video id="camera-video" autoplay style="width: 100%; max-width: 400px; border-radius: 8px;"></video>
-                        <canvas id="camera-canvas" style="display: none;"></canvas>
-                        <div style="margin-top: 15px; display: flex; gap: 10px; justify-content: center;">
-                            <button class="btn btn-primary" onclick="takePicture()">📸 Capture</button>
-                            <button class="btn btn-secondary" onclick="this.closest('.modal').remove(); stopCamera()">Cancel</button>
-                        </div>
-                    </div>
-                </div>
-            `;
-            
-            document.body.appendChild(modal);
-            
-            const video = document.getElementById('camera-video');
-            video.srcObject = stream;
-            
-            // Store stream reference for cleanup
-            window.currentCameraStream = stream;
-            
-        } catch (error) {
-            console.error('Camera access error:', error);
-            showNotification('Camera access denied or not available', 'error');
-        }
-    }
+    // ================== CAMERA INTEGRATION (REMOVED) ==================
     
-    function takePicture() {
-        const video = document.getElementById('camera-video');
-        const canvas = document.getElementById('camera-canvas');
-        const context = canvas.getContext('2d');
-        
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        
-        context.drawImage(video, 0, 0);
-        
-        currentPhotoData = canvas.toDataURL('image/jpeg', 0.8);
-        
-        // Update photo preview
-        updatePhotoPreview(currentPhotoData);
-        
-        // Clean up camera
-        stopCamera();
-        document.querySelector('.modal').remove();
-        
-        showNotification('Photo captured successfully!', 'success');
-    }
-    
-    function stopCamera() {
-        if (window.currentCameraStream) {
-            window.currentCameraStream.getTracks().forEach(track => track.stop());
-            window.currentCameraStream = null;
-        }
-    }
-    
-    function handlePhotoSelect(event) {
-        const file = event.target.files[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                currentPhotoData = e.target.result;
-                updatePhotoPreview(currentPhotoData);
-                showNotification('Photo selected successfully!', 'success');
-            };
-            reader.readAsDataURL(file);
-        }
-    }
-    
-    function updatePhotoPreview(photoData) {
-        const preview = document.getElementById('photo-preview');
-        const placeholder = document.getElementById('photo-placeholder');
-        
-        if (photoData) {
-            preview.src = photoData;
-            preview.style.display = 'block';
-            placeholder.style.display = 'none';
-        } else {
-            preview.style.display = 'none';
-            placeholder.style.display = 'flex';
-        }
-    }
+    // Camera and photo upload features removed
 
     // ================== GPS LOCATION VERIFICATION (REMOVED) ==================
     
