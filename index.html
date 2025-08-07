@@ -14,7 +14,7 @@
     <link rel="manifest" href="./manifest.json">
     
     <!-- Apple Touch Icons -->
-    <link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTkyIiBoZWlnaHQ9IjE5MiIgdmlld0JveD0iMCAwIDE5MiAxOTIiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxOTIiIGhlaWdodD0iMTkyIiByeD0iMTYiIGZpbGw9IiMwZDZlZmQiLz4KPHN2ZyB4PSI0OCIgeT0iNDgiIHdpZHRoPSI5NiIgaGVpZ2h0PSI5NiIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIj4KPHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSI+CjxwYXRoIGQ9Ik0xOSAzSDVjLTEuMSAwLTIgLjktMiAydjE0YzAgMS4xLjkgMiAyIDJoMTRjMS4xIDAgMi0uOSAyLTJWNWMwLTEuMS0uOS0yLTItMnoiIGZpbGw9IndoaXRlIi8+CjxwYXRoIGQ9Ik0xOSA3SDV2MTBoMTRWN3oiIGZpbGw9IiMwZDZlZmQiLz4KPC9zdmc+">
+    <link rel="apple-touch-icon" href="./icon-192.svg">
     <style>
         /* Base styles */
         * { box-sizing: border-box; }
@@ -1319,6 +1319,8 @@ const shiftTypes = {
     document.addEventListener('DOMContentLoaded', async function() {
         console.log('DOM loaded, starting data initialization...');
         try {
+            // Initialize manager view by default
+            showManagerView();
             await loadState();
             console.log('Data loaded successfully');
         } catch (error) {
@@ -1332,11 +1334,17 @@ const shiftTypes = {
         );
     }
 
-    document.getElementById('scheduleMonth').addEventListener('change', (e) => {
-        recordHistory();
-        clearSchedule(false);
-        generateSchedule(e.target.value);
-    });
+    // Add event listener for schedule month with existence check
+    function attachScheduleMonthListener() {
+        const scheduleMonth = document.getElementById('scheduleMonth');
+        if (scheduleMonth) {
+            scheduleMonth.addEventListener('change', (e) => {
+                recordHistory();
+                clearSchedule(false);
+                generateSchedule(e.target.value);
+            });
+        }
+    }
   window.addEventListener('click', (event) => {
     // Hide context menu
     document.getElementById('contextMenu').style.display = 'none';
@@ -1709,10 +1717,10 @@ async function saveState() {
         notifications,
         ptoRequests,
         employeePTOBalances,
-        month: document.getElementById('scheduleMonth').value,
+        month: document.getElementById('scheduleMonth')?.value || '',
         config: {
-            targetHours: document.getElementById('targetHours').value,
-            minStaff: document.getElementById('minStaff').value
+            targetHours: document.getElementById('targetHours')?.value || '',
+            minStaff: document.getElementById('minStaff')?.value || ''
         }
     };
 
@@ -1725,7 +1733,7 @@ async function saveState() {
 
     // Try to save to Supabase
     try {
-        if (typeof supabaseClient !== 'undefined') {
+        if (typeof supabaseClient !== 'undefined' && supabaseClient !== null) {
             const { error } = await supabaseClient
                 .from('schedules')
                 .upsert({ id: 1, data: stateToSave });
@@ -1757,7 +1765,7 @@ async function loadState() {
     
     // Try to load from Supabase first
     try {
-        if (typeof supabaseClient !== 'undefined') {
+        if (typeof supabaseClient !== 'undefined' && supabaseClient !== null) {
             console.log('Attempting to load from Supabase...');
             if (portalId) {
                 document.getElementById('manager-view').style.display = 'none';
@@ -1911,7 +1919,10 @@ async function loadState() {
     }
     
     console.log('Setting month input to:', monthToLoad);
-    document.getElementById('scheduleMonth').value = monthToLoad;
+    const scheduleMonthElement = document.getElementById('scheduleMonth');
+    if (scheduleMonthElement) {
+        scheduleMonthElement.value = monthToLoad;
+    }
     
     console.log('Calling generateSchedule with month:', monthToLoad);
     generateSchedule(monthToLoad);
@@ -2329,7 +2340,7 @@ function loadAndRenderPortal(portalId, state) {
     }
 
 function exportJSON() {
-        const backupData = { employees, scheduleData, notesData, bidsData, notifications, month: document.getElementById('scheduleMonth').value, config: { targetHours: document.getElementById('targetHours').value, minStaff: document.getElementById('minStaff').value } };
+        const backupData = { employees, scheduleData, notesData, bidsData, notifications, month: document.getElementById('scheduleMonth')?.value || '', config: { targetHours: document.getElementById('targetHours')?.value || '', minStaff: document.getElementById('minStaff')?.value || '' } };
         const blob = new Blob([JSON.stringify(backupData, null, 2)], {type: 'application/json'});
         const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `schedule_backup_${backupData.month}.json`; a.click(); URL.revokeObjectURL(a.href);
         
@@ -6412,6 +6423,9 @@ HR Department
         `;
         
         managerView.innerHTML = dashboardContent;
+        
+        // Attach event listeners after DOM elements are created
+        attachScheduleMonthListener();
         
         // Re-trigger table rendering and other initializations
         if (typeof renderTable === 'function') renderTable();
