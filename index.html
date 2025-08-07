@@ -359,6 +359,95 @@
             outline-offset: -2px;
         }
         
+        /* Enhanced shift cell styling */
+        .shift-cell-content {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 4px;
+            position: relative;
+        }
+        
+        .shift-text {
+            flex: 1;
+            min-width: 0;
+        }
+        
+        .shift-actions {
+            display: flex;
+            gap: 2px;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+        
+        td:hover .shift-actions {
+            opacity: 1;
+        }
+        
+        .shift-note-icon,
+        .feedback-icon {
+            cursor: pointer;
+            font-size: 12px;
+            padding: 2px;
+            border-radius: 3px;
+            background: rgba(0, 0, 0, 0.1);
+            transition: background 0.2s;
+        }
+        
+        .shift-note-icon:hover {
+            background: #3b82f6;
+            color: white;
+        }
+        
+        .feedback-icon:hover {
+            background: #f59e0b;
+            color: white;
+        }
+        
+        /* Drag and drop styling */
+        td[draggable="true"] {
+            cursor: move;
+        }
+        
+        td[draggable="true"]:hover {
+            background-color: #e0f2fe;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        
+        .drop-target {
+            background-color: #f0f9ff;
+            border: 2px dashed #3b82f6;
+            transition: all 0.2s;
+        }
+        
+        .drag-hover {
+            background-color: #dbeafe !important;
+            border: 2px solid #3b82f6 !important;
+            transform: scale(1.02);
+        }
+        
+        /* Portal tab styling */
+        .portal-tab {
+            transition: all 0.2s;
+        }
+        
+        .portal-tab:hover {
+            background: #e2e8f0;
+        }
+        
+        .portal-tab.active {
+            color: #0f172a;
+        }
+        
+        .portal-tab-content {
+            animation: fadeIn 0.3s ease-in-out;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
         /* Mobile-friendly form inputs */
         input, select, textarea { 
             width: 100%; 
@@ -2805,6 +2894,510 @@ const shiftTypes = {
         notificationsContent.innerHTML = notificationHTML;
     }
     
+    // ================== DRAG-AND-DROP SCHEDULER GRID ==================
+    
+    let draggedShift = null;
+    
+    // Handle drag start
+    function handleDragStart(event, employeeName, dateKey, shift) {
+        draggedShift = {
+            employeeName,
+            dateKey,
+            shift,
+            originalElement: event.target
+        };
+        
+        event.dataTransfer.setData('text/plain', JSON.stringify(draggedShift));
+        event.target.style.opacity = '0.5';
+        
+        // Add visual feedback
+        document.querySelectorAll('td[data-employee][data-date]').forEach(cell => {
+            if (cell !== event.target) {
+                cell.classList.add('drop-target');
+            }
+        });
+    }
+    
+    // Handle drag over (required for drop to work)
+    function handleDragOver(event) {
+        event.preventDefault();
+        
+        if (draggedShift) {
+            event.target.closest('td').classList.add('drag-hover');
+        }
+    }
+    
+    // Handle drag leave
+    function handleDragLeave(event) {
+        event.target.closest('td').classList.remove('drag-hover');
+    }
+    
+    // Handle drop
+    async function handleDrop(event, targetEmployeeName, targetDateKey) {
+        event.preventDefault();
+        
+        if (!draggedShift) return;
+        
+        const targetCell = event.target.closest('td');
+        targetCell.classList.remove('drag-hover');
+        
+        // Remove visual feedback
+        document.querySelectorAll('td[data-employee][data-date]').forEach(cell => {
+            cell.classList.remove('drop-target', 'drag-hover');
+        });
+        
+        // Reset original element opacity
+        if (draggedShift.originalElement) {
+            draggedShift.originalElement.style.opacity = '1';
+        }
+        
+        // Don't allow dropping on the same cell
+        if (draggedShift.employeeName === targetEmployeeName && draggedShift.dateKey === targetDateKey) {
+            draggedShift = null;
+            return;
+        }
+        
+        try {
+            // Get current content of target cell
+            const targetCurrentShift = scheduleData[targetEmployeeName]?.[targetDateKey] || '';
+            
+            // Confirm the move
+            const confirmMessage = targetCurrentShift 
+                ? `Move ${draggedShift.shift} from ${draggedShift.employeeName} (${draggedShift.dateKey}) to ${targetEmployeeName} (${targetDateKey})?\n\nThis will replace the existing ${targetCurrentShift} shift.`
+                : `Move ${draggedShift.shift} from ${draggedShift.employeeName} (${draggedShift.dateKey}) to ${targetEmployeeName} (${targetDateKey})?`;
+                
+            if (!confirm(confirmMessage)) {
+                draggedShift = null;
+                return;
+            }
+            
+            // Perform the move
+            if (!scheduleData[targetEmployeeName]) scheduleData[targetEmployeeName] = {};
+            if (!scheduleData[draggedShift.employeeName]) scheduleData[draggedShift.employeeName] = {};
+            
+            // Set the new shift
+            scheduleData[targetEmployeeName][targetDateKey] = draggedShift.shift;
+            
+            // Clear the original shift
+            delete scheduleData[draggedShift.employeeName][draggedShift.dateKey];
+            
+            // Save state and refresh
+            await saveState();
+            renderTable();
+            
+            // Add audit log
+            if (auditLogs) {
+                auditLogs.push({
+                    timestamp: new Date().toISOString(),
+                    action: 'shift_moved',
+                    details: `Moved ${draggedShift.shift} from ${draggedShift.employeeName} (${draggedShift.dateKey}) to ${targetEmployeeName} (${targetDateKey})`,
+                    user: 'Manager'
+                });
+            }
+            
+            // Add notifications
+            await addNotification(draggedShift.employeeName, {
+                type: 'schedule_change',
+                title: 'Shift Moved',
+                message: `Your ${draggedShift.shift} shift on ${draggedShift.dateKey} has been moved`,
+                date: new Date().toISOString(),
+                read: false
+            });
+            
+            if (targetEmployeeName !== draggedShift.employeeName) {
+                await addNotification(targetEmployeeName, {
+                    type: 'schedule_change',
+                    title: 'New Shift Assigned',
+                    message: `You have been assigned a ${draggedShift.shift} shift on ${targetDateKey}`,
+                    date: new Date().toISOString(),
+                    read: false
+                });
+            }
+            
+        } catch (error) {
+            console.error('Error moving shift:', error);
+            alert('Error moving shift: ' + error.message);
+        }
+        
+        draggedShift = null;
+    }
+    
+    // Handle drag end
+    function handleDragEnd(event) {
+        // Reset all visual feedback
+        document.querySelectorAll('td[data-employee][data-date]').forEach(cell => {
+            cell.classList.remove('drop-target', 'drag-hover');
+        });
+        
+        if (event.target) {
+            event.target.style.opacity = '1';
+        }
+        
+        draggedShift = null;
+    }
+    
+    // ================== CALENDAR EXPORT FUNCTIONS ==================
+    
+    // Export to Google Calendar
+    function exportToGoogleCalendar(employeeId) {
+        const startDate = document.getElementById('export-start-date').value;
+        const endDate = document.getElementById('export-end-date').value;
+        
+        if (!startDate || !endDate) {
+            alert('Please select start and end dates');
+            return;
+        }
+        
+        const events = getEmployeeEvents(employeeId, startDate, endDate);
+        
+        // Create Google Calendar URLs for each event
+        events.forEach((event, index) => {
+            setTimeout(() => {
+                const googleCalendarUrl = createGoogleCalendarUrl(event);
+                window.open(googleCalendarUrl, '_blank');
+            }, index * 1000); // Stagger the opens to avoid popup blocking
+        });
+        
+        if (events.length === 0) {
+            alert('No events found for the selected date range');
+        } else {
+            alert(`Opening ${events.length} events in Google Calendar`);
+        }
+    }
+    
+    // Create Google Calendar URL
+    function createGoogleCalendarUrl(event) {
+        const baseUrl = 'https://calendar.google.com/calendar/render';
+        const params = new URLSearchParams({
+            action: 'TEMPLATE',
+            text: event.title,
+            dates: `${event.startDate}/${event.endDate}`,
+            details: event.description,
+            location: event.location || 'Workplace'
+        });
+        
+        return `${baseUrl}?${params.toString()}`;
+    }
+    
+    // Export to iCalendar
+    function exportToICalendar(employeeId) {
+        const startDate = document.getElementById('export-start-date').value;
+        const endDate = document.getElementById('export-end-date').value;
+        
+        if (!startDate || !endDate) {
+            alert('Please select start and end dates');
+            return;
+        }
+        
+        const events = getEmployeeEvents(employeeId, startDate, endDate);
+        const icalContent = generateICalContent(events, employeeId);
+        
+        // Download the .ics file
+        const blob = new Blob([icalContent], { type: 'text/calendar' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `schedule-${employeeId}-${startDate}-to-${endDate}.ics`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+        
+        alert('iCalendar file downloaded successfully!');
+    }
+    
+    // Generate iCalendar content
+    function generateICalContent(events, employeeId) {
+        const now = new Date();
+        const timestamp = now.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+        
+        let ical = [
+            'BEGIN:VCALENDAR',
+            'VERSION:2.0',
+            'PRODID:-//Schedule NSG//Employee Schedule//EN',
+            'CALSCALE:GREGORIAN',
+            'METHOD:PUBLISH',
+            `X-WR-CALNAME:${employeeId} Work Schedule`,
+            'X-WR-TIMEZONE:America/New_York'
+        ];
+        
+        events.forEach(event => {
+            ical.push(
+                'BEGIN:VEVENT',
+                `UID:${event.uid}`,
+                `DTSTAMP:${timestamp}`,
+                `DTSTART:${event.startDate}`,
+                `DTEND:${event.endDate}`,
+                `SUMMARY:${event.title}`,
+                `DESCRIPTION:${event.description}`,
+                'STATUS:CONFIRMED',
+                'TRANSP:OPAQUE',
+                'END:VEVENT'
+            );
+        });
+        
+        ical.push('END:VCALENDAR');
+        
+        return ical.join('\r\n');
+    }
+    
+    // Export to CSV
+    function exportToCSV(employeeId) {
+        const startDate = document.getElementById('export-start-date').value;
+        const endDate = document.getElementById('export-end-date').value;
+        
+        if (!startDate || !endDate) {
+            alert('Please select start and end dates');
+            return;
+        }
+        
+        const events = getEmployeeEvents(employeeId, startDate, endDate);
+        const csvContent = generateCSVContent(events);
+        
+        // Download the CSV file
+        const blob = new Blob([csvContent], { type: 'text/csv' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `schedule-${employeeId}-${startDate}-to-${endDate}.csv`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+        
+        alert('CSV file downloaded successfully!');
+    }
+    
+    // Generate CSV content
+    function generateCSVContent(events) {
+        const headers = ['Date', 'Start Time', 'End Time', 'Shift Type', 'Description', 'Status'];
+        const rows = [headers.join(',')];
+        
+        events.forEach(event => {
+            const row = [
+                event.date,
+                event.startTime,
+                event.endTime,
+                event.type,
+                `"${event.description}"`,
+                event.status
+            ];
+            rows.push(row.join(','));
+        });
+        
+        return rows.join('\n');
+    }
+    
+    // Get employee events for export
+    function getEmployeeEvents(employeeId, startDate, endDate) {
+        const events = [];
+        const start = new Date(startDate);
+        const end = new Date(endDate);
+        
+        const employeeSchedule = scheduleData[employeeId] || {};
+        
+        // Add regular shifts
+        Object.keys(employeeSchedule).forEach(dateKey => {
+            const date = new Date(dateKey);
+            if (date >= start && date <= end && employeeSchedule[dateKey]) {
+                const shift = employeeSchedule[dateKey];
+                const shiftInfo = parseShiftTime(shift);
+                
+                events.push({
+                    uid: `shift-${employeeId}-${dateKey}@schedule-nsg.com`,
+                    title: `Work Shift - ${shift}`,
+                    date: dateKey,
+                    startDate: formatICalDateTime(date, shiftInfo.startTime),
+                    endDate: formatICalDateTime(date, shiftInfo.endTime),
+                    startTime: shiftInfo.startTime,
+                    endTime: shiftInfo.endTime,
+                    type: 'Shift',
+                    description: `Work shift: ${shift}`,
+                    status: 'Scheduled'
+                });
+            }
+        });
+        
+        // Add PTO days
+        if (ptoRequests) {
+            Object.values(ptoRequests).forEach(request => {
+                if (request.employeeId === employeeId && request.status === 'approved') {
+                    const ptoStart = new Date(request.startDate);
+                    const ptoEnd = new Date(request.endDate);
+                    
+                    if (ptoStart <= end && ptoEnd >= start) {
+                        events.push({
+                            uid: `pto-${request.id}@schedule-nsg.com`,
+                            title: `PTO - ${request.reason}`,
+                            date: request.startDate,
+                            startDate: formatICalDateTime(ptoStart, '00:00'),
+                            endDate: formatICalDateTime(ptoEnd, '23:59'),
+                            startTime: 'All Day',
+                            endTime: 'All Day',
+                            type: 'PTO',
+                            description: `Time off: ${request.reason}. ${request.comments || ''}`,
+                            status: 'Approved'
+                        });
+                    }
+                }
+            });
+        }
+        
+        return events.sort((a, b) => new Date(a.date) - new Date(b.date));
+    }
+    
+    // Parse shift time (basic implementation)
+    function parseShiftTime(shift) {
+        // This is a simplified parser - you might need to enhance based on your shift format
+        const timeMatch = shift.match(/(\d{1,2}):?(\d{0,2})\s*(a|p|am|pm)?[-–](\d{1,2}):?(\d{0,2})\s*(a|p|am|pm)?/i);
+        
+        if (timeMatch) {
+            const [, startHour, startMin = '00', startPeriod, endHour, endMin = '00', endPeriod] = timeMatch;
+            
+            let startTime = `${startHour.padStart(2, '0')}:${startMin.padStart(2, '0')}`;
+            let endTime = `${endHour.padStart(2, '0')}:${endMin.padStart(2, '0')}`;
+            
+            // Convert to 24-hour format if needed
+            if (startPeriod && startPeriod.toLowerCase().includes('p') && parseInt(startHour) !== 12) {
+                startTime = `${(parseInt(startHour) + 12).toString().padStart(2, '0')}:${startMin.padStart(2, '0')}`;
+            }
+            if (endPeriod && endPeriod.toLowerCase().includes('p') && parseInt(endHour) !== 12) {
+                endTime = `${(parseInt(endHour) + 12).toString().padStart(2, '0')}:${endMin.padStart(2, '0')}`;
+            }
+            
+            return { startTime, endTime };
+        }
+        
+        return { startTime: '09:00', endTime: '17:00' }; // Default 9-5
+    }
+    
+    // Format date/time for iCalendar
+    function formatICalDateTime(date, time) {
+        const year = date.getFullYear();
+        const month = (date.getMonth() + 1).toString().padStart(2, '0');
+        const day = date.getDate().toString().padStart(2, '0');
+        const [hour, minute] = time.split(':');
+        
+        return `${year}${month}${day}T${hour}${minute}00`;
+    }
+    
+    // Additional helper functions for enhanced portal
+    
+    // Load shift history for current employee
+    function loadShiftHistory() {
+        const employeeId = getCurrentEmployeeId();
+        if (!employeeId) return;
+        
+        const historyContent = document.getElementById('shift-history-content');
+        if (!historyContent) return;
+        
+        // Implementation would go here - simplified for now
+        historyContent.innerHTML = '<p>Shift history feature coming soon...</p>';
+    }
+    
+    // Load my requests (swaps, bids, feedback)
+    function loadMyRequests() {
+        const employeeId = getCurrentEmployeeId();
+        if (!employeeId) return;
+        
+        // Implementation already added above in the enhanced portal section
+        // This is a placeholder to avoid undefined function errors
+    }
+    
+    // Filter shift history
+    function filterShiftHistory() {
+        // Implementation would filter based on selected criteria
+        loadShiftHistory();
+    }
+    
+    // Export shift history
+    function exportShiftHistory() {
+        const employeeId = getCurrentEmployeeId();
+        alert('Shift history export feature coming soon...');
+    }
+    
+    // Clear old notifications
+    function clearOldNotifications() {
+        const employeeId = getCurrentEmployeeId();
+        if (!employeeId) return;
+        
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        
+        if (notifications[employeeId]) {
+            notifications[employeeId] = notifications[employeeId].filter(notification => {
+                const notificationDate = new Date(notification.timestamp || notification.date);
+                return notificationDate > thirtyDaysAgo;
+            });
+            
+            saveState();
+            loadNotifications();
+            alert('Old notifications cleared successfully!');
+        }
+    }
+    
+    // Open notification preferences
+    function openNotificationPreferences() {
+        const modalHTML = `
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>⚙️ Notification Preferences</h3>
+                    <span class="close-button" onclick="closeAllModals()">&times;</span>
+                </div>
+                <div class="modal-body">
+                    <p>Configure which notifications you want to receive:</p>
+                    
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: flex; align-items: center; gap: 8px;">
+                            <input type="checkbox" checked> Schedule Changes
+                        </label>
+                    </div>
+                    
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: flex; align-items: center; gap: 8px;">
+                            <input type="checkbox" checked> Shift Swap Requests
+                        </label>
+                    </div>
+                    
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: flex; align-items: center; gap: 8px;">
+                            <input type="checkbox" checked> Bid Results
+                        </label>
+                    </div>
+                    
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: flex; align-items: center; gap: 8px;">
+                            <input type="checkbox" checked> PTO Updates
+                        </label>
+                    </div>
+                    
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: flex; align-items: center; gap: 8px;">
+                            <input type="checkbox" checked> Manager Notes
+                        </label>
+                    </div>
+                    
+                    <div style="background: #f3f4f6; padding: 10px; border-radius: 4px; font-size: 14px;">
+                        <strong>ℹ️ Note:</strong> Notification preferences feature is coming soon. Currently all notifications are enabled.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" onclick="closeAllModals()">Close</button>
+                    <button class="btn btn-primary" onclick="saveNotificationPreferences()">Save Preferences</button>
+                </div>
+            </div>
+        `;
+        
+        openModal('notification-preferences-modal', modalHTML);
+    }
+    
+    // Save notification preferences
+    function saveNotificationPreferences() {
+        // Implementation would save preferences
+        alert('Notification preferences saved! (Feature coming soon)');
+        closeAllModals();
+    }
+    
     document.addEventListener('DOMContentLoaded', async function() {
         console.log('DOM loaded, starting data initialization...');
         try {
@@ -2966,6 +3559,8 @@ const shiftTypes = {
                     const dateKey = date.toISOString().split('T')[0];
                     const shift = scheduleData[emp.name]?.[dateKey] || '';
                     const note = notesData[emp.name]?.[dateKey] || '';
+                    const shiftNote = getShiftNote(emp.name, dateKey, shift);
+                    
                     let cellClass = (date.getDay() === 0 || date.getDay() === 6) ? ' weekend' : '';
                     if (shift.toUpperCase() === 'PTO') {
                         // Check if this is from an approved PTO request
@@ -2978,8 +3573,35 @@ const shiftTypes = {
                         cellClass += ptoRequest ? ' pto-approved' : ' pto-cell';
                     }
                     if (conflicts.some(c => c.empName === emp.name && c.dateKey === dateKey)) cellClass += ' conflict-cell';
+                    
+                    // Enhanced note indicators
                     const noteIndicator = note ? `<div class="note-indicator" title="${note}"></div>` : '';
-                    return `<td class="${cellClass}" contenteditable="true" onblur="updateShift(this, '${emp.name}', '${dateKey}')" oncontextmenu="showContextMenu(event, '${emp.name}', '${dateKey}')" data-original-shift="${shift}">${shift}${noteIndicator}</td>`;
+                    const shiftNoteIndicator = shiftNote ? `<span class="shift-note-icon" onclick="openShiftNotesModal('${emp.name}', '${dateKey}', '${shift}', true)" title="Has shift notes">📝</span>` : '';
+                    const feedbackButton = shift ? `<span class="feedback-icon" onclick="openShiftFeedbackModal('${emp.name}', '${dateKey}', '${shift}')" title="Report issue/feedback">💬</span>` : '';
+                    
+                    // Add drag-and-drop attributes for manager functionality
+                    const dragAttributes = !emp.name.startsWith('OPEN SHIFTS') && shift ? 
+                        `draggable="true" ondragstart="handleDragStart(event, '${emp.name}', '${dateKey}', '${shift}')"` : '';
+                    const dropAttributes = `ondrop="handleDrop(event, '${emp.name}', '${dateKey}')" ondragover="handleDragOver(event)"`;
+                    
+                    return `<td class="${cellClass}" 
+                                contenteditable="true" 
+                                onblur="updateShift(this, '${emp.name}', '${dateKey}')" 
+                                oncontextmenu="showContextMenu(event, '${emp.name}', '${dateKey}')" 
+                                data-original-shift="${shift}"
+                                data-employee="${emp.name}"
+                                data-date="${dateKey}"
+                                ${dragAttributes}
+                                ${dropAttributes}>
+                                <div class="shift-cell-content">
+                                    <span class="shift-text">${shift}</span>
+                                    <div class="shift-actions">
+                                        ${shiftNoteIndicator}
+                                        ${feedbackButton}
+                                    </div>
+                                </div>
+                                ${noteIndicator}
+                            </td>`;
                 }).join('');
                 return `<tr class="${emp.name.startsWith('OPEN SHIFTS') ? 'open-shift-row' : ''}"><td class="employee-name">${emp.name}</td>${cells}</tr>`;
             }).join('');
