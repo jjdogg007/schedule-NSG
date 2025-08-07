@@ -16,6 +16,10 @@
         .btn-danger { background-color: #dc3545; color: white; }
         .btn-secondary { background-color: #6c757d; color: white; }
         .btn-success { background-color: #198754; color: white; }
+        .btn-success:hover { background-color: #157347; transform: translateY(-1px); }
+        .btn-danger:hover { background-color: #bb2d3b; transform: translateY(-1px); }
+        .bid-item { transition: all 0.2s ease; }
+        .bid-item:hover { background-color: #e9ecef !important; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
         .btn-warning { background-color: #ffc107; color: black; }
         table { width: 100%; border-collapse: collapse; margin-top: 20px; }
         thead th { position: sticky; top: 0; background-color: #f8f9fa; z-index: 10; }
@@ -1541,12 +1545,18 @@ function sendChangeNotification() {
 
                             const bidderElement = document.createElement('div');
                             bidderElement.className = 'bid-item';
+                            bidderElement.style.cssText = 'padding: 12px; margin: 8px 0; border: 1px solid #dee2e6; border-radius: 6px; background: #f8f9fa; display: flex; justify-content: space-between; align-items: center;';
                             bidderElement.innerHTML = `
-                                <span>${employee.name}</span>
-                                <span class="bid-stats">
-                                    Stats: ${totalHours.toFixed(1)} Hrs | ${shiftsThisWeek} Shifts this week | ${isAvailable ? '✅ Available' : '❌ Conflict'}
-                                </span>
-                                <button class="btn btn-success btn-sm" style="float: right; margin-top: -20px;" onclick="approveBid('${empId}', '${dateKey}', '${shift}', '${source}')">Approve</button>
+                                <div>
+                                    <div style="font-weight: bold; margin-bottom: 4px;">${employee.name}</div>
+                                    <div class="bid-stats" style="font-size: 12px; color: #666;">
+                                        Stats: ${totalHours.toFixed(1)} Hrs | ${shiftsThisWeek} Shifts this week | ${isAvailable ? '✅ Available' : '❌ Conflict'}
+                                    </div>
+                                </div>
+                                <div style="display: flex; gap: 8px;">
+                                    <button class="btn btn-success btn-sm" onclick="approveBid('${empId}', '${dateKey}', '${shift}', '${source}')">Approve</button>
+                                    <button class="btn btn-danger btn-sm" onclick="denyBid('${empId}', '${dateKey}', '${shift}')">Deny</button>
+                                </div>
                             `;
                             shiftElement.appendChild(bidderElement);
                         }
