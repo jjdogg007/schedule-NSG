@@ -1008,11 +1008,34 @@ const shiftTypes = {
         closing: ["2p-10:30p", "6:30p-3a", "10p-6a", "9:30p-6a"]
     };
 // --- Supabase Client Setup ---
-    // --- Supabase Client Setup ---
     const supabaseUrl = "https://ulefvfpvgfdavztlwmpu.supabase.co";
     const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVsZWZ2ZnB2Z2ZkYXZ6dGx3bXB1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ0OTIzMDksImV4cCI6MjA3MDA2ODMwOX0.Se8nQg3BZUAYnt3bahw7iNePXm8G3X5PbH83XHY8edo";
-    const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
-    document.addEventListener('DOMContentLoaded', loadState);
+    
+    let supabaseClient = null;
+    try {
+        if (typeof supabase !== 'undefined') {
+            supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
+            console.log('Supabase client initialized successfully');
+        } else {
+            console.log('Supabase library not available, using localStorage only');
+        }
+    } catch (error) {
+        console.warn('Failed to initialize Supabase client:', error);
+        supabaseClient = null;
+    }
+    document.addEventListener('DOMContentLoaded', async function() {
+        console.log('DOM loaded, starting data initialization...');
+        try {
+            await loadState();
+            console.log('Data loaded successfully, checking authentication...');
+            // Only check authentication after data is loaded
+            checkAuthentication();
+        } catch (error) {
+            console.error('Error during initialization:', error);
+            // Still check authentication even if data loading fails
+            checkAuthentication();
+        }
+    });
     
     function generateUUID() {
         return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c =>
@@ -1055,47 +1078,98 @@ const shiftTypes = {
     }
 
     function generateSchedule(monthString) {
-        if (!monthString) return;
-        const [year, month] = monthString.split('-').map(Number);
-        const daysInMonth = new Date(year, month, 0).getDate();
-        currentDates = Array.from({ length: daysInMonth }, (_, i) => new Date(year, month - 1, i + 1));
-        employees.forEach(emp => { 
-            if (!scheduleData[emp.name]) scheduleData[emp.name] = {}; 
-            if (!notesData[emp.name]) notesData[emp.name] = {};
-        });
-        renderTable();
+        console.log('generateSchedule called with:', monthString);
+        if (!monthString) {
+            console.error('generateSchedule: monthString is required');
+            return;
+        }
+        
+        try {
+            const [year, month] = monthString.split('-').map(Number);
+            console.log('Generating schedule for year:', year, 'month:', month);
+            
+            const daysInMonth = new Date(year, month, 0).getDate();
+            currentDates = Array.from({ length: daysInMonth }, (_, i) => new Date(year, month - 1, i + 1));
+            console.log('Generated dates for', daysInMonth, 'days');
+            
+            // Ensure scheduleData and notesData are initialized for all employees
+            employees.forEach(emp => { 
+                if (!scheduleData[emp.name]) {
+                    scheduleData[emp.name] = {};
+                    console.log('Initialized scheduleData for:', emp.name);
+                }
+                if (!notesData[emp.name]) {
+                    notesData[emp.name] = {};
+                    console.log('Initialized notesData for:', emp.name);
+                }
+            });
+            
+            console.log('Calling renderTable...');
+            renderTable();
+            console.log('generateSchedule completed successfully');
+        } catch (error) {
+            console.error('Error in generateSchedule:', error);
+            // Try to render table anyway with current data
+            renderTable();
+        }
     }
     
     function renderTable() {
-        const table = document.getElementById('schedule-table');
-        const tbody = table.querySelector('tbody') || table.appendChild(document.createElement('tbody'));
-        const thead = table.querySelector('thead') || table.appendChild(document.createElement('thead'));
-        thead.innerHTML = `<tr><th class="employee-name">Employee</th>${currentDates.map(d => `<th>${d.getDate()}<br>${d.toLocaleDateString('en-US', { weekday: 'short' })}</th>`).join('')}</tr>`;
-        const sortedEmployees = getSortedEmployees();
-        tbody.innerHTML = sortedEmployees.map(emp => {
-            const cells = currentDates.map(date => {
-                const dateKey = date.toISOString().split('T')[0];
-                const shift = scheduleData[emp.name]?.[dateKey] || '';
-                const note = notesData[emp.name]?.[dateKey] || '';
-                let cellClass = (date.getDay() === 0 || date.getDay() === 6) ? ' weekend' : '';
-                if (shift.toUpperCase() === 'PTO') {
-                    // Check if this is from an approved PTO request
-                    const ptoRequest = Object.values(ptoRequests || {}).find(r => 
-                        r.employeeName === emp.name && 
-                        r.status === 'approved' &&
-                        new Date(r.startDate) <= date && 
-                        new Date(r.endDate) >= date
-                    );
-                    cellClass += ptoRequest ? ' pto-approved' : ' pto-cell';
-                }
-                if (conflicts.some(c => c.empName === emp.name && c.dateKey === dateKey)) cellClass += ' conflict-cell';
-                const noteIndicator = note ? `<div class="note-indicator" title="${note}"></div>` : '';
-                return `<td class="${cellClass}" contenteditable="true" onblur="updateShift(this, '${emp.name}', '${dateKey}')" oncontextmenu="showContextMenu(event, '${emp.name}', '${dateKey}')" data-original-shift="${shift}">${shift}${noteIndicator}</td>`;
+        console.log('renderTable called...');
+        try {
+            const table = document.getElementById('schedule-table');
+            if (!table) {
+                console.error('schedule-table element not found');
+                return;
+            }
+            
+            const tbody = table.querySelector('tbody') || table.appendChild(document.createElement('tbody'));
+            const thead = table.querySelector('thead') || table.appendChild(document.createElement('thead'));
+            
+            if (!currentDates || currentDates.length === 0) {
+                console.warn('No currentDates available, table will be empty');
+                thead.innerHTML = '<tr><th class="employee-name">Employee</th><th>No dates loaded</th></tr>';
+                tbody.innerHTML = '';
+                return;
+            }
+            
+            console.log('Rendering table for', currentDates.length, 'dates and', employees.length, 'employees');
+            
+            // Create header row with dates
+            thead.innerHTML = `<tr><th class="employee-name">Employee</th>${currentDates.map(d => `<th>${d.getDate()}<br>${d.toLocaleDateString('en-US', { weekday: 'short' })}</th>`).join('')}</tr>`;
+            
+            const sortedEmployees = getSortedEmployees();
+            console.log('Sorted employees:', sortedEmployees.length);
+            
+            tbody.innerHTML = sortedEmployees.map(emp => {
+                const cells = currentDates.map(date => {
+                    const dateKey = date.toISOString().split('T')[0];
+                    const shift = scheduleData[emp.name]?.[dateKey] || '';
+                    const note = notesData[emp.name]?.[dateKey] || '';
+                    let cellClass = (date.getDay() === 0 || date.getDay() === 6) ? ' weekend' : '';
+                    if (shift.toUpperCase() === 'PTO') {
+                        // Check if this is from an approved PTO request
+                        const ptoRequest = Object.values(ptoRequests || {}).find(r => 
+                            r.employeeName === emp.name && 
+                            r.status === 'approved' &&
+                            new Date(r.startDate) <= date && 
+                            new Date(r.endDate) >= date
+                        );
+                        cellClass += ptoRequest ? ' pto-approved' : ' pto-cell';
+                    }
+                    if (conflicts.some(c => c.empName === emp.name && c.dateKey === dateKey)) cellClass += ' conflict-cell';
+                    const noteIndicator = note ? `<div class="note-indicator" title="${note}"></div>` : '';
+                    return `<td class="${cellClass}" contenteditable="true" onblur="updateShift(this, '${emp.name}', '${dateKey}')" oncontextmenu="showContextMenu(event, '${emp.name}', '${dateKey}')" data-original-shift="${shift}">${shift}${noteIndicator}</td>`;
+                }).join('');
+                return `<tr class="${emp.name.startsWith('OPEN SHIFTS') ? 'open-shift-row' : ''}"><td class="employee-name">${emp.name}</td>${cells}</tr>`;
             }).join('');
-            return `<tr class="${emp.name.startsWith('OPEN SHIFTS') ? 'open-shift-row' : ''}"><td class="employee-name">${emp.name}</td>${cells}</tr>`;
-        }).join('');
-        renderDashboard();
-        enhancePTODisplay(); // Add PTO visual enhancements
+            
+            console.log('Table rendered successfully');
+            renderDashboard();
+            enhancePTODisplay(); // Add PTO visual enhancements
+        } catch (error) {
+            console.error('Error in renderTable:', error);
+        }
     }
 
     function renderDashboard() {
@@ -1385,6 +1459,7 @@ async function saveState() {
 // Replace your existing loadState function with this final, complete version.
 
 async function loadState() {
+    console.log('Starting loadState function...');
     const urlParams = new URLSearchParams(window.location.search);
     const portalId = urlParams.get('portal');
     
@@ -1394,6 +1469,7 @@ async function loadState() {
     // Try to load from Supabase first
     try {
         if (typeof supabaseClient !== 'undefined') {
+            console.log('Attempting to load from Supabase...');
             if (portalId) {
                 document.getElementById('manager-view').style.display = 'none';
                 document.getElementById('employee-portal').style.display = 'block';
@@ -1415,6 +1491,9 @@ async function loadState() {
             const result = await supabaseClient.from('schedules').select('data').eq('id', 1).single();
             records = result.data;
             error = result.error;
+            console.log('Supabase load result:', { records: !!records, error });
+        } else {
+            console.log('Supabase client not available, skipping cloud load');
         }
     } catch (err) {
         console.warn("Could not load from cloud, trying localStorage:", err);
@@ -1423,12 +1502,15 @@ async function loadState() {
 
     // If Supabase failed, try localStorage
     if (!records || error) {
+        console.log('Loading from localStorage...');
         try {
             const localData = localStorage.getItem('scheduleGeneratorState');
             if (localData) {
                 records = { data: JSON.parse(localData) };
                 error = null;
                 console.log('✅ Loaded data from localStorage');
+            } else {
+                console.log('No localStorage data found');
             }
         } catch (err) {
             console.warn("Could not load from localStorage:", err);
@@ -1444,6 +1526,7 @@ async function loadState() {
     let needsInitialSave = false;
 
     if (records && records.data) {
+        console.log('Loading saved state...');
         const state = records.data;
         employees = state.employees || [];
         scheduleData = state.schedule || {};
@@ -1459,8 +1542,10 @@ async function loadState() {
             document.getElementById('targetHours').value = state.config.targetHours || 160;
             document.getElementById('minStaff').value = state.config.minStaff || 3;
         }
+        console.log('Loaded employees:', employees.length, 'scheduleData keys:', Object.keys(scheduleData).length);
     } else {
         // This block runs only if there is no saved data in the cloud.
+        console.log('No saved data found, initializing with default employees...');
         needsInitialSave = true;
         employees = [
             { name: "Dowling, Tina", id: generateUUID(), type: "PT", shifts: "10p-6a", availability: "Fri,Sat", maxDays: "2", targetHours: "64", email: "", hireDate: "2024-01-15" }, 
@@ -1495,6 +1580,7 @@ async function loadState() {
                 };
             }
         });
+        console.log('Initialized default employees:', employees.length);
     }
     
     let updatedEmployees = false;
@@ -1518,21 +1604,38 @@ async function loadState() {
         }
     });
 
+    // Calculate default month if not provided
     if (!monthToLoad) {
+        console.log('Calculating default month...');
         const now = new Date();
-        let year = now.getFullYear(); let month = now.getMonth() + 1;
-        if (now.getDate() > 15) { month++; if (month > 12) { month = 1; year++; } }
+        let year = now.getFullYear(); 
+        let month = now.getMonth() + 1;
+        if (now.getDate() > 15) { 
+            month++; 
+            if (month > 12) { 
+                month = 1; 
+                year++; 
+            } 
+        }
         monthToLoad = `${year}-${month.toString().padStart(2, '0')}`;
+        console.log('Default month calculated:', monthToLoad);
     }
     
+    console.log('Setting month input to:', monthToLoad);
     document.getElementById('scheduleMonth').value = monthToLoad;
+    
+    console.log('Calling generateSchedule with month:', monthToLoad);
     generateSchedule(monthToLoad);
     
     if (needsInitialSave || updatedEmployees) {
+        console.log('Saving initial state...');
         await saveState();
     }
     
+    console.log('Recording history...');
     recordHistory();
+    
+    console.log('loadState completed successfully');
 }
 
 function loadAndRenderPortal(portalId, state) {
@@ -4916,10 +5019,17 @@ HR Department
     let isAuthenticated = sessionStorage.getItem('authenticated') === 'true';
 
     function checkAuthentication() {
+        console.log('Checking authentication, isAuthenticated:', isAuthenticated);
         if (!isAuthenticated) {
+            console.log('Not authenticated, showing password modal');
             document.getElementById('masterPasswordModal').style.display = 'block';
-            // Hide main content
+            // Hide main content only after showing modal
             document.getElementById('manager-view').style.display = 'none';
+            document.getElementById('employee-portal').style.display = 'none';
+        } else {
+            console.log('Already authenticated, ensuring manager view is visible');
+            // Ensure manager view is visible if authenticated
+            document.getElementById('manager-view').style.display = 'block';
             document.getElementById('employee-portal').style.display = 'none';
         }
     }
@@ -5058,7 +5168,7 @@ HR Department
     };
 
     // Initialize authentication check on page load
-    document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('DOMContentLoaded', async function() {
         // Add CSS animations
         const style = document.createElement('style');
         style.textContent = `
@@ -5072,9 +5182,6 @@ HR Department
             }
         `;
         document.head.appendChild(style);
-        
-        // Check authentication
-        setTimeout(checkAuthentication, 500);
         
         // Set up table container for mobile scrolling
         const table = document.getElementById('schedule-table');
