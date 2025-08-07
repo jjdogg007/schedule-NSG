@@ -30,6 +30,8 @@
         .modal-header { display: flex; justify-content: space-between; align-items: center; }
         .close { color: #aaa; font-size: 28px; font-weight: bold; cursor: pointer; }
         td.pto-cell { background-color: #fff3cd !important; }
+        td.pto-approved { background-color: #d4edda !important; }
+        td.pto-pending { background-color: #f8d7da !important; }
         td.weekend { background-color: #f1f1f1; }
         .shift-assigned { background-color: #d4edda !important; }
         .shift-overtime { background-color: #f8d7da !important; }
@@ -225,8 +227,8 @@
                  <input id="newAvailability" placeholder="Availability (e.g., Mon,Tue,Fri)" type="text" style="grid-column: 1 / span 2;"/>
 		 <input id="newEmail" placeholder="employee@email.com" type="email" style="grid-column: 1 / span 2;"/>
                  <div>
-                    <label for="newHireDate" style="font-size:12px;display:block;">Hire Date</label>
-                    <input id="newHireDate" type="date"/>
+                    <label for="newHireDate" style="font-size:12px;display:block;">Hire Date*</label>
+                    <input id="newHireDate" type="date" required/>
                  </div>
                  <div>
                     <label for="newMaxDays" style="font-size:12px;display:block;">Max Days/Week (0=no limit)</label>
@@ -337,7 +339,8 @@
             <div style="margin-bottom: 15px;">
                 <button class="btn btn-success" onclick="batchApprovePTO()">✓ Batch Approve Selected</button>
                 <button class="btn btn-danger" onclick="batchDenyPTO()">✗ Batch Deny Selected</button>
-                <button class="btn btn-warning" onclick="exportPTOReport()">📄 Export PDF Report</button>
+                <button class="btn btn-info" onclick="generateBatchPDFs()">📄 Generate PDFs for Selected</button>
+                <button class="btn btn-warning" onclick="exportPTOReport()">📊 Export Full Report</button>
                 <select id="pto-filter" onchange="filterPTORequests()" style="float: right; padding: 5px;">
                     <option value="all">All Requests</option>
                     <option value="pending">Pending Only</option>
@@ -351,6 +354,9 @@
     </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
 <script>
     let notifications = {};
     let employees = [];
@@ -451,7 +457,16 @@ const shiftTypes = {
                 const shift = scheduleData[emp.name]?.[dateKey] || '';
                 const note = notesData[emp.name]?.[dateKey] || '';
                 let cellClass = (date.getDay() === 0 || date.getDay() === 6) ? ' weekend' : '';
-                if (shift.toUpperCase() === 'PTO') cellClass += ' pto-cell';
+                if (shift.toUpperCase() === 'PTO') {
+                    // Check if this is from an approved PTO request
+                    const ptoRequest = Object.values(ptoRequests || {}).find(r => 
+                        r.employeeName === emp.name && 
+                        r.status === 'approved' &&
+                        new Date(r.startDate) <= date && 
+                        new Date(r.endDate) >= date
+                    );
+                    cellClass += ptoRequest ? ' pto-approved' : ' pto-cell';
+                }
                 if (conflicts.some(c => c.empName === emp.name && c.dateKey === dateKey)) cellClass += ' conflict-cell';
                 const noteIndicator = note ? `<div class="note-indicator" title="${note}"></div>` : '';
                 return `<td class="${cellClass}" contenteditable="true" onblur="updateShift(this, '${emp.name}', '${dateKey}')" oncontextmenu="showContextMenu(event, '${emp.name}', '${dateKey}')" data-original-shift="${shift}">${shift}${noteIndicator}</td>`;
@@ -459,6 +474,7 @@ const shiftTypes = {
             return `<tr class="${emp.name.startsWith('OPEN SHIFTS') ? 'open-shift-row' : ''}"><td class="employee-name">${emp.name}</td>${cells}</tr>`;
         }).join('');
         renderDashboard();
+        enhancePTODisplay(); // Add PTO visual enhancements
     }
 
     function renderDashboard() {
@@ -1026,6 +1042,9 @@ function loadAndRenderPortal(portalId, state) {
             ptoHistoryList.innerHTML = historyHTML;
         }
     }
+    
+    // Set up PTO form listeners after rendering
+    setupPTOFormListeners();
 
     // Update bids view with null check
     const bidsView = document.getElementById('portal-bids-view');
@@ -1127,6 +1146,12 @@ function loadAndRenderPortal(portalId, state) {
         recordHistory();
         const name = document.getElementById('newName').value.trim();
         if (!name) { alert('Employee name cannot be empty.'); return; }
+        
+        const hireDate = document.getElementById('newHireDate').value;
+        if (!hireDate && !name.startsWith('OPEN SHIFTS')) { 
+            alert('Hire date is required for all employees.'); 
+            return; 
+        }
         const index = parseInt(document.getElementById('empIndex').value);
         let empId = document.getElementById('empId').value;
         if (!empId) { empId = generateUUID(); }
@@ -2117,17 +2142,20 @@ async function markNotificationsAsRead(employeeId) {
     }
 
     // Add event listeners for PTO form
-    document.addEventListener('DOMContentLoaded', function() {
+    function setupPTOFormListeners() {
         const startDateInput = document.getElementById('pto-start-date');
         const endDateInput = document.getElementById('pto-end-date');
         
-        if (startDateInput) {
+        if (startDateInput && endDateInput) {
             startDateInput.addEventListener('change', updatePTOForm);
-        }
-        if (endDateInput) {
             endDateInput.addEventListener('change', updatePTOForm);
+            
+            // Set minimum date to today for PTO requests
+            const today = new Date().toISOString().split('T')[0];
+            startDateInput.min = today;
+            endDateInput.min = today;
         }
-    });
+    }
 
     // Submit PTO request
     async function submitPTORequest() {
@@ -2228,6 +2256,9 @@ async function markNotificationsAsRead(employeeId) {
 
             // Refresh displays
             loadAndRenderPortal(employeeId, state);
+            
+            // Notify managers of new request
+            notifyManagersOfNewPTORequest(newRequest);
             
             alert('PTO request submitted successfully!');
 
@@ -2341,6 +2372,7 @@ async function markNotificationsAsRead(employeeId) {
                 html += `<button class="btn btn-danger btn-sm" onclick="denyPTORequest('${request.id}')">✗ Deny</button>`;
             }
             html += `<button class="btn btn-secondary btn-sm" onclick="viewPTODetails('${request.id}')" style="margin-left: 5px;">👁️ Details</button>`;
+            html += `<button class="btn btn-warning btn-sm" onclick="generatePTOPDF('${request.id}')" style="margin-left: 5px;">📄 PDF</button>`;
             html += `</td></tr>`;
 
             // Add details row
@@ -2456,8 +2488,14 @@ async function markNotificationsAsRead(employeeId) {
                 employeePTOBalances[employeeId].pendingPTODays -= request.daysRequested;
             }
 
-            // Send notification to employee
+    // Send notification to employee
             addNotification(employeeId, `✅ **PTO Approved:** Your PTO request for ${new Date(request.startDate).toLocaleDateString()} to ${new Date(request.endDate).toLocaleDateString()} has been approved.`);
+
+            // Send email notification if employee has email
+            const employee = employees.find(e => e.id === employeeId);
+            if (employee && employee.email) {
+                sendPTONotificationEmail(employee.email, employee.name, 'approved', request);
+            }
 
             // Refresh display
             renderPTORequestsModal();
@@ -2511,6 +2549,12 @@ async function markNotificationsAsRead(employeeId) {
 
             // Send notification to employee
             addNotification(employeeId, `❌ **PTO Denied:** Your PTO request for ${new Date(request.startDate).toLocaleDateString()} to ${new Date(request.endDate).toLocaleDateString()} was denied. Reason: ${reason}`);
+
+            // Send email notification if employee has email
+            const employee = employees.find(e => e.id === employeeId);
+            if (employee && employee.email) {
+                sendPTONotificationEmail(employee.email, employee.name, 'denied', request, reason);
+            }
 
             // Refresh display
             renderPTORequestsModal();
@@ -2689,6 +2733,501 @@ async function markNotificationsAsRead(employeeId) {
         a.click();
         URL.revokeObjectURL(url);
     }
+
+    // ===== PDF GENERATION FUNCTIONS =====
+
+    // Generate professional PTO PDF
+    function generatePTOPDF(requestId) {
+        const request = ptoRequests[requestId];
+        if (!request) {
+            alert('Request not found');
+            return;
+        }
+
+        try {
+            const { jsPDF } = window.jspdf;
+            if (!jsPDF) {
+                alert('PDF library not loaded. Please try again.');
+                return;
+            }
+
+            const doc = new jsPDF();
+            const employee = employees.find(e => e.id === request.employeeId);
+            const balance = employeePTOBalances[request.employeeId];
+
+            // Company Header
+            doc.setFontSize(20);
+            doc.setFont("helvetica", "bold");
+            doc.text("NSG Schedule", 105, 20, { align: "center" });
+            
+            doc.setFontSize(16);
+            doc.text("PTO Request Form", 105, 30, { align: "center" });
+
+            // Add line separator
+            doc.setLineWidth(0.5);
+            doc.line(20, 35, 190, 35);
+
+            // Employee Information Section
+            doc.setFontSize(14);
+            doc.setFont("helvetica", "bold");
+            doc.text("Employee Information", 20, 50);
+            
+            doc.setFontSize(11);
+            doc.setFont("helvetica", "normal");
+            let yPos = 60;
+            
+            doc.text(`Employee Name: ${request.employeeName}`, 20, yPos);
+            yPos += 8;
+            
+            if (employee && employee.id) {
+                doc.text(`Employee ID: ${employee.id.substring(0, 8)}`, 20, yPos);
+                yPos += 8;
+            }
+            
+            if (employee && employee.type) {
+                doc.text(`Employment Type: ${employee.type}`, 20, yPos);
+                yPos += 8;
+            }
+            
+            if (employee && employee.hireDate) {
+                doc.text(`Hire Date: ${new Date(employee.hireDate).toLocaleDateString()}`, 20, yPos);
+                yPos += 8;
+            }
+
+            // PTO Request Details Section
+            yPos += 10;
+            doc.setFontSize(14);
+            doc.setFont("helvetica", "bold");
+            doc.text("PTO Request Details", 20, yPos);
+            
+            doc.setFontSize(11);
+            doc.setFont("helvetica", "normal");
+            yPos += 10;
+            
+            const startDate = new Date(request.startDate).toLocaleDateString();
+            const endDate = new Date(request.endDate).toLocaleDateString();
+            
+            doc.text(`Start Date: ${startDate}`, 20, yPos);
+            doc.text(`End Date: ${endDate}`, 120, yPos);
+            yPos += 8;
+            
+            doc.text(`Days Requested: ${request.daysRequested}`, 20, yPos);
+            doc.text(`Request Type: ${request.requestType}`, 120, yPos);
+            yPos += 8;
+            
+            doc.text(`Submission Date: ${new Date(request.submissionDate).toLocaleDateString()}`, 20, yPos);
+            yPos += 8;
+            
+            if (request.reason) {
+                doc.text(`Comments: ${request.reason}`, 20, yPos);
+                yPos += 8;
+            }
+
+            // PTO Balance Section
+            if (balance) {
+                yPos += 10;
+                doc.setFontSize(14);
+                doc.setFont("helvetica", "bold");
+                doc.text("PTO Balance Information", 20, yPos);
+                
+                doc.setFontSize(11);
+                doc.setFont("helvetica", "normal");
+                yPos += 10;
+                
+                const remaining = balance.totalPTODays - balance.usedPTODays - balance.pendingPTODays;
+                
+                doc.text(`Total PTO Days: ${balance.totalPTODays}`, 20, yPos);
+                doc.text(`Used Days: ${balance.usedPTODays}`, 70, yPos);
+                doc.text(`Pending Days: ${balance.pendingPTODays}`, 120, yPos);
+                doc.text(`Remaining: ${remaining}`, 170, yPos);
+                yPos += 8;
+            }
+
+            // Approval Section
+            yPos += 10;
+            doc.setFontSize(14);
+            doc.setFont("helvetica", "bold");
+            doc.text("Approval Status", 20, yPos);
+            
+            doc.setFontSize(11);
+            doc.setFont("helvetica", "normal");
+            yPos += 10;
+            
+            const statusColor = request.status === 'approved' ? [0, 128, 0] : 
+                               request.status === 'denied' ? [255, 0, 0] : [255, 165, 0];
+            
+            doc.setTextColor(...statusColor);
+            doc.setFont("helvetica", "bold");
+            doc.text(`Status: ${request.status.toUpperCase()}`, 20, yPos);
+            doc.setTextColor(0, 0, 0); // Reset to black
+            doc.setFont("helvetica", "normal");
+            yPos += 8;
+            
+            if (request.approvalDate) {
+                doc.text(`Decision Date: ${new Date(request.approvalDate).toLocaleDateString()}`, 20, yPos);
+                yPos += 8;
+            }
+            
+            if (request.managerComments) {
+                doc.text(`Manager Comments: ${request.managerComments}`, 20, yPos);
+                yPos += 8;
+            }
+
+            // Digital Signature Section
+            yPos += 20;
+            doc.setFontSize(12);
+            doc.setFont("helvetica", "bold");
+            doc.text("Digital Approval", 20, yPos);
+            
+            if (request.status === 'approved') {
+                yPos += 10;
+                doc.setFontSize(10);
+                doc.setFont("helvetica", "normal");
+                doc.text(`Approved by: Manager`, 20, yPos);
+                yPos += 6;
+                doc.text(`Approval Date: ${new Date(request.approvalDate).toLocaleDateString()}`, 20, yPos);
+                yPos += 6;
+                doc.text(`Document ID: ${request.id.substring(0, 12)}`, 20, yPos);
+            }
+
+            // QR Code for verification (if available)
+            try {
+                if (typeof qrcode !== 'undefined') {
+                    const qrData = `NSG-PTO-${request.id}`;
+                    const qr = qrcode(0, 'M');
+                    qr.addData(qrData);
+                    qr.make();
+                    
+                    // Add QR code as text (basic implementation)
+                    yPos += 15;
+                    doc.setFontSize(8);
+                    doc.text(`Verification Code: NSG-PTO-${request.id.substring(0, 8)}`, 20, yPos);
+                }
+            } catch (e) {
+                console.log('QR code generation not available:', e);
+            }
+
+            // Footer
+            const pageHeight = doc.internal.pageSize.height;
+            doc.setFontSize(8);
+            doc.setFont("helvetica", "italic");
+            doc.text("This document was generated electronically by NSG Schedule System", 105, pageHeight - 20, { align: "center" });
+            doc.text(`Generated on: ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}`, 105, pageHeight - 15, { align: "center" });
+
+            // Save the PDF
+            const filename = `PTO_Request_${request.employeeName.replace(/[^a-zA-Z0-9]/g, '_')}_${request.startDate}.pdf`;
+            doc.save(filename);
+
+        } catch (error) {
+            console.error('Error generating PDF:', error);
+            alert('Error generating PDF: ' + error.message);
+        }
+    }
+
+    // Batch PDF generation for multiple requests
+    function generateBatchPDFs() {
+        const selectedRequests = Array.from(document.querySelectorAll('.pto-select:checked')).map(cb => cb.value);
+        
+        if (selectedRequests.length === 0) {
+            alert('Please select requests to generate PDFs for');
+            return;
+        }
+
+        selectedRequests.forEach((requestId, index) => {
+            setTimeout(() => {
+                generatePTOPDF(requestId);
+            }, index * 500); // Delay between downloads to prevent browser blocking
+        });
+    }
+
+    // Enhanced export PTO Report with PDF option
+    function exportPTOReport() {
+        const format = prompt('Export format:\n1. Text file (enter "text")\n2. PDF report (enter "pdf")', 'text');
+        
+        if (format === 'pdf') {
+            generatePTOReportPDF();
+        } else {
+            // Existing text export functionality
+            const allRequests = Object.values(ptoRequests);
+            let report = 'PTO Report - ' + new Date().toLocaleDateString() + '\n\n';
+            
+            const pending = allRequests.filter(r => r.status === 'pending').length;
+            const approved = allRequests.filter(r => r.status === 'approved').length;
+            const denied = allRequests.filter(r => r.status === 'denied').length;
+            
+            report += `Summary:\n`;
+            report += `Total Requests: ${allRequests.length}\n`;
+            report += `Pending: ${pending}\n`;
+            report += `Approved: ${approved}\n`;
+            report += `Denied: ${denied}\n\n`;
+            
+            report += `Detailed Report:\n`;
+            report += `Employee\tDates\tDays\tType\tStatus\tSubmitted\n`;
+            
+            allRequests.sort((a, b) => new Date(b.submissionDate) - new Date(a.submissionDate));
+            
+            allRequests.forEach(request => {
+                const startDate = new Date(request.startDate).toLocaleDateString();
+                const endDate = new Date(request.endDate).toLocaleDateString();
+                const submissionDate = new Date(request.submissionDate).toLocaleDateString();
+                
+                report += `${request.employeeName}\t${startDate} - ${endDate}\t${request.daysRequested}\t${request.requestType}\t${request.status}\t${submissionDate}\n`;
+            });
+            
+            // Create and download file
+            const blob = new Blob([report], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `PTO_Report_${new Date().toISOString().split('T')[0]}.txt`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+    }
+
+    // Generate comprehensive PDF report
+    function generatePTOReportPDF() {
+        try {
+            const { jsPDF } = window.jspdf;
+            if (!jsPDF) {
+                alert('PDF library not loaded. Please try again.');
+                return;
+            }
+
+            const doc = new jsPDF();
+            const allRequests = Object.values(ptoRequests);
+            
+            // Header
+            doc.setFontSize(18);
+            doc.setFont("helvetica", "bold");
+            doc.text("NSG Schedule - PTO Management Report", 105, 20, { align: "center" });
+            
+            doc.setFontSize(12);
+            doc.setFont("helvetica", "normal");
+            doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 105, 30, { align: "center" });
+
+            // Summary statistics
+            const pending = allRequests.filter(r => r.status === 'pending').length;
+            const approved = allRequests.filter(r => r.status === 'approved').length;
+            const denied = allRequests.filter(r => r.status === 'denied').length;
+            const conflicts = detectPTOConflicts().length;
+
+            let yPos = 50;
+            doc.setFontSize(14);
+            doc.setFont("helvetica", "bold");
+            doc.text("Summary Statistics", 20, yPos);
+            
+            yPos += 10;
+            doc.setFontSize(11);
+            doc.setFont("helvetica", "normal");
+            doc.text(`Total Requests: ${allRequests.length}`, 20, yPos);
+            doc.text(`Pending: ${pending}`, 70, yPos);
+            doc.text(`Approved: ${approved}`, 120, yPos);
+            doc.text(`Denied: ${denied}`, 170, yPos);
+            yPos += 8;
+            doc.text(`Active Conflicts: ${conflicts}`, 20, yPos);
+
+            // Detailed table
+            yPos += 20;
+            doc.setFontSize(14);
+            doc.setFont("helvetica", "bold");
+            doc.text("Detailed Request Log", 20, yPos);
+
+            yPos += 10;
+            doc.setFontSize(9);
+            doc.setFont("helvetica", "bold");
+            
+            // Table headers
+            doc.text("Employee", 20, yPos);
+            doc.text("Dates", 65, yPos);
+            doc.text("Days", 105, yPos);
+            doc.text("Type", 125, yPos);
+            doc.text("Status", 150, yPos);
+            doc.text("Submitted", 175, yPos);
+            
+            doc.setLineWidth(0.1);
+            doc.line(20, yPos + 2, 190, yPos + 2);
+            
+            yPos += 8;
+            doc.setFont("helvetica", "normal");
+
+            allRequests.sort((a, b) => new Date(b.submissionDate) - new Date(a.submissionDate));
+            
+            allRequests.forEach(request => {
+                if (yPos > 280) { // Start new page if needed
+                    doc.addPage();
+                    yPos = 20;
+                }
+                
+                const startDate = new Date(request.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                const endDate = new Date(request.endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                const submissionDate = new Date(request.submissionDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                
+                // Truncate long names
+                const empName = request.employeeName.length > 15 ? 
+                    request.employeeName.substring(0, 15) + '...' : request.employeeName;
+                
+                doc.text(empName, 20, yPos);
+                doc.text(`${startDate}-${endDate}`, 65, yPos);
+                doc.text(request.daysRequested.toString(), 105, yPos);
+                doc.text(request.requestType, 125, yPos);
+                doc.text(request.status, 150, yPos);
+                doc.text(submissionDate, 175, yPos);
+                
+                yPos += 6;
+            });
+
+            // Footer
+            const pageHeight = doc.internal.pageSize.height;
+            doc.setFontSize(8);
+            doc.setFont("helvetica", "italic");
+            doc.text("NSG Schedule System - Confidential", 105, pageHeight - 10, { align: "center" });
+
+            // Save the PDF
+            doc.save(`NSG_PTO_Report_${new Date().toISOString().split('T')[0]}.pdf`);
+
+        } catch (error) {
+            console.error('Error generating PDF report:', error);
+            alert('Error generating PDF report: ' + error.message);
+        }
+    }
+
+    // ===== EMAIL AUTOMATION FUNCTIONS =====
+
+    // Send PTO notification email
+    function sendPTONotificationEmail(email, employeeName, status, request, reason = '') {
+        const startDate = new Date(request.startDate).toLocaleDateString();
+        const endDate = new Date(request.endDate).toLocaleDateString();
+        
+        let subject, body;
+        
+        if (status === 'approved') {
+            subject = `PTO Request Approved - ${startDate} to ${endDate}`;
+            body = `Dear ${employeeName.split(',')[1]?.trim() || employeeName},\n\n`;
+            body += `Your PTO request has been APPROVED!\n\n`;
+            body += `Details:\n`;
+            body += `- Dates: ${startDate} to ${endDate}\n`;
+            body += `- Days: ${request.daysRequested}\n`;
+            body += `- Type: ${request.requestType}\n`;
+            if (request.reason) {
+                body += `- Comments: ${request.reason}\n`;
+            }
+            body += `\nYour time off has been added to the schedule. Please check your employee portal for the most up-to-date information.\n\n`;
+            body += `Thank you,\nNSG Schedule Management`;
+        } else if (status === 'denied') {
+            subject = `PTO Request Decision - ${startDate} to ${endDate}`;
+            body = `Dear ${employeeName.split(',')[1]?.trim() || employeeName},\n\n`;
+            body += `We regret to inform you that your PTO request has been DENIED.\n\n`;
+            body += `Details:\n`;
+            body += `- Requested Dates: ${startDate} to ${endDate}\n`;
+            body += `- Days: ${request.daysRequested}\n`;
+            body += `- Type: ${request.requestType}\n`;
+            if (reason) {
+                body += `- Reason for denial: ${reason}\n`;
+            }
+            body += `\nPlease contact your manager if you have any questions or would like to discuss alternative dates.\n\n`;
+            body += `Thank you,\nNSG Schedule Management`;
+        }
+        
+        // Use mailto link for now - can be enhanced with SendGrid or other email service
+        const mailtoLink = `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+        
+        // Try to open email client, but don't show error if it fails
+        try {
+            window.open(mailtoLink, '_blank');
+        } catch (e) {
+            console.log('Email client not available:', e);
+        }
+    }
+
+    // Send PTO submission notification to managers
+    function notifyManagersOfNewPTORequest(request) {
+        // This function can be enhanced to send emails to all managers
+        console.log('New PTO request submitted:', request);
+        
+        // For now, just add to the notification system
+        // In a real implementation, you would send emails to managers here
+        const managerEmail = "manager@nsg.com"; // Replace with actual manager email
+        
+        const subject = `New PTO Request - ${request.employeeName}`;
+        const body = `A new PTO request has been submitted:\n\n`;
+        const startDate = new Date(request.startDate).toLocaleDateString();
+        const endDate = new Date(request.endDate).toLocaleDateString();
+        
+        const emailBody = `Employee: ${request.employeeName}\n`;
+        emailBody += `Dates: ${startDate} to ${endDate}\n`;
+        emailBody += `Days: ${request.daysRequested}\n`;
+        emailBody += `Type: ${request.requestType}\n`;
+        if (request.reason) {
+            emailBody += `Comments: ${request.reason}\n`;
+        }
+        emailBody += `\nPlease review and approve/deny this request in the NSG Schedule system.\n\n`;
+        emailBody += `Access the system at: ${window.location.origin}${window.location.pathname}`;
+        
+        // Use mailto for manager notification
+        const mailtoLink = `mailto:${managerEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(emailBody)}`;
+        
+        try {
+            window.open(mailtoLink, '_blank');
+        } catch (e) {
+            console.log('Email client not available for manager notification:', e);
+        }
+    }
+
+    // ===== CALENDAR INTEGRATION FUNCTIONS =====
+
+    // Add PTO calendar view to main dashboard
+    function renderPTOCalendarView() {
+        const container = document.createElement('div');
+        container.id = 'pto-calendar-widget';
+        container.innerHTML = `
+            <h3>PTO Calendar Overview</h3>
+            <div id="pto-mini-calendar" style="background: #f8f9fa; padding: 15px; border-radius: 5px; margin-top: 10px;">
+                <p style="text-align: center; color: #666;">PTO calendar will display approved time off</p>
+            </div>
+        `;
+        
+        // Find a good place to add this in the dashboard
+        const dashboardContainer = document.querySelector('.dashboard .controls');
+        if (dashboardContainer) {
+            dashboardContainer.appendChild(container);
+        }
+    }
+
+    // Update the main schedule rendering to better highlight PTO
+    function enhancePTODisplay() {
+        // This function is called after the table is rendered to add PTO enhancements
+        const cells = document.querySelectorAll('.pto-approved, .pto-pending');
+        cells.forEach(cell => {
+            if (cell.textContent.toUpperCase() === 'PTO') {
+                // Add tooltip with PTO request details
+                const employeeName = cell.closest('tr')?.querySelector('.employee-name')?.textContent;
+                if (employeeName) {
+                    const ptoRequests = Object.values(window.ptoRequests || {}).filter(r => 
+                        r.employeeName === employeeName && 
+                        (r.status === 'approved' || r.status === 'pending')
+                    );
+                    
+                    if (ptoRequests.length > 0) {
+                        const request = ptoRequests[0]; // Get the first matching request
+                        cell.title = `PTO Request: ${request.requestType} (${request.status})`;
+                        
+                        // Add icon based on status
+                        if (request.status === 'approved') {
+                            cell.innerHTML = 'PTO ✅';
+                        } else if (request.status === 'pending') {
+                            cell.innerHTML = 'PTO ⏳';
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // Initialize PTO enhancements when the page loads
+    document.addEventListener('DOMContentLoaded', function() {
+        setupPTOFormListeners();
+    });
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </body>
