@@ -3353,20 +3353,26 @@ async function markNotificationsAsRead(employeeId) {
         }
 
         eligibleEmployees.forEach(employee => {
+            // Calculate months since hire for proper PTO allocation
+            const hireDate = new Date(employee.hireDate || '2024-01-01');
+            const currentDate = new Date();
+            const monthsSinceHire = Math.floor((currentDate - hireDate) / (1000 * 60 * 60 * 24 * 30.44));
+            const yearlyAllocation = getYearlyPTOAllocation(employee, monthsSinceHire);
+
             const ptoBalance = employeePTOBalances[employee.id] || {
-                totalPTODays: employee.type === "FT" ? 20 : 15,
+                totalPTODays: yearlyAllocation,
                 usedPTODays: 0,
                 pendingPTODays: 0
             };
+            
+            // Ensure the total PTO days reflects the current year's allocation based on service length
+            ptoBalance.totalPTODays = yearlyAllocation;
 
             const remainingPTO = ptoBalance.totalPTODays - ptoBalance.usedPTODays;
             const yearStartDate = new Date(new Date().getFullYear(), 0, 1);
-            const currentDate = new Date();
             const daysSinceYearStart = Math.floor((currentDate - yearStartDate) / (1000 * 60 * 60 * 24));
             
             // Calculate accrued PTO based on hire date
-            const hireDate = new Date(employee.hireDate || '2024-01-01');
-            const monthsSinceHire = Math.floor((currentDate - hireDate) / (1000 * 60 * 60 * 24 * 30));
             const accruedPTO = calculateAccruedPTO(employee, monthsSinceHire);
 
             // Get upcoming scheduled PTO for next 30 days
@@ -3402,15 +3408,36 @@ async function markNotificationsAsRead(employeeId) {
     }
 
     function calculateAccruedPTO(employee, monthsSinceHire) {
-        // Basic accrual calculation - can be enhanced based on company policy
-        const yearlyAllocation = employee.type === "FT" ? 20 : 15;
-        const monthlyAccrual = yearlyAllocation / 12;
-        
+        // New accrual calculation based on length of service rates
         // First 90 days - no accrual
         if (monthsSinceHire < 3) return 0;
         
-        // After 90 days, accrue monthly
-        return Math.floor((monthsSinceHire - 3) * monthlyAccrual);
+        const yearsOfService = monthsSinceHire / 12;
+        let dailyAccrualRate;
+        let maxAnnualDays;
+        
+        // Determine accrual rate based on length of service
+        if (yearsOfService >= 20) {
+            dailyAccrualRate = 0.10384; // 20+ years
+            maxAnnualDays = 27;
+        } else if (yearsOfService >= 10) {
+            dailyAccrualRate = 0.10000; // 10-19 years  
+            maxAnnualDays = 26;
+        } else if (yearsOfService >= 5) {
+            dailyAccrualRate = 0.08461; // 5-9 years
+            maxAnnualDays = 22;
+        } else {
+            dailyAccrualRate = 0.06538; // Less than 5 years
+            maxAnnualDays = 17;
+        }
+        
+        // Calculate accrued days based on working days since hire (minus 90-day waiting period)
+        const monthsEligible = monthsSinceHire - 3;
+        const workingDaysEligible = monthsEligible * 21.67; // Average working days per month (260/12)
+        const accruedDays = workingDaysEligible * dailyAccrualRate;
+        
+        // Cap at maximum annual allocation
+        return Math.min(Math.floor(accruedDays), maxAnnualDays);
     }
 
     function getUpcomingPTO(employeeName) {
@@ -3439,11 +3466,20 @@ async function markNotificationsAsRead(employeeId) {
             return;
         }
 
+        // Calculate months since hire for proper PTO allocation
+        const hireDate = new Date(employee.hireDate || new Date());
+        const currentDate = new Date();
+        const monthsSinceHire = Math.floor((currentDate - hireDate) / (1000 * 60 * 60 * 24 * 30.44));
+        const yearlyAllocation = getYearlyPTOAllocation(employee, monthsSinceHire);
+
         const ptoBalance = employeePTOBalances[employeeId] || {
-            totalPTODays: employee.type === "FT" ? 20 : 15,
+            totalPTODays: yearlyAllocation,
             usedPTODays: 0,
             pendingPTODays: 0
         };
+        
+        // Ensure the total PTO days reflects the current year's allocation based on service length
+        ptoBalance.totalPTODays = yearlyAllocation;
 
         const remainingPTO = ptoBalance.totalPTODays - ptoBalance.usedPTODays;
         const upcomingPTO = getUpcomingPTO(employee.name);
@@ -3531,14 +3567,15 @@ HR Department
             }
 
             const hireDate = new Date(employee.hireDate || '2024-01-01');
-            const monthsSinceHire = Math.floor((currentDate - hireDate) / (1000 * 60 * 60 * 24 * 30));
+            const monthsSinceHire = Math.floor((currentDate - hireDate) / (1000 * 60 * 60 * 24 * 30.44));
+            const yearlyAllocation = getYearlyPTOAllocation(employee, monthsSinceHire);
             
             // Initialize balance if it doesn't exist
             if (!employeePTOBalances[employee.id]) {
                 employeePTOBalances[employee.id] = {
                     employeeName: employee.name,
                     hireDate: employee.hireDate || "2024-01-01",
-                    totalPTODays: employee.type === "FT" ? 20 : 15,
+                    totalPTODays: yearlyAllocation,
                     usedPTODays: 0,
                     pendingPTODays: 0,
                     lastAccrualDate: hireDate.toISOString().split('T')[0]
@@ -3550,14 +3587,13 @@ HR Department
             
             // Check if it's time for a new accrual (monthly)
             if (monthsSinceHire >= 3) { // No accrual first 90 days
-                const monthsSinceLastAccrual = Math.floor((currentDate - lastAccrual) / (1000 * 60 * 60 * 24 * 30));
+                const monthsSinceLastAccrual = Math.floor((currentDate - lastAccrual) / (1000 * 60 * 60 * 24 * 30.44));
                 
                 if (monthsSinceLastAccrual >= 1) {
-                    const yearlyAllocation = getYearlyPTOAllocation(employee, monthsSinceHire);
                     const monthlyAccrual = yearlyAllocation / 12;
                     
                     // Add accrued PTO (max out at yearly allocation)
-                    const currentTotal = balance.totalPTODays || (employee.type === "FT" ? 20 : 15);
+                    const currentTotal = balance.totalPTODays || yearlyAllocation;
                     const newTotal = Math.min(currentTotal + monthlyAccrual, yearlyAllocation);
                     
                     balance.totalPTODays = Math.floor(newTotal);
@@ -3572,19 +3608,18 @@ HR Department
     }
 
     function getYearlyPTOAllocation(employee, monthsSinceHire) {
-        // Enhanced accrual rates based on seniority
-        const baseAllocation = employee.type === "FT" ? 20 : 15;
+        // New accrual rates based on length of service
+        const yearsOfService = monthsSinceHire / 12;
         
-        // Seniority bonuses
-        if (monthsSinceHire >= 60) { // 5+ years
-            return baseAllocation + 5; // Extra week
-        } else if (monthsSinceHire >= 36) { // 3+ years
-            return baseAllocation + 3; // Extra few days
-        } else if (monthsSinceHire >= 12) { // 1+ year
-            return baseAllocation + 1; // Small bonus
+        if (yearsOfService >= 20) {
+            return 27; // 20+ years: 27 days/216 hours
+        } else if (yearsOfService >= 10) {
+            return 26; // 10-19 years: 26 days/208 hours  
+        } else if (yearsOfService >= 5) {
+            return 22; // 5-9 years: 22 days/176 hours
+        } else {
+            return 17; // Less than 5 years: 17 days/136 hours
         }
-        
-        return baseAllocation;
     }
 
     function checkPTOEligibilityEnhanced(employeeId) {
