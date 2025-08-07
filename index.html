@@ -1920,9 +1920,7 @@
 
 
 
-<!-- Temporarily disabled for offline testing
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.js"></script>
--->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
@@ -1983,11 +1981,8 @@ const shiftTypes = {
     
     try {
         if (typeof supabase !== 'undefined') {
-            // Temporarily disable Supabase for testing
-            // supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
-            supabaseClient = null;
-            console.log('Supabase disabled for offline testing');
-            console.log('Running in localStorage-only mode');
+            supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
+            console.log('Supabase client initialized successfully');
             
             // Initialize real-time subscriptions for live updates
             initializeRealtimeSubscriptions();
