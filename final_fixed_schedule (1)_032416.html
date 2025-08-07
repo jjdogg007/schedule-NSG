@@ -943,28 +943,7 @@
         </div>
     </div>
 
-    <!-- Master Password Modal -->
-    <div id="masterPasswordModal" class="modal" style="background-color: rgba(0,0,0,0.8);">
-        <div class="modal-content" style="max-width: 400px; margin: 15% auto;">
-            <div style="text-align: center; margin-bottom: 30px;">
-                <h2>🔒 Access Required</h2>
-                <p>Please enter the master password to access Schedule NSG</p>
-            </div>
-            <div style="margin-bottom: 20px;">
-                <input type="password" id="master-password-input" placeholder="Master Password" 
-                       style="width: 100%; padding: 15px; font-size: 16px; text-align: center; border: 2px solid #0d6efd; border-radius: 8px;"
-                       onkeypress="if(event.key==='Enter') checkMasterPassword()">
-            </div>
-            <div style="text-align: center;">
-                <button class="btn btn-primary" onclick="checkMasterPassword()" style="width: 100%; padding: 15px; font-size: 16px;">
-                    Enter Application
-                </button>
-            </div>
-            <div id="password-error" style="color: #dc3545; text-align: center; margin-top: 15px; display: none;">
-                Incorrect password. Please try again.
-            </div>
-        </div>
-    </div>
+
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -5015,52 +4994,14 @@ HR Department
 
     // ================== MASTER PASSWORD SYSTEM ==================
     
-    const MASTER_PASSWORD = localStorage.getItem('masterPassword') || 'admin123'; // Default password
-    let isAuthenticated = sessionStorage.getItem('authenticated') === 'true';
+    // Authentication removed - app now loads directly to manager dashboard
+    let isAuthenticated = true; // Always authenticated now
 
     function checkAuthentication() {
-        console.log('Checking authentication, isAuthenticated:', isAuthenticated);
-        if (!isAuthenticated) {
-            console.log('Not authenticated, showing password modal');
-            document.getElementById('masterPasswordModal').style.display = 'block';
-            // Hide main content only after showing modal
-            document.getElementById('manager-view').style.display = 'none';
-            document.getElementById('employee-portal').style.display = 'none';
-        } else {
-            console.log('Already authenticated, ensuring manager view is visible');
-            // Ensure manager view is visible if authenticated
-            document.getElementById('manager-view').style.display = 'block';
-            document.getElementById('employee-portal').style.display = 'none';
-        }
-    }
-
-    function checkMasterPassword() {
-        const enteredPassword = document.getElementById('master-password-input').value;
-        const errorDiv = document.getElementById('password-error');
-        
-        if (enteredPassword === MASTER_PASSWORD) {
-            isAuthenticated = true;
-            sessionStorage.setItem('authenticated', 'true');
-            document.getElementById('masterPasswordModal').style.display = 'none';
-            document.getElementById('manager-view').style.display = 'block';
-            
-            // Log successful login
-            logAuditEvent('login', {
-                description: 'Successful application login',
-                timestamp: new Date().toISOString()
-            });
-            
-            showNotification('Welcome to Schedule NSG!', 'success');
-        } else {
-            errorDiv.style.display = 'block';
-            document.getElementById('master-password-input').value = '';
-            
-            // Log failed login attempt
-            logAuditEvent('login_failed', {
-                description: 'Failed login attempt',
-                timestamp: new Date().toISOString()
-            });
-        }
+        console.log('Authentication system removed - going directly to manager dashboard');
+        // Always show manager view
+        document.getElementById('manager-view').style.display = 'block';
+        document.getElementById('employee-portal').style.display = 'none';
     }
 
     // ================== PUSH NOTIFICATIONS ==================
