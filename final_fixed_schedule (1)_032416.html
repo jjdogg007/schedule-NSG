@@ -20,9 +20,11 @@
         * { box-sizing: border-box; }
         body { 
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
-            background-color: #f0f2f5; 
-            padding: 10px; 
+            background-color: #f8fafc; 
+            padding: 0; 
             margin: 0;
+            line-height: 1.5;
+            color: #334155;
             -webkit-font-smoothing: antialiased;
             -moz-osx-font-smoothing: grayscale;
         }
@@ -30,69 +32,332 @@
             max-width: 1600px; 
             margin: auto; 
             background: white; 
-            padding: 15px; 
-            border-radius: 8px; 
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-        h1, h2, h3 { color: #1c293a; margin-top: 0; }
-        
-        /* Mobile-first responsive grid */
-        .controls { 
-            display: grid; 
-            grid-template-columns: 1fr; 
-            gap: 15px; 
-            align-items: start; 
-        }
-        .control-group { 
-            background: #f8f9fa; 
-            padding: 15px; 
-            border-radius: 6px; 
-            border: 1px solid #dee2e6; 
+            min-height: 100vh;
         }
         
-        /* Mobile-friendly buttons */
-        .btn { 
-            font-size: 14px; 
-            padding: 12px 16px; 
-            border: none; 
-            border-radius: 8px; 
-            cursor: pointer; 
-            transition: all 0.2s; 
-            margin: 4px 0; 
-            width: 100%;
-            display: block;
+        /* Typography hierarchy */
+        h1 { 
+            color: #0f172a; 
+            margin: 0; 
+            font-size: 2rem; 
+            font-weight: 700; 
+            letter-spacing: -0.025em;
+        }
+        h2 { 
+            color: #1e293b; 
+            margin: 0 0 1rem 0; 
+            font-size: 1.5rem; 
+            font-weight: 600; 
+        }
+        h3 { 
+            color: #475569; 
+            margin: 0 0 0.75rem 0; 
+            font-size: 1.125rem; 
+            font-weight: 600; 
+        }
+        
+        /* Dashboard header */
+        .dashboard-header {
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            color: white;
+            padding: 2rem 2rem 1rem 2rem;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .dashboard-title {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+        .dashboard-title h1 {
+            color: white;
+            margin: 0;
+        }
+        .dashboard-subtitle {
+            color: #cbd5e1;
+            font-size: 1rem;
+            margin: 0;
+        }
+        
+        /* Key metrics dashboard */
+        .metrics-dashboard {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+        .metric-card {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 0.75rem;
+            padding: 1rem;
             text-align: center;
+        }
+        .metric-value {
+            font-size: 1.875rem;
+            font-weight: 700;
+            color: white;
+            margin: 0;
+        }
+        .metric-label {
+            font-size: 0.875rem;
+            color: #cbd5e1;
+            margin: 0.25rem 0 0 0;
+        }
+        .metric-change {
+            font-size: 0.75rem;
+            margin-top: 0.25rem;
+        }
+        .metric-change.positive { color: #86efac; }
+        .metric-change.negative { color: #fca5a5; }
+        .metric-change.neutral { color: #cbd5e1; }
+        
+        /* Main dashboard layout */
+        .dashboard-main {
+            padding: 2rem;
+        }
+        
+        /* Schedule section - primary focus */
+        .schedule-section {
+            background: white;
+            border-radius: 1rem;
+            border: 1px solid #e2e8f0;
+            margin-bottom: 2rem;
+            overflow: hidden;
+        }
+        .schedule-header {
+            background: #f8fafc;
+            border-bottom: 1px solid #e2e8f0;
+            padding: 1.5rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .schedule-content {
+            padding: 1.5rem 2rem;
+        }
+        
+        /* Action cards grid */
+        .action-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        
+        /* Card design */
+        .action-card {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 1rem;
+            padding: 1.5rem;
+            transition: all 0.2s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        .action-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+            border-color: #cbd5e1;
+        }
+        .action-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+        }
+        
+        .card-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        .card-icon {
+            font-size: 1.5rem;
+            margin-right: 0.75rem;
+        }
+        .card-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: #1e293b;
+            margin: 0;
+        }
+        .card-description {
+            color: #64748b;
+            font-size: 0.875rem;
+            margin: 0 0 1.5rem 0;
+            line-height: 1.5;
+        }
+        .card-stats {
+            background: #f1f5f9;
+            border-radius: 0.5rem;
+            padding: 0.75rem;
+            margin-bottom: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .stat-item {
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #1e293b;
+            margin: 0;
+        }
+        .stat-label {
+            font-size: 0.75rem;
+            color: #64748b;
+            margin: 0;
+        }
+        
+        /* Button styles for cards */
+        .btn { 
+            font-size: 0.875rem; 
+            padding: 0.625rem 1rem; 
+            border: none; 
+            border-radius: 0.5rem; 
+            cursor: pointer; 
+            transition: all 0.2s ease; 
+            margin: 0.25rem 0.5rem 0.25rem 0; 
+            display: inline-flex;
+            align-items: center;
+            gap: 0.375rem;
             text-decoration: none;
+            font-weight: 500;
             touch-action: manipulation;
             -webkit-tap-highlight-color: transparent;
         }
-        .btn:hover, .btn:focus { transform: translateY(-1px); box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+        .btn:hover, .btn:focus { 
+            transform: translateY(-1px); 
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15); 
+        }
         .btn:active { transform: translateY(0); }
-        .btn:disabled { background-color: #adb5bd; cursor: not-allowed; transform: none; }
-        .btn-primary { background-color: #0d6efd; color: white; }
-        .btn-danger { background-color: #dc3545; color: white; }
-        .btn-secondary { background-color: #6c757d; color: white; }
-        .btn-success { background-color: #198754; color: white; }
-        .btn-warning { background-color: #ffc107; color: black; }
+        .btn:disabled { 
+            background-color: #e2e8f0; 
+            color: #94a3b8;
+            cursor: not-allowed; 
+            transform: none; 
+        }
+        .btn-primary { 
+            background-color: #3b82f6; 
+            color: white; 
+        }
+        .btn-primary:hover { 
+            background-color: #2563eb; 
+        }
+        .btn-danger { 
+            background-color: #ef4444; 
+            color: white; 
+        }
+        .btn-danger:hover { 
+            background-color: #dc2626; 
+        }
+        .btn-secondary { 
+            background-color: #64748b; 
+            color: white; 
+        }
+        .btn-secondary:hover { 
+            background-color: #475569; 
+        }
+        .btn-success { 
+            background-color: #10b981; 
+            color: white; 
+        }
+        .btn-success:hover { 
+            background-color: #059669; 
+        }
+        .btn-warning { 
+            background-color: #f59e0b; 
+            color: white; 
+        }
+        .btn-warning:hover { 
+            background-color: #d97706; 
+        }
+        .btn-outline {
+            background-color: transparent;
+            border: 1px solid #e2e8f0;
+            color: #475569;
+        }
+        .btn-outline:hover {
+            background-color: #f8fafc;
+            border-color: #cbd5e1;
+        }
         
-        /* Mobile-responsive table */
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 11px; }
-        thead th { position: sticky; top: 0; background-color: #f8f9fa; z-index: 10; }
-        th, td { border: 1px solid #dee2e6; padding: 4px; text-align: center; min-width: 60px; }
+        /* Primary action button */
+        .btn-primary-large {
+            font-size: 1rem;
+            padding: 0.875rem 1.5rem;
+            font-weight: 600;
+        }
+        
+        /* Quick action buttons */
+        .quick-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+        
+        /* Schedule table */
+        table { 
+            width: 100%; 
+            border-collapse: collapse; 
+            font-size: 0.75rem; 
+            background: white;
+            border-radius: 0.5rem;
+            overflow: hidden;
+            border: 1px solid #e2e8f0;
+        }
+        thead th { 
+            position: sticky; 
+            top: 0; 
+            background: #f8fafc; 
+            z-index: 10; 
+            border-bottom: 1px solid #e2e8f0;
+            padding: 0.75rem 0.5rem;
+            font-weight: 600;
+            color: #475569;
+            text-align: center;
+        }
+        th, td { 
+            border-right: 1px solid #f1f5f9; 
+            padding: 0.5rem; 
+            text-align: center; 
+            min-width: 60px; 
+        }
         .employee-name { 
             text-align: left; 
-            font-weight: bold; 
+            font-weight: 600; 
             position: sticky; 
             left: 0; 
-            background-color: #f8f9fa; 
+            background-color: #f8fafc; 
             z-index: 5; 
-            width: 120px; 
-            min-width: 120px; 
-            font-size: 10px;
+            width: 140px; 
+            min-width: 140px; 
+            font-size: 0.75rem;
+            border-right: 1px solid #e2e8f0;
         }
-        .open-shift-row { background-color: #fffbe6; font-weight: bold; }
-        td[contenteditable="true"]:hover { background-color: #e9ecef; cursor: pointer; }
-        td[contenteditable="true"]:focus { background-color: #d1e7fd; outline: 2px solid #0d6efd; }
+        .open-shift-row { 
+            background-color: #fef3c7; 
+            font-weight: 600; 
+        }
+        .open-shift-row .employee-name {
+            background-color: #fbbf24;
+            color: #92400e;
+        }
+        td[contenteditable="true"]:hover { 
+            background-color: #f1f5f9; 
+            cursor: pointer; 
+        }
+        td[contenteditable="true"]:focus { 
+            background-color: #dbeafe; 
+            outline: 2px solid #3b82f6; 
+            outline-offset: -2px;
+        }
         
         /* Mobile-friendly form inputs */
         input, select, textarea { 
@@ -337,19 +602,15 @@
         
         /* Responsive breakpoints */
         @media (min-width: 768px) {
-            body { padding: 20px; }
-            .container { padding: 25px; }
-            .controls { grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 20px; }
-            .control-group { padding: 20px; }
-            .btn { 
-                width: auto; 
-                display: inline-block; 
-                margin: 5px 5px 5px 0; 
-                padding: 10px 15px;
+            .dashboard-header { padding: 3rem 3rem 2rem 3rem; }
+            .dashboard-main { padding: 3rem; }
+            .action-cards { 
+                grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); 
+                gap: 2rem; 
             }
-            th, td { padding: 6px; font-size: 12px; min-width: 75px; }
-            .employee-name { width: 160px; min-width: 160px; font-size: 12px; }
-            table { font-size: 12px; }
+            .metrics-dashboard { 
+                grid-template-columns: repeat(4, 1fr); 
+            }
         }
         
         @media (max-width: 767px) {
@@ -361,7 +622,32 @@
                 border-radius: 0;
                 min-height: calc(100vh - 130px);
             }
-            body { padding: 0; }
+            .dashboard-header { 
+                padding: 1.5rem 1rem 1rem 1rem; 
+            }
+            .dashboard-main { 
+                padding: 1rem; 
+            }
+            .action-cards { 
+                grid-template-columns: 1fr; 
+                gap: 1rem; 
+            }
+            .metrics-dashboard { 
+                grid-template-columns: repeat(2, 1fr); 
+                gap: 0.75rem; 
+            }
+            .metric-card { 
+                padding: 0.75rem; 
+            }
+            .metric-value { 
+                font-size: 1.5rem; 
+            }
+            .action-card { 
+                padding: 1rem; 
+            }
+            .schedule-header, .schedule-content { 
+                padding: 1rem; 
+            }
             .modal-content { 
                 width: 98%; 
                 margin: 2% auto; 
@@ -377,8 +663,8 @@
             .table-container {
                 overflow-x: auto;
                 -webkit-overflow-scrolling: touch;
-                border: 1px solid #dee2e6;
-                border-radius: 8px;
+                border: 1px solid #e2e8f0;
+                border-radius: 0.5rem;
             }
         }
         
@@ -462,83 +748,7 @@
         </div>
     </div>
 
-    <div id="manager-view">
-        <div class="container">
-            <h1>Definitive Schedule Generator</h1>
-            <p>A complete scheduling workspace. This tool auto-saves your progress to the browser.</p>
-
-            <div class="controls">
-                <div class="control-group">
-                    <h3>⚙️ Admin & Setup</h3>
-                    <label for="scheduleMonth">Select Month:</label>
-                    <input id="scheduleMonth" type="month"/>
-                    <button class="btn btn-primary" onclick="openEmployeeModal()">👥 Manage Employees</button>
-                    <button class="btn btn-primary" onclick="openImportExportModal()">📊 Import/Export Data</button>
-                    <button class="btn btn-danger" onclick="resetSavedState()">🔄 Reset All Data</button>
-                    <button class="btn btn-success" onclick="openExcelImportModal()">📄 Import from Excel</button>
-                    <button class="btn btn-warning" onclick="showValidationResults()">✓ Validate Schedule</button>
-		    <button class="btn btn-primary" onclick="openReportsModal()">📊 View Reports</button>
-		    <button class="btn btn-success" onclick="openBidsModal()">🙋 Manage Bids</button>
-		    <button class="btn btn-secondary" onclick="printSchedule()">🖨️ Print Schedule</button>
-                    <button class="btn btn-success" onclick="openBulkPTOModal()">📅 Bulk PTO</button>
-                    <button class="btn btn-primary" onclick="openPTORequestsModal()">🏖️ Review PTO Requests</button>
-                    <button class="btn btn-success" onclick="generateMonthlyPTOReports()">📊 Generate Monthly PTO Reports</button>
-                    <button class="btn btn-info" onclick="openPTOCalendarModal()">📅 Team PTO Calendar</button>
-                    <button class="btn btn-warning" onclick="openCoverageAnalysisModal()">👥 Coverage Analysis</button>
-                </div>
-                <div class="control-group">
-                    <h3>🤖 Scheduling Actions</h3>
-                    <button class="btn btn-primary" onclick="autoGenerateFullSchedule()">✨ Generate Full Schedule</button>
-                    <button class="btn btn-success" onclick="smartScheduleAssistant()">🤖 Smart Schedule Assistant</button>
-                    <button class="btn btn-secondary" onclick="moveOpenPositionShifts()">➡️ Move 'Open Position' Shifts</button>
-                    <button class="btn btn-warning" onclick="findConflicts()">🚨 Find Conflicts</button>
-                    <button class="btn btn-info" onclick="optimizeSchedule()">⚡ Optimize Schedule</button>
-                    <div style="margin-top: 10px;">
-                        <button class="btn btn-secondary" onclick="undo()" id="undoBtn" disabled>↩️ Undo</button>
-                        <button class="btn btn-secondary" onclick="redo()" id="redoBtn" disabled>↪️ Redo</button>
-                    </div>
-                </div>
-                <div class="control-group">
-                    <h3>📋 Export to Excel</h3>
-                     <p>Follow these steps to update your shared Excel file.</p>
-                    <button class="btn btn-primary" onclick="openEmailModal()">📧 Email Schedule</button>
-                    <button class="btn btn-danger" onclick="clearSchedule()">🗑️ Clear Schedule Grid</button>
-                    <button class="btn btn-secondary" onclick="copyEmployeeListForExcel()">1. Copy Employee List</button>
-                    <button class="btn btn-success" onclick="copyScheduleForExcel()">2. Copy Schedule Grid</button>
-                    <button class="btn btn-success" onclick="copyOpenShiftsForExcel()">3. Copy Open Shifts List</button>
-                </div>
-            </div>
-            <hr style="margin: 30px 0;"/>
-
-            <h2 style="margin-top: 30px;">Interactive Schedule Preview</h2>
-            <p>Right-click a shift for options. Left-click to edit manually.</p>
-            <div style="overflow-x: auto;">
-                <table id="schedule-table"><thead></thead><tbody></tbody></table>
-            </div>
-
-            <div class="dashboard">
-                <h2 style="margin-top: 30px;">Live Workload Dashboard</h2>
-                <div class="controls" style="grid-template-columns: 1fr 1fr;">
-                    <div id="employee-dashboard-container">
-                        <h3>Employee Workload</h3>
-                        <div style="margin-top: 10px;">
-                            <label for="targetHours" style="font-size: 12px;">Target Hours for FT (approx):</label>
-                            <input type="number" id="targetHours" value="160" style="padding: 4px; width: 80px; margin-bottom: 10px;" onchange="renderDashboard()">
-                        </div>
-                        <table id="employee-dashboard-table"></table>
-                    </div>
-                    <div id="daily-dashboard-container">
-                        <h3>Daily Coverage</h3>
-                        <div style="margin-top: 10px;">
-                            <label for="minStaff" style="font-size: 12px;">Min Staffing Level:</label>
-                            <input type="number" id="minStaff" value="3" style="padding: 4px; width: 80px; margin-bottom: 10px;" onchange="renderDashboard()">
-                        </div>
-                        <table id="daily-dashboard-table"></table>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+    <div id="manager-view"></div>
     
 <div id="employee-portal" style="display:none;">
     <div class="container">
@@ -5995,9 +6205,217 @@ HR Department
 
     // Show/Hide Views
     function showManagerView() {
-        document.getElementById('manager-view').style.display = 'block';
+        const managerView = document.getElementById('manager-view');
+        managerView.style.display = 'block';
         document.getElementById('employee-portal').style.display = 'none';
         closeAllModals();
+        
+        // Initialize dashboard content if empty
+        if (!managerView.innerHTML.trim()) {
+            initializeDashboard();
+        }
+    }
+    
+    function initializeDashboard() {
+        const managerView = document.getElementById('manager-view');
+        const currentMonth = new Date().toISOString().slice(0, 7);
+        
+        const dashboardContent = `
+        <!-- Dashboard Header -->
+        <div class="dashboard-header">
+            <div class="dashboard-title">
+                <div>
+                    <h1>Schedule Dashboard</h1>
+                    <p class="dashboard-subtitle">Complete employee scheduling workspace with real-time insights</p>
+                </div>
+                <div style="text-align: right;">
+                    <label for="scheduleMonth" style="display: block; font-size: 0.875rem; color: #cbd5e1; margin-bottom: 0.5rem;">Current Month:</label>
+                    <input id="scheduleMonth" type="month" value="${currentMonth}" style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: white; padding: 0.5rem; border-radius: 0.5rem;"/>
+                </div>
+            </div>
+            
+            <!-- Key Metrics Dashboard -->
+            <div class="metrics-dashboard">
+                <div class="metric-card">
+                    <div class="metric-value" id="total-employees-metric">${employees.length}</div>
+                    <div class="metric-label">Total Employees</div>
+                    <div class="metric-change neutral" id="employee-change">Current roster</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value" id="coverage-metric">0%</div>
+                    <div class="metric-label">Schedule Coverage</div>
+                    <div class="metric-change neutral" id="coverage-change">Generate schedule</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value" id="pto-requests-metric">0</div>
+                    <div class="metric-label">Pending PTO</div>
+                    <div class="metric-change neutral" id="pto-change">No requests</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value" id="conflicts-metric">0</div>
+                    <div class="metric-label">Schedule Conflicts</div>
+                    <div class="metric-change positive" id="conflicts-change">All clear</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="dashboard-main">
+            <!-- Schedule Section - Primary Focus -->
+            <div class="schedule-section">
+                <div class="schedule-header">
+                    <div>
+                        <h2>📅 Current Schedule</h2>
+                        <p style="margin: 0; color: #64748b; font-size: 0.875rem;">Interactive schedule grid - right-click for options, left-click to edit</p>
+                    </div>
+                    <div class="quick-actions">
+                        <button class="btn btn-primary btn-primary-large" onclick="autoGenerateFullSchedule()">✨ Generate Full Schedule</button>
+                        <button class="btn btn-success" onclick="smartScheduleAssistant()">🤖 Smart Assistant</button>
+                        <button class="btn btn-warning" onclick="findConflicts()">🚨 Find Conflicts</button>
+                    </div>
+                </div>
+                <div class="schedule-content">
+                    <div class="table-container">
+                        <table id="schedule-table"><thead></thead><tbody></tbody></table>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Quick Actions Section -->
+            <div class="action-cards">
+                <div class="action-card">
+                    <div class="card-header">
+                        <span class="card-icon">👥</span>
+                        <h3 class="card-title">Team Management</h3>
+                    </div>
+                    <p class="card-description">Manage employee roster, availability, and contact information</p>
+                    <div class="quick-actions">
+                        <button class="btn btn-primary" onclick="openEmployeeModal()">👥 Manage Employees</button>
+                        <button class="btn btn-outline" onclick="openTeamDirectory()">📋 Team Directory</button>
+                    </div>
+                </div>
+
+                <div class="action-card">
+                    <div class="card-header">
+                        <span class="card-icon">🏖️</span>
+                        <h3 class="card-title">Time Off Center</h3>
+                    </div>
+                    <p class="card-description">Review PTO requests, manage approvals, and track time off balances</p>
+                    <div class="quick-actions">
+                        <button class="btn btn-primary" onclick="openPTORequestsModal()">🏖️ Review Requests</button>
+                        <button class="btn btn-outline" onclick="openPTOCalendarModal()">📅 PTO Calendar</button>
+                        <button class="btn btn-outline" onclick="openBulkPTOModal()">📅 Bulk PTO</button>
+                    </div>
+                </div>
+
+                <div class="action-card">
+                    <div class="card-header">
+                        <span class="card-icon">🤖</span>
+                        <h3 class="card-title">Schedule Actions</h3>
+                    </div>
+                    <p class="card-description">Automated scheduling tools and optimization features</p>
+                    <div class="quick-actions">
+                        <button class="btn btn-primary" onclick="optimizeSchedule()">⚡ Optimize</button>
+                        <button class="btn btn-outline" onclick="moveOpenPositionShifts()">➡️ Move Shifts</button>
+                        <button class="btn btn-outline" onclick="showValidationResults()">✓ Validate</button>
+                    </div>
+                </div>
+
+                <div class="action-card">
+                    <div class="card-header">
+                        <span class="card-icon">📊</span>
+                        <h3 class="card-title">Reports & Analytics</h3>
+                    </div>
+                    <p class="card-description">Generate reports, analyze coverage, and export data</p>
+                    <div class="quick-actions">
+                        <button class="btn btn-primary" onclick="openReportsModal()">📊 View Reports</button>
+                        <button class="btn btn-outline" onclick="openCoverageAnalysisModal()">👥 Coverage Analysis</button>
+                        <button class="btn btn-outline" onclick="generateMonthlyPTOReports()">📊 PTO Reports</button>
+                    </div>
+                </div>
+
+                <div class="action-card">
+                    <div class="card-header">
+                        <span class="card-icon">💾</span>
+                        <h3 class="card-title">Data Management</h3>
+                    </div>
+                    <p class="card-description">Import, export, backup and manage your scheduling data</p>
+                    <div class="quick-actions">
+                        <button class="btn btn-primary" onclick="openImportExportModal()">📊 Import/Export</button>
+                        <button class="btn btn-outline" onclick="openExcelImportModal()">📄 Excel Import</button>
+                        <button class="btn btn-outline" onclick="printSchedule()">🖨️ Print</button>
+                    </div>
+                </div>
+
+                <div class="action-card">
+                    <div class="card-header">
+                        <span class="card-icon">⚙️</span>
+                        <h3 class="card-title">System Tools</h3>
+                    </div>
+                    <p class="card-description">Advanced tools, bidding system, and system maintenance</p>
+                    <div class="quick-actions">
+                        <button class="btn btn-primary" onclick="openBidsModal()">🙋 Manage Bids</button>
+                        <button class="btn btn-outline" onclick="openEmailModal()">📧 Email Schedule</button>
+                        <button class="btn btn-danger" onclick="resetSavedState()">🔄 Reset Data</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Export Actions -->
+            <div class="schedule-section">
+                <div class="schedule-header">
+                    <div>
+                        <h2>📋 Quick Export</h2>
+                        <p style="margin: 0; color: #64748b; font-size: 0.875rem;">Copy data to clipboard for Excel or other applications</p>
+                    </div>
+                    <div style="display: flex; gap: 0.5rem; align-items: center;">
+                        <button class="btn btn-secondary" onclick="undo()" id="undoBtn" disabled>↩️ Undo</button>
+                        <button class="btn btn-secondary" onclick="redo()" id="redoBtn" disabled>↪️ Redo</button>
+                    </div>
+                </div>
+                <div class="schedule-content">
+                    <div class="quick-actions">
+                        <button class="btn btn-primary" onclick="copyEmployeeListForExcel()">1. Copy Employee List</button>
+                        <button class="btn btn-success" onclick="copyScheduleForExcel()">2. Copy Schedule Grid</button>
+                        <button class="btn btn-success" onclick="copyOpenShiftsForExcel()">3. Copy Open Shifts List</button>
+                        <button class="btn btn-danger" onclick="clearSchedule()">🗑️ Clear Schedule Grid</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Live Dashboard -->
+            <div class="schedule-section">
+                <div class="schedule-header">
+                    <h2>📊 Live Workload Dashboard</h2>
+                </div>
+                <div class="schedule-content">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
+                        <div id="employee-dashboard-container">
+                            <h3>Employee Workload</h3>
+                            <div style="margin-bottom: 1rem;">
+                                <label for="targetHours" style="font-size: 0.875rem; color: #64748b;">Target Hours for FT (approx):</label>
+                                <input type="number" id="targetHours" value="160" style="padding: 0.5rem; width: 80px; margin-left: 0.5rem; border: 1px solid #e2e8f0; border-radius: 0.375rem;" onchange="renderDashboard()">
+                            </div>
+                            <table id="employee-dashboard-table"></table>
+                        </div>
+                        <div id="daily-dashboard-container">
+                            <h3>Daily Coverage</h3>
+                            <div style="margin-bottom: 1rem;">
+                                <label for="minStaff" style="font-size: 0.875rem; color: #64748b;">Min Staffing Level:</label>
+                                <input type="number" id="minStaff" value="3" style="padding: 0.5rem; width: 80px; margin-left: 0.5rem; border: 1px solid #e2e8f0; border-radius: 0.375rem;" onchange="renderDashboard()">
+                            </div>
+                            <table id="daily-dashboard-table"></table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        `;
+        
+        managerView.innerHTML = dashboardContent;
+        
+        // Re-trigger table rendering and other initializations
+        if (typeof renderTable === 'function') renderTable();
+        if (typeof renderDashboard === 'function') renderDashboard();
     }
 
     function showEmployeePortal() {
