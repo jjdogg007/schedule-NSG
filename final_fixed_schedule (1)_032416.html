@@ -1694,203 +1694,37 @@ function recordHistory() {
         document.getElementById('redoBtn').disabled = historyIndex >= history.length - 1;
     }
 
-async function saveState() {
-    const stateToSave = {
-        employees,
-        schedule: scheduleData,
-        notesData,
-        bidsData,
-        notifications,
-        ptoRequests,
-        employeePTOBalances,
-        month: document.getElementById('scheduleMonth').value,
-        config: {
-            targetHours: document.getElementById('targetHours').value,
-            minStaff: document.getElementById('minStaff').value
-        }
-    };
-
-    // Always save to localStorage as backup
-    try {
-        localStorage.setItem('scheduleGeneratorState', JSON.stringify(stateToSave));
-    } catch (e) {
-        console.warn("Could not save to localStorage:", e);
-    }
-
-    // Try to save to Supabase
-    try {
-        if (typeof supabaseClient !== 'undefined') {
-            const { error } = await supabaseClient
-                .from('schedules')
-                .upsert({ id: 1, data: stateToSave });
-
-            if (error) {
-                console.error("Supabase save error:", error);
-                console.log('✅ Data saved locally (cloud backup failed)');
-                return; // Don't throw error, data is saved locally
-            }
-            console.log('✅ Successfully saved to cloud and locally');
-        } else {
-            console.log('✅ Data saved locally (cloud service unavailable)');
-        }
-    } catch (err) {
-        console.error("Save failed:", err);
-        console.log('✅ Data saved locally (cloud backup failed)');
-        // Don't throw error, data is saved locally
-    }
-}
-// Replace your existing loadState function with this final, complete version.
-
-async function loadState() {
-    const urlParams = new URLSearchParams(window.location.search);
-    const portalId = urlParams.get('portal');
+    // ================== CLOUD STATE MANAGEMENT (replaces localStorage) ==================
     
-    let records = null;
-    let error = null;
-    
-    // Try to load from Supabase first
-    try {
-        if (typeof supabaseClient !== 'undefined') {
-            if (portalId) {
-                document.getElementById('manager-view').style.display = 'none';
-                document.getElementById('employee-portal').style.display = 'block';
-                
-                const result = await supabaseClient.from('schedules').select('data').eq('id', 1).single();
-                records = result.data;
-                error = result.error;
-                
-                if (records && records.data) {
-                    loadAndRenderPortal(portalId, records.data);
-                } else {
-                    document.getElementById('portal-schedule-view').innerHTML = '<h2>Error</h2><p>Could not load schedule data. Please ensure the manager has saved a schedule.</p>';
-                    if (error && error.code !== 'PGRST116') console.error("Portal load error:", error);
-                }
-                return;
-            }
-
-            // Manager view - try Supabase
-            const result = await supabaseClient.from('schedules').select('data').eq('id', 1).single();
-            records = result.data;
-            error = result.error;
-        }
-    } catch (err) {
-        console.warn("Could not load from cloud, trying localStorage:", err);
-        error = err;
+    async function saveState() {
+        // This function is now obsolete in cloud-first mode
+        // All data is automatically saved to cloud when changed
+        console.log('saveState called - data automatically synced to cloud');
     }
 
-    // If Supabase failed, try localStorage
-    if (!records || error) {
-        try {
-            const localData = localStorage.getItem('scheduleGeneratorState');
-            if (localData) {
-                records = { data: JSON.parse(localData) };
-                error = null;
-                console.log('✅ Loaded data from localStorage');
-            }
-        } catch (err) {
-            console.warn("Could not load from localStorage:", err);
-        }
-    }
-
-    if (error && error.code !== 'PGRST116' && !records) {
-        console.error("Error loading state:", error);
-        // Don't alert, just continue with default data
-    }
-
-    let monthToLoad;
-    let needsInitialSave = false;
-
-    if (records && records.data) {
-        const state = records.data;
-        employees = state.employees || [];
-        scheduleData = state.schedule || {};
-        notesData = state.notesData || {};
-        bidsData = state.bidsData || {};
-        notifications = state.notifications || {};
-        ptoRequests = state.ptoRequests || {};
-        employeePTOBalances = state.employeePTOBalances || {};
-        monthToLoad = state.month;
-        autoApprovalRules = state.autoApprovalRules || { enabled: false, rule: 'firstCome' };
-
-        if (state.config) {
-            document.getElementById('targetHours').value = state.config.targetHours || 160;
-            document.getElementById('minStaff').value = state.config.minStaff || 3;
-        }
-    } else {
-        // This block runs only if there is no saved data in the cloud.
-        needsInitialSave = true;
-        employees = [
-            { name: "Dowling, Tina", id: generateUUID(), type: "PT", shifts: "10p-6a", availability: "Fri,Sat", maxDays: "2", targetHours: "64", email: "", hireDate: "2024-01-15" }, 
-            { name: "Garcia, Mosserat", id: generateUUID(), type: "PT", shifts: "2p-10:30p", availability: "Sat,Sun", maxDays: "2", targetHours: "64", email: "", hireDate: "2024-02-20" }, 
-            { name: "Harvey-Edwin, Jean", id: generateUUID(), type: "PT", shifts: "Varies", availability: "Varies", maxDays: "3", targetHours: "96", email: "", hireDate: "2023-11-10" }, 
-            { name: "Heberer, Jacob", id: generateUUID(), type: "FT", shifts: "10a-6:30p", availability: "Mon,Tue,Wed,Thu,Fri", maxDays: "5", targetHours: "160", email: "", hireDate: "2023-08-05" }, 
-            { name: "Hosey, Dianna", id: generateUUID(), type: "PT", shifts: "Varies", availability: "Varies", maxDays: "3", targetHours: "96", email: "", hireDate: "2024-03-12" }, 
-            { name: "Sifuentes, Stephany", id: generateUUID(), type: "FT", shifts: "6:30p-3a", availability: "Mon,Tue,Wed,Thu,Fri", maxDays: "5", targetHours: "160", email: "", hireDate: "2023-09-01" }, 
-            { name: "Keene, Shanetra", id: generateUUID(), type: "FT", shifts: "2p-10:30p", availability: "Mon,Tue,Wed,Thu,Fri", maxDays: "5", targetHours: "160", email: "", hireDate: "2023-07-18" }, 
-            { name: "Melgar, Lisa", id: generateUUID(), type: "PT", shifts: "5:30a-2p", availability: "Mon,Tue,Wed,Thu,Fri", maxDays: "5", targetHours: "120", email: "", hireDate: "2024-01-08" }, 
-            { name: "Merrick, Tanya", id: generateUUID(), type: "PT", shifts: "6a-2:30p", availability: "Sat,Sun", maxDays: "2", targetHours: "64", email: "", hireDate: "2024-04-22" }, 
-            { name: "OPEN POSITION", type: "FT", shifts: "1p-9:30p", availability: "Mon,Tue,Wed,Thu,Fri", maxDays: "5", targetHours: "160" }, 
-            { name: "OPEN POSITION", type: "PT", shifts: "6:30p-3a", availability: "Sat,Sun", maxDays: "2", targetHours: "64" },
-            { name: "Puebla, Alisia", id: generateUUID(), type: "PT", shifts: "10a-6:30p", availability: "Sat,Sun", maxDays: "2", targetHours: "64", email: "", hireDate: "2024-05-15" }, 
-            { name: "Scales, Jack", id: generateUUID(), type: "PT", shifts: "7a-7p", availability: "Sat,Sun", maxDays: "2", targetHours: "96", email: "", hireDate: "2023-12-01" }, 
-            { name: "Thaxton, Tequita", id: generateUUID(), type: "PT", shifts: "9:30p-6a", availability: "Mon,Tue,Wed,Thu,Fri", maxDays: "5", targetHours: "96", email: "", hireDate: "2024-06-10" }, 
-            { name: "Thompson, Quientia", id: generateUUID(), type: "PT", shifts: "Varies", availability: "Varies", maxDays: "3", targetHours: "96", email: "", hireDate: "2024-07-01" }, 
-            { name: "OPEN SHIFTS (Coverage)", type: "Bank" }, 
-            { name: "OPEN SHIFTS (Extra)", type: "Bank" },
-            { name: "OPEN SHIFTS (Misc)", type: "Bank" } 
-        ];
+    async function loadState() {
+        // This function is now replaced by loadCloudData during initialization
+        // Handle portal mode if URL parameter exists
+        const urlParams = new URLSearchParams(window.location.search);
+        const portalId = urlParams.get('portal');
         
-        // Initialize PTO balances for all employees
-        employees.forEach(emp => {
-            if (emp.id && !emp.name.startsWith("OPEN SHIFTS")) {
-                employeePTOBalances[emp.id] = {
-                    employeeName: emp.name,
-                    hireDate: emp.hireDate || "2024-01-01",
-                    totalPTODays: emp.type === "FT" ? 20 : 15,
-                    usedPTODays: 0,
-                    pendingPTODays: 0
-                };
+        if (portalId) {
+            document.getElementById('manager-view').style.display = 'none';
+            document.getElementById('employee-portal').style.display = 'block';
+            
+            try {
+                await loadCloudData();
+                loadAndRenderPortal(portalId, { employees, scheduleData, notesData });
+            } catch (error) {
+                document.getElementById('portal-schedule-view').innerHTML = '<h2>Error</h2><p>Could not load schedule data. Please ensure you have access to the system.</p>';
+                console.error("Portal load error:", error);
             }
-        });
-    }
-    
-    let updatedEmployees = false;
-    employees.forEach(e => {
-        if (!e.id && !e.name.startsWith("OPEN SHIFTS")) { e.id = generateUUID(); updatedEmployees = true; }
-        if (e.email === undefined && !e.name.startsWith("OPEN SHIFTS") && e.type !== 'Bank') { e.email = ""; updatedEmployees = true; }
-        if (!e.hireDate && !e.name.startsWith("OPEN SHIFTS") && e.type !== 'Bank') { 
-            e.hireDate = "2024-01-01"; // Default hire date for existing employees
-            updatedEmployees = true; 
+            return;
         }
-        // Initialize PTO balance if missing
-        if (e.id && !e.name.startsWith("OPEN SHIFTS") && !employeePTOBalances[e.id]) {
-            employeePTOBalances[e.id] = {
-                employeeName: e.name,
-                hireDate: e.hireDate || "2024-01-01",
-                totalPTODays: e.type === "FT" ? 20 : 15,
-                usedPTODays: 0,
-                pendingPTODays: 0
-            };
-            updatedEmployees = true;
-        }
-    });
-
-    if (!monthToLoad) {
-        const now = new Date();
-        let year = now.getFullYear(); let month = now.getMonth() + 1;
-        if (now.getDate() > 15) { month++; if (month > 12) { month = 1; year++; } }
-        monthToLoad = `${year}-${month.toString().padStart(2, '0')}`;
+        
+        // For normal manager view, data is loaded during initialization
+        console.log('loadState called - using cloud data instead');
     }
-    
-    document.getElementById('scheduleMonth').value = monthToLoad;
-    generateSchedule(monthToLoad);
-    
-    if (needsInitialSave || updatedEmployees) {
-        await saveState();
-    }
-    
-    recordHistory();
-}
 
 function loadAndRenderPortal(portalId, state) {
     if (!state) {
@@ -2156,53 +1990,106 @@ function loadAndRenderPortal(portalId, state) {
         });
     }
 
-    function saveEmployee() {
+    async function saveEmployee() {
         recordHistory();
         const name = document.getElementById('newName').value.trim();
-        if (!name) { alert('Employee name cannot be empty.'); return; }
+        if (!name) { 
+            showNotification('Employee name cannot be empty.', 'error'); 
+            return; 
+        }
         
         const hireDate = document.getElementById('newHireDate').value;
         if (!hireDate && !name.startsWith('OPEN SHIFTS')) { 
-            alert('Hire date is required for all employees.'); 
+            showNotification('Hire date is required for all employees.', 'error'); 
             return; 
         }
+        
         const index = parseInt(document.getElementById('empIndex').value);
         let empId = document.getElementById('empId').value;
         if (!empId) { empId = generateUUID(); }
+        
         const empData = { 
             name, 
             id: empId,
-            type: document.getElementById('newType').value, 
-            shifts: document.getElementById('newShifts').value.trim(), 
+            employee_type: document.getElementById('newType').value, 
+            regular_shifts: document.getElementById('newShifts').value.trim(), 
             availability: document.getElementById('newAvailability').value.trim(), 
             email: document.getElementById('newEmail').value.trim(),
-            hireDate: document.getElementById('newHireDate').value,
-            maxDays: document.getElementById('newMaxDays').value, 
-            targetHours: document.getElementById('newTargetHours').value 
+            hire_date: document.getElementById('newHireDate').value,
+            max_days_per_week: document.getElementById('newMaxDays').value, 
+            target_hours: document.getElementById('newTargetHours').value,
+            contact_opt_in: document.getElementById('newContactOptIn').checked,
+            profile_photo: currentPhotoData
         };
 
-        if (index > -1) {
-            const oldName = employees[index].name;
-            if (oldName !== name) {
-                scheduleData[name] = scheduleData[oldName]; notesData[name] = notesData[oldName];
-                delete scheduleData[oldName]; delete notesData[oldName];
-            }
-            employees[index] = empData;
-        } else {
-            employees.push(empData);
-            scheduleData[name] = {}; notesData[name] = {};
-            // Initialize PTO balance for new employee
-            if (empData.id) {
-                employeePTOBalances[empData.id] = {
-                    employeeName: empData.name,
-                    hireDate: empData.hireDate || new Date().toISOString().split('T')[0],
-                    totalPTODays: empData.type === "FT" ? 20 : 15,
-                    usedPTODays: 0,
-                    pendingPTODays: 0
+        try {
+            if (index > -1) {
+                // Update existing employee
+                const oldName = employees[index].name;
+                
+                // Save to cloud
+                await cloudService.saveEmployee(empData);
+                
+                // If name changed, update schedule and notes references
+                if (oldName !== name) {
+                    scheduleData[name] = scheduleData[oldName]; 
+                    notesData[name] = notesData[oldName];
+                    delete scheduleData[oldName]; 
+                    delete notesData[oldName];
+                }
+                
+                // Update local state
+                employees[index] = {
+                    ...empData,
+                    type: empData.employee_type,  // Keep compatibility with existing code
+                    shifts: empData.regular_shifts,
+                    maxDays: empData.max_days_per_week,
+                    targetHours: empData.target_hours,
+                    hireDate: empData.hire_date
                 };
+                
+            } else {
+                // Add new employee
+                await cloudService.saveEmployee(empData);
+                
+                const newEmployee = {
+                    ...empData,
+                    type: empData.employee_type,  // Keep compatibility with existing code
+                    shifts: empData.regular_shifts,
+                    maxDays: empData.max_days_per_week,
+                    targetHours: empData.target_hours,
+                    hireDate: empData.hire_date
+                };
+                
+                employees.push(newEmployee);
+                scheduleData[name] = {}; 
+                notesData[name] = {};
+                
+                // Initialize PTO balance for new employee
+                if (empData.id) {
+                    employeePTOBalances[empData.id] = {
+                        employeeName: empData.name,
+                        hireDate: empData.hire_date || new Date().toISOString().split('T')[0],
+                        totalPTODays: empData.employee_type === "FT" ? 20 : 15,
+                        usedPTODays: 0,
+                        pendingPTODays: 0
+                    };
+                }
             }
+            
+            // Clear photo data
+            currentPhotoData = null;
+            updatePhotoPreview(null);
+            
+            renderEmployeeList(); 
+            renderTable(); 
+            closeAllModals();
+            showNotification('Employee saved successfully!', 'success');
+            
+        } catch (error) {
+            console.error('Error saving employee:', error);
+            showNotification('Failed to save employee: ' + error.message, 'error');
         }
-        renderEmployeeList(); renderTable(); saveState(); closeAllModals();
     }
 
     function editEmployee(index) {
@@ -2218,18 +2105,30 @@ function loadAndRenderPortal(portalId, state) {
         document.getElementById('newHireDate').value = emp.hireDate || '';
         document.getElementById('newMaxDays').value = emp.maxDays || 0;
         document.getElementById('newTargetHours').value = emp.targetHours || 0;
+        document.getElementById('newContactOptIn').checked = emp.contact_opt_in || false;
+        updatePhotoPreview(emp.profile_photo);
         document.getElementById('employeeModal').style.display = 'block';
     }
     
-    function deleteEmployee(index) { 
+    async function deleteEmployee(index) { 
         if (confirm(`Are you sure you want to delete ${employees[index].name}?`)) { 
             recordHistory(); 
-            delete scheduleData[employees[index].name]; 
-            delete notesData[employees[index].name]; 
-            employees.splice(index, 1); 
-            renderEmployeeList(); 
-            renderTable(); 
-            saveState(); 
+            
+            try {
+                await cloudService.deleteEmployee(employees[index].id);
+                
+                delete scheduleData[employees[index].name]; 
+                delete notesData[employees[index].name]; 
+                employees.splice(index, 1); 
+                
+                renderEmployeeList(); 
+                renderTable(); 
+                showNotification('Employee deleted successfully!', 'success');
+                
+            } catch (error) {
+                console.error('Error deleting employee:', error);
+                showNotification('Failed to delete employee: ' + error.message, 'error');
+            }
         } 
     }
 
@@ -2241,13 +2140,28 @@ function loadAndRenderPortal(portalId, state) {
         }
     }
 
-    function saveNote() {
+    async function saveNote() {
         if (contextMenuTarget) {
             recordHistory();
             const { employeeName, dateKey } = contextMenuTarget;
-            if (!notesData[employeeName]) notesData[employeeName] = {};
-            notesData[employeeName][dateKey] = document.getElementById('noteText').value;
-            closeAllModals(); renderTable(); saveState();
+            const noteText = document.getElementById('noteText').value;
+            
+            try {
+                // Save to cloud
+                await cloudService.saveScheduleNote(employeeName, dateKey, noteText);
+                
+                // Update local state
+                if (!notesData[employeeName]) notesData[employeeName] = {};
+                notesData[employeeName][dateKey] = noteText;
+                
+                closeAllModals(); 
+                renderTable(); 
+                showNotification('Note saved successfully!', 'success');
+                
+            } catch (error) {
+                console.error('Error saving note:', error);
+                showNotification('Failed to save note: ' + error.message, 'error');
+            }
         }
     }
 
@@ -4788,9 +4702,9 @@ HR Department
     });
 
     function showPWAInstallBanner() {
-        if (!localStorage.getItem('pwa-dismissed')) {
-            document.getElementById('pwa-install-banner').style.display = 'block';
-        }
+        // In cloud-first mode, we don't persist PWA dismissal state
+        // The banner will show each time unless permanently dismissed by user
+        document.getElementById('pwa-install-banner').style.display = 'block';
     }
 
     function installPWA() {
@@ -4808,7 +4722,7 @@ HR Department
 
     function dismissPWABanner() {
         document.getElementById('pwa-install-banner').style.display = 'none';
-        localStorage.setItem('pwa-dismissed', 'true');
+        // Note: dismissal is not persisted in cloud-first mode
     }
 
     // Service Worker Registration
@@ -4865,7 +4779,8 @@ HR Department
         const today = new Date();
         const dateKey = today.toISOString().split('T')[0];
         const dayName = today.toLocaleDateString('en-US', { weekday: 'long' });
-        const currentEmployee = localStorage.getItem('currentEmployee');
+        // In cloud-first mode, we'll need to implement proper employee selection
+        const currentEmployee = null; // TODO: Implement employee selection in cloud mode
         
         let content = `<strong>${dayName}, ${today.toLocaleDateString()}</strong><br>`;
         
@@ -5055,90 +4970,107 @@ HR Department
     function openAnnouncementsModal() {
         document.getElementById('announcementsModal').style.display = 'block';
         
-        // Show admin controls if user is admin (simplified check)
-        const isAdmin = localStorage.getItem('isAdmin') === 'true';
+        // Show admin controls if user is admin (cloud-based check)
+        const isAdmin = cloudService.currentUserProfile?.role === 'admin' || cloudService.currentUserProfile?.role === 'manager';
         document.getElementById('admin-announcement-controls').style.display = isAdmin ? 'block' : 'none';
         
         loadAnnouncements();
     }
 
-    function createAnnouncement() {
+    async function createAnnouncement() {
         const title = document.getElementById('announcement-title').value;
         const content = document.getElementById('announcement-content').value;
         const priority = document.getElementById('announcement-priority').value;
         const audience = document.getElementById('announcement-audience').value;
         
         if (!title || !content) {
-            alert('Please fill in both title and content');
+            showNotification('Please fill in both title and content', 'error');
             return;
         }
         
-        const announcement = {
-            id: generateUUID(),
+        const announcementData = {
             title,
             content,
             priority,
-            audience,
-            author: 'Admin',
-            createdAt: new Date().toISOString(),
-            readBy: []
+            audience
         };
         
-        announcements.unshift(announcement);
-        localStorage.setItem('announcements', JSON.stringify(announcements));
-        
-        // Clear form
-        document.getElementById('announcement-title').value = '';
-        document.getElementById('announcement-content').value = '';
-        
-        loadAnnouncements();
-        showNotification('Announcement posted successfully!', 'success');
-        
-        // Send push notification for urgent announcements
-        if (priority === 'urgent') {
-            sendPushNotification('Urgent Announcement', title);
+        try {
+            const newAnnouncement = await cloudService.createAnnouncement(announcementData);
+            
+            // Update local state
+            announcements.unshift(newAnnouncement);
+            
+            // Clear form
+            document.getElementById('announcement-title').value = '';
+            document.getElementById('announcement-content').value = '';
+            
+            loadAnnouncements();
+            showNotification('Announcement posted successfully!', 'success');
+            
+            // Send push notification for urgent announcements
+            if (priority === 'urgent') {
+                sendPushNotification('Urgent Announcement', title);
+            }
+            
+        } catch (error) {
+            console.error('Error creating announcement:', error);
+            showNotification('Failed to create announcement: ' + error.message, 'error');
         }
     }
 
-    function loadAnnouncements() {
+    async function loadAnnouncements() {
         const container = document.getElementById('announcements-list');
-        container.innerHTML = '';
+        container.innerHTML = '<div style="text-align: center; color: #6c757d; padding: 20px;">Loading announcements...</div>';
         
-        if (announcements.length === 0) {
-            container.innerHTML = '<div style="text-align: center; color: #6c757d; padding: 40px;">No announcements yet</div>';
-            return;
-        }
-        
-        announcements.forEach(announcement => {
-            const item = document.createElement('div');
-            item.style.cssText = `
-                background: white;
-                border: 1px solid #dee2e6;
-                border-radius: 8px;
-                padding: 15px;
-                margin-bottom: 15px;
-                border-left: 4px solid ${getPriorityColor(announcement.priority)};
-            `;
+        try {
+            announcements = await cloudService.getAnnouncements();
             
-            const priorityBadge = `<span style="background: ${getPriorityColor(announcement.priority)}; color: white; padding: 2px 8px; border-radius: 12px; font-size: 12px; font-weight: bold;">${announcement.priority.toUpperCase()}</span>`;
+            container.innerHTML = '';
             
-            item.innerHTML = `
-                <div style="display: flex; justify-content: between; align-items: flex-start; margin-bottom: 10px;">
-                    <div style="flex: 1;">
-                        <h4 style="margin: 0; color: #1c293a;">${announcement.title}</h4>
-                        <div style="font-size: 12px; color: #6c757d; margin-top: 5px;">
-                            ${announcement.author} • ${new Date(announcement.createdAt).toLocaleDateString()} • ${priorityBadge}
+            if (announcements.length === 0) {
+                container.innerHTML = '<div style="text-align: center; color: #6c757d; padding: 40px;">No announcements yet</div>';
+                return;
+            }
+            
+            announcements.forEach(announcement => {
+                const item = document.createElement('div');
+                item.style.cssText = `
+                    background: white;
+                    border: 1px solid #dee2e6;
+                    border-radius: 8px;
+                    padding: 15px;
+                    margin-bottom: 15px;
+                    border-left: 4px solid ${getPriorityColor(announcement.priority)};
+                `;
+                
+                const priorityBadge = `<span style="background: ${getPriorityColor(announcement.priority)}; color: white; padding: 2px 8px; border-radius: 12px; font-size: 12px; font-weight: bold;">${announcement.priority.toUpperCase()}</span>`;
+                
+                const authorEmail = announcement.author?.email || 'Admin';
+                const createdDate = new Date(announcement.created_at).toLocaleDateString();
+                
+                item.innerHTML = `
+                    <div style="display: flex; justify-content: between; align-items: flex-start; margin-bottom: 10px;">
+                        <div style="flex: 1;">
+                            <h4 style="margin: 0; color: #1c293a;">${announcement.title}</h4>
+                            <div style="font-size: 12px; color: #6c757d; margin-top: 5px;">
+                                ${authorEmail} • ${createdDate} • ${priorityBadge}
+                            </div>
                         </div>
                     </div>
-                </div>
-                <div style="margin-bottom: 10px; line-height: 1.5;">${announcement.content}</div>
-                <div style="font-size: 12px; color: #6c757d;">
-                    Target: ${announcement.audience.charAt(0).toUpperCase() + announcement.audience.slice(1)}
-                </div>
-            `;
+                    <div style="margin-bottom: 10px; line-height: 1.5;">${announcement.content}</div>
+                    <div style="font-size: 12px; color: #6c757d;">
+                        Target: ${announcement.audience.charAt(0).toUpperCase() + announcement.audience.slice(1)}
+                    </div>
+                `;
+                
+                container.appendChild(item);
+            });
             
-            container.appendChild(item);
-        });
+        } catch (error) {
+            console.error('Error loading announcements:', error);
+            container.innerHTML = '<div style="text-align: center; color: #dc3545; padding: 40px;">Failed to load announcements</div>';
+        }
     }
 
     function getPriorityColor(priority) {
@@ -5152,32 +5084,18 @@ HR Department
     // ================== AUDIT LOGS SYSTEM ==================
 
     function logAuditEvent(action, details, userId = 'unknown') {
-        const logEntry = {
-            id: generateUUID(),
-            timestamp: new Date().toISOString(),
-            userId,
-            userAgent: navigator.userAgent,
-            ipAddress: 'client-side', // In a real app, this would come from server
-            action,
-            details,
-            beforeValue: details.before || null,
-            afterValue: details.after || null
-        };
-        
-        auditLogs.unshift(logEntry);
-        
-        // Keep only last 1000 entries to prevent storage bloat
-        if (auditLogs.length > 1000) {
-            auditLogs = auditLogs.slice(0, 1000);
+        // This function is now handled by cloudService.logAuditEvent
+        // Keep for compatibility but delegate to cloud service
+        if (cloudService) {
+            cloudService.logAuditEvent(action, details);
         }
-        
-        localStorage.setItem('auditLogs', JSON.stringify(auditLogs));
     }
 
     function openAuditLogsModal() {
-        // Check if user has admin access
-        if (localStorage.getItem('isAdmin') !== 'true') {
-            alert('Access denied. Admin privileges required.');
+        // Check if user has admin access using cloud-based authentication
+        const isAdmin = cloudService.currentUserProfile?.role === 'admin' || cloudService.currentUserProfile?.role === 'manager';
+        if (!isAdmin) {
+            showNotification('Access denied. Admin privileges required.', 'error');
             return;
         }
         
@@ -5185,27 +5103,65 @@ HR Department
         loadAuditLogs();
     }
 
-    function loadAuditLogs() {
+    async function loadAuditLogs() {
         const container = document.getElementById('audit-logs-list');
-        container.innerHTML = '';
+        container.innerHTML = '<div style="text-align: center; color: #6c757d; padding: 20px;">Loading audit logs...</div>';
         
-        let filteredLogs = [...auditLogs];
-        
-        // Apply filters
-        const startDate = document.getElementById('audit-start-date').value;
-        const endDate = document.getElementById('audit-end-date').value;
-        const actionFilter = document.getElementById('audit-action-filter').value;
-        
-        if (startDate) {
-            filteredLogs = filteredLogs.filter(log => 
-                new Date(log.timestamp) >= new Date(startDate)
-            );
+        try {
+            // Get filter values
+            const startDate = document.getElementById('audit-start-date').value;
+            const endDate = document.getElementById('audit-end-date').value;
+            const actionFilter = document.getElementById('audit-action-filter').value;
+            
+            const filters = {};
+            if (startDate) filters.startDate = startDate;
+            if (endDate) filters.endDate = endDate + 'T23:59:59';
+            if (actionFilter) filters.action = actionFilter;
+            
+            const auditLogs = await cloudService.getAuditLogs(filters);
+            
+            container.innerHTML = '';
+            
+            if (auditLogs.length === 0) {
+                container.innerHTML = '<div style="text-align: center; color: #6c757d; padding: 40px;">No audit logs found</div>';
+                return;
+            }
+            
+            auditLogs.forEach(log => {
+                const item = document.createElement('div');
+                item.style.cssText = `
+                    background: white;
+                    border: 1px solid #dee2e6;
+                    border-radius: 8px;
+                    padding: 15px;
+                    margin-bottom: 10px;
+                    font-family: monospace;
+                    font-size: 12px;
+                `;
+                
+                const userEmail = log.user?.email || 'Unknown';
+                
+                item.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                        <strong style="color: #0d6efd;">${log.action}</strong>
+                        <span style="color: #6c757d;">${new Date(log.created_at).toLocaleString()}</span>
+                    </div>
+                    <div style="margin-bottom: 8px; color: #495057;">${log.description || 'No description'}</div>
+                    <div style="font-size: 11px; color: #6c757d;">
+                        User: ${userEmail} | IP: ${log.ip_address || 'Unknown'}
+                    </div>
+                    ${log.before_value ? `<div style="font-size: 11px; color: #dc3545; margin-top: 5px;">Before: ${JSON.stringify(log.before_value)}</div>` : ''}
+                    ${log.after_value ? `<div style="font-size: 11px; color: #198754; margin-top: 5px;">After: ${JSON.stringify(log.after_value)}</div>` : ''}
+                `;
+                
+                container.appendChild(item);
+            });
+            
+        } catch (error) {
+            console.error('Error loading audit logs:', error);
+            container.innerHTML = '<div style="text-align: center; color: #dc3545; padding: 40px;">Failed to load audit logs</div>';
         }
-        
-        if (endDate) {
-            filteredLogs = filteredLogs.filter(log => 
-                new Date(log.timestamp) <= new Date(endDate + 'T23:59:59')
-            );
+    }
         }
         
         if (actionFilter) {
@@ -5726,39 +5682,14 @@ HR Department
             const locationVerification = await verifyLocationForClockIn();
             
             const clockInTime = new Date();
-            const timeEntry = {
-                id: generateUUID(),
-                type: 'clock_in',
-                timestamp: clockInTime.toISOString(),
-                location: currentLocation,
-                employee: localStorage.getItem('currentEmployee') || 'Unknown',
-                verified: locationVerification.verified
-            };
             
-            // Store timesheet entry
-            let timesheet = JSON.parse(localStorage.getItem('timesheet')) || [];
-            timesheet.push(timeEntry);
-            localStorage.setItem('timesheet', JSON.stringify(timesheet));
-            
-            // Log audit event
-            logAuditEvent('clock_in', {
-                description: `Employee clocked in at ${clockInTime.toLocaleString()}`,
-                employee: timeEntry.employee,
-                location: currentLocation,
-                verified: true
-            });
+            // Clock in via cloud service
+            await cloudService.clockIn(currentLocation);
             
             showNotification(`Clocked in successfully at ${clockInTime.toLocaleTimeString()}`, 'success');
             
         } catch (error) {
             showNotification(`Clock in failed: ${error}`, 'error');
-            
-            // Log failed attempt
-            logAuditEvent('clock_in_failed', {
-                description: `Failed clock in attempt: ${error}`,
-                employee: localStorage.getItem('currentEmployee') || 'Unknown',
-                location: currentLocation
-            });
         }
     }
     
@@ -5767,78 +5698,33 @@ HR Department
             const locationVerification = await verifyLocationForClockIn();
             
             const clockOutTime = new Date();
-            const timeEntry = {
-                id: generateUUID(),
-                type: 'clock_out',
-                timestamp: clockOutTime.toISOString(),
-                location: currentLocation,
-                employee: localStorage.getItem('currentEmployee') || 'Unknown',
-                verified: locationVerification.verified
-            };
             
-            // Store timesheet entry
-            let timesheet = JSON.parse(localStorage.getItem('timesheet')) || [];
-            timesheet.push(timeEntry);
-            localStorage.setItem('timesheet', JSON.stringify(timesheet));
-            
-            // Log audit event
-            logAuditEvent('clock_out', {
-                description: `Employee clocked out at ${clockOutTime.toLocaleString()}`,
-                employee: timeEntry.employee,
-                location: currentLocation,
-                verified: true
-            });
+            // Clock out via cloud service
+            await cloudService.clockOut(currentLocation);
             
             showNotification(`Clocked out successfully at ${clockOutTime.toLocaleTimeString()}`, 'success');
             
         } catch (error) {
             showNotification(`Clock out failed: ${error}`, 'error');
-            
-            // Log failed attempt
-            logAuditEvent('clock_out_failed', {
-                description: `Failed clock out attempt: ${error}`,
-                employee: localStorage.getItem('currentEmployee') || 'Unknown',
-                location: currentLocation
-            });
         }
     }
     
-    function viewTimesheet() {
-        const timesheet = JSON.parse(localStorage.getItem('timesheet')) || [];
-        const currentEmployee = localStorage.getItem('currentEmployee');
-        
-        const employeeTimesheet = timesheet.filter(entry => 
-            entry.employee === currentEmployee
-        ).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-        
+    async function viewTimesheet() {
+        // In cloud-first mode, we'll need to implement proper employee association
+        // For now, show a message about cloud timesheet
         const modal = document.createElement('div');
         modal.className = 'modal';
         modal.style.display = 'block';
         modal.innerHTML = `
             <div class="modal-content">
                 <div class="modal-header">
-                    <h3>📊 Your Timesheet</h3>
+                    <h3>📊 Cloud Timesheet</h3>
                     <span class="close" onclick="this.closest('.modal').remove()">×</span>
                 </div>
-                <div style="max-height: 400px; overflow-y: auto;">
-                    ${employeeTimesheet.length === 0 ? 
-                        '<p style="text-align: center; color: #6c757d;">No time entries found</p>' :
-                        employeeTimesheet.map(entry => `
-                            <div style="padding: 10px; border-bottom: 1px solid #dee2e6; display: flex; justify-content: space-between; align-items: center;">
-                                <div>
-                                    <strong>${entry.type === 'clock_in' ? '🟢 Clock In' : '🔴 Clock Out'}</strong>
-                                    <div style="font-size: 12px; color: #6c757d;">
-                                        ${new Date(entry.timestamp).toLocaleString()}
-                                    </div>
-                                </div>
-                                <div style="text-align: right;">
-                                    ${entry.verified ? '✅ Verified' : '❌ Unverified'}
-                                </div>
-                            </div>
-                        `).join('')
-                    }
-                </div>
-                <div style="margin-top: 15px;">
+                <div style="padding: 20px; text-align: center;">
+                    <p>Timesheet data is now stored in the cloud.</p>
+                    <p>Your time entries are automatically synced across all devices.</p>
+                    <p><em>Employee-specific timesheet view will be implemented with proper employee selection.</em></p>
                     <button class="btn btn-secondary" onclick="this.closest('.modal').remove()">Close</button>
                 </div>
             </div>
