@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NSG Schedule Management - Calendar & Wellness Platform</title>
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="/config/manifest.json">
+    <meta name="theme-color" content="#0d6efd">
+    
+    <!-- CSS Files -->
+    <link rel="stylesheet" href="/src/css/main.css">
+    <link rel="stylesheet" href="/src/css/calendar.css">
+    <link rel="stylesheet" href="/src/css/wellness.css">
+    <link rel="stylesheet" href="/src/css/mobile.css">
+    
+    <!-- Icons -->
+    <link rel="icon" type="image/png" sizes="192x192" href="/public/icons/icon-192x192.png">
+    <link rel="apple-touch-icon" href="/public/icons/icon-192x192.png">
+</head>
+<body>
+    <!-- Main Navigation -->
+    <nav id="main-nav" class="nav-container">
+        <div class="nav-brand">
+            <h1>NSG Schedule Manager</h1>
+        </div>
+        <div class="nav-menu">
+            <button class="nav-item active" data-view="schedule">📅 Schedule</button>
+            <button class="nav-item" data-view="calendar">🔗 Calendar</button>
+            <button class="nav-item" data-view="wellness">💚 Wellness</button>
+            <button class="nav-item" data-view="employee">👥 Portal</button>
+            <button class="nav-item" data-view="admin">⚙️ Admin</button>
+        </div>
+        <div class="nav-user">
+            <div id="user-info"></div>
+            <div id="notification-center">🔔</div>
+        </div>
+    </nav>
+
+    <!-- Main Content Container -->
+    <main id="main-content" class="main-container">
+        
+        <!-- Schedule Management View -->
+        <div id="schedule-view" class="view-container active">
+            <div class="view-header">
+                <h2>Schedule Management</h2>
+                <div class="header-actions">
+                    <button class="btn btn-primary" onclick="openEmployeeModal()">👥 Manage Employees</button>
+                    <button class="btn btn-success" onclick="autoGenerateFullSchedule()">✨ Generate Schedule</button>
+                    <button class="btn btn-warning" onclick="findConflicts()">🚨 Find Conflicts</button>
+                </div>
+            </div>
+            
+            <div class="controls-grid">
+                <div class="control-panel">
+                    <h3>⚙️ Admin & Setup</h3>
+                    <div class="form-group">
+                        <label for="scheduleMonth">Select Month:</label>
+                        <input id="scheduleMonth" type="month"/>
+                    </div>
+                    <div class="button-group">
+                        <button class="btn btn-secondary" onclick="importJSON()">📥 Import</button>
+                        <button class="btn btn-secondary" onclick="exportJSON()">📤 Export</button>
+                        <button class="btn btn-success" onclick="openExcelImportModal()">📄 Import Excel</button>
+                    </div>
+                </div>
+                
+                <div class="control-panel">
+                    <h3>🤖 Scheduling Actions</h3>
+                    <div class="button-group">
+                        <button class="btn btn-secondary" onclick="moveOpenPositionShifts()">➡️ Move Open Shifts</button>
+                        <button class="btn btn-secondary" onclick="undo()" id="undoBtn" disabled>↩️ Undo</button>
+                        <button class="btn btn-secondary" onclick="redo()" id="redoBtn" disabled>↪️ Redo</button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="schedule-container">
+                <h3>Interactive Schedule Preview</h3>
+                <div class="schedule-table-container">
+                    <table id="schedule-table"><thead></thead><tbody></tbody></table>
+                </div>
+            </div>
+            
+            <div class="dashboard-container">
+                <h3>Live Workload Dashboard</h3>
+                <div class="dashboard-grid">
+                    <div id="employee-dashboard-container">
+                        <h4>Employee Workload</h4>
+                        <table id="employee-dashboard-table"></table>
+                    </div>
+                    <div id="daily-dashboard-container">
+                        <h4>Daily Coverage</h4>
+                        <table id="daily-dashboard-table"></table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Calendar Integration View -->
+        <div id="calendar-view" class="view-container">
+            <div class="view-header">
+                <h2>Calendar Integration</h2>
+                <div class="header-actions">
+                    <button class="btn btn-primary" onclick="syncAllCalendars()">🔄 Sync All</button>
+                    <button class="btn btn-success" onclick="openCalendarSettings()">⚙️ Settings</button>
+                </div>
+            </div>
+            
+            <div id="calendar-integration-container"></div>
+        </div>
+
+        <!-- Wellness Hub View -->
+        <div id="wellness-view" class="view-container">
+            <div class="view-header">
+                <h2>Employee Wellness Hub</h2>
+                <div class="header-actions">
+                    <button class="btn btn-primary" onclick="openWellnessSettings()">⚙️ Settings</button>
+                    <button class="btn btn-success" onclick="generateWellnessReport()">📊 Reports</button>
+                </div>
+            </div>
+            
+            <div id="wellness-hub-container"></div>
+        </div>
+
+        <!-- Employee Portal View -->
+        <div id="employee-view" class="view-container">
+            <div class="view-header">
+                <h2>Employee Portal</h2>
+                <div class="header-actions">
+                    <div id="portal-employee-selector">
+                        <select id="portal-employee-select">
+                            <option value="">Select Employee...</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="employee-portal-container"></div>
+        </div>
+
+        <!-- Admin View -->
+        <div id="admin-view" class="view-container">
+            <div class="view-header">
+                <h2>Admin Dashboard</h2>
+                <div class="header-actions">
+                    <button class="btn btn-primary" onclick="openReportsModal()">📊 Reports</button>
+                    <button class="btn btn-warning" onclick="showValidationResults()">✓ Validate</button>
+                </div>
+            </div>
+            
+            <div id="admin-dashboard-container"></div>
+        </div>
+    </main>
+
+    <!-- Notification System -->
+    <div id="notification-system"></div>
+    
+    <!-- Modal Container -->
+    <div id="modal-container"></div>
+
+    <!-- JavaScript Files -->
+    <script src="/src/js/utils.js"></script>
+    <script src="/src/js/storage.js"></script>
+    <script src="/src/js/calendar-integration.js"></script>
+    <script src="/src/js/wellness-hub.js"></script>
+    <script src="/src/js/schedule-core.js"></script>
+    <script src="/src/js/employee-portal.js"></script>
+    <script src="/src/js/notifications.js"></script>
+    <script src="/src/js/main.js"></script>
+    
+    <!-- Legacy Script Integration -->
+    <script src="/src/js/legacy-integration.js"></script>
+</body>
+</html>
