@@ -962,6 +962,166 @@
             <button class="btn btn-primary" onclick="openTeamDirectory()" style="margin: 5px;">👥 Team Directory</button>
             <button class="btn btn-secondary" onclick="openAnnouncementsModal()" style="margin: 5px;">📢 Announcements</button>
             <button class="btn btn-success" onclick="toggleQuickScheduleWidget()" style="margin: 5px;">📅 Quick Schedule</button>
+            <div style="margin-top: 10px;">
+                <button class="btn btn-info" onclick="openShiftSwapModal(getCurrentEmployeeId())" style="margin: 5px;">🔄 Request Shift Swap</button>
+                <button class="btn btn-warning" onclick="openShiftBiddingModal(getCurrentEmployeeId())" style="margin: 5px;">🎯 Bid on Open Shifts</button>
+                <button class="btn btn-secondary" onclick="openCalendarExportModal()" style="margin: 5px;">📅 Export Calendar</button>
+            </div>
+        </div>
+        
+        <!-- Enhanced Tabs Navigation -->
+        <div style="border-bottom: 2px solid #e2e8f0; margin: 20px 0;">
+            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                <button class="portal-tab active" onclick="showPortalTab('schedule')" data-tab="schedule" style="padding: 10px 15px; border: none; border-bottom: 3px solid #0f172a; background: #f8fafc; cursor: pointer; font-weight: 600;">📅 My Schedule</button>
+                <button class="portal-tab" onclick="showPortalTab('history')" data-tab="history" style="padding: 10px 15px; border: none; border-bottom: 3px solid transparent; background: #f8fafc; cursor: pointer;">📋 Shift History</button>
+                <button class="portal-tab" onclick="showPortalTab('requests')" data-tab="requests" style="padding: 10px 15px; border: none; border-bottom: 3px solid transparent; background: #f8fafc; cursor: pointer;">📝 My Requests</button>
+                <button class="portal-tab" onclick="showPortalTab('notifications')" data-tab="notifications" style="padding: 10px 15px; border: none; border-bottom: 3px solid transparent; background: #f8fafc; cursor: pointer;">🔔 Notifications</button>
+            </div>
+        </div>
+        
+        <!-- Tab Content Areas -->
+        <div id="portal-tab-schedule" class="portal-tab-content" style="display: block;">
+            <div id="portal-schedule-view"></div>
+        </div>
+        
+        <div id="portal-tab-history" class="portal-tab-content" style="display: none;">
+            <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; border: 1px solid #dee2e6;">
+                <h3>📋 Shift History</h3>
+                <div id="shift-history-filters" style="margin-bottom: 20px;">
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
+                        <label>Filter by:</label>
+                        <select id="history-filter-type" onchange="filterShiftHistory()" style="padding: 5px;">
+                            <option value="all">All Activities</option>
+                            <option value="shifts">Regular Shifts</option>
+                            <option value="pto">PTO Days</option>
+                            <option value="swaps">Shift Swaps</option>
+                            <option value="bids">Shift Bids</option>
+                        </select>
+                        <input type="date" id="history-start-date" onchange="filterShiftHistory()" style="padding: 5px;">
+                        <span>to</span>
+                        <input type="date" id="history-end-date" onchange="filterShiftHistory()" style="padding: 5px;">
+                        <button class="btn btn-sm btn-secondary" onclick="exportShiftHistory()">📊 Export</button>
+                    </div>
+                </div>
+                <div id="shift-history-content">Loading shift history...</div>
+            </div>
+        </div>
+        
+        <div id="portal-tab-requests" class="portal-tab-content" style="display: none;">
+            <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; border: 1px solid #dee2e6;">
+                <h3>📝 My Requests & Applications</h3>
+                
+                <!-- Swap Requests Section -->
+                <div style="margin-bottom: 25px;">
+                    <h4>🔄 Shift Swap Requests</h4>
+                    <div id="my-swap-requests" style="background: white; padding: 15px; border-radius: 5px; border: 1px solid #e2e8f0;">
+                        Loading swap requests...
+                    </div>
+                </div>
+                
+                <!-- Bid Requests Section -->
+                <div style="margin-bottom: 25px;">
+                    <h4>🎯 Shift Bid Applications</h4>
+                    <div id="my-bid-requests" style="background: white; padding: 15px; border-radius: 5px; border: 1px solid #e2e8f0;">
+                        Loading bid applications...
+                    </div>
+                </div>
+                
+                <!-- Feedback Submissions -->
+                <div style="margin-bottom: 25px;">
+                    <h4>💬 Feedback & Issue Reports</h4>
+                    <div id="my-feedback-requests" style="background: white; padding: 15px; border-radius: 5px; border: 1px solid #e2e8f0;">
+                        Loading feedback submissions...
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div id="portal-tab-notifications" class="portal-tab-content" style="display: none;">
+            <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; border: 1px solid #dee2e6;">
+                <h3>🔔 Notifications & Alerts</h3>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                    <div>
+                        <button class="btn btn-sm btn-primary" onclick="markAllNotificationsRead()">📖 Mark All Read</button>
+                        <button class="btn btn-sm btn-secondary" onclick="clearOldNotifications()">🗑️ Clear Old</button>
+                    </div>
+                    <div>
+                        <button class="btn btn-sm btn-info" onclick="openNotificationPreferences()">⚙️ Preferences</button>
+                    </div>
+                </div>
+                <div id="notifications-content" style="background: white; padding: 15px; border-radius: 5px; border: 1px solid #e2e8f0; max-height: 400px; overflow-y: auto;">
+                    Loading notifications...
+                </div>
+            </div>
+        </div>
+        
+        <div id="portal-tab-pto" class="portal-tab-content" style="display: none;">
+            <!-- PTO Request Section -->
+            <div id="portal-pto-section">
+                <h2>Request Time Off</h2>
+                
+                <!-- Smart PTO Planning Assistant -->
+                <div id="smart-pto-assistant" style="background: #e8f5e8; padding: 15px; border-radius: 5px; margin-bottom: 20px;">
+                    <h4>🤖 Smart PTO Assistant</h4>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                        <button class="btn btn-info" onclick="suggestBestPTODates()" style="font-size: 14px;">📅 Suggest Best Dates</button>
+                        <button class="btn btn-secondary" onclick="showTeamPTOCalendar()" style="font-size: 14px;">👥 View Team Calendar</button>
+                    </div>
+                    <div id="pto-suggestions" style="display: none; background: #fff; padding: 10px; border-radius: 3px; margin-top: 10px;">
+                        <!-- Smart suggestions will appear here -->
+                    </div>
+                    <div id="team-pto-preview" style="display: none; background: #fff; padding: 10px; border-radius: 3px; margin-top: 10px;">
+                        <!-- Team PTO preview will appear here -->
+                    </div>
+                </div>
+                
+                <div id="pto-balance-display" style="background: #e8f5e8; padding: 15px; border-radius: 5px; margin-bottom: 20px;">
+                    <h4>Your PTO Balance</h4>
+                    <div id="pto-balance-details"></div>
+                </div>
+                <div id="pto-request-form" style="background: #f8f9fa; padding: 20px; border-radius: 5px; border: 1px solid #dee2e6;">
+                    <h4>Submit New PTO Request</h4>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                        <div>
+                            <label for="pto-start-date">Start Date:</label>
+                            <input type="date" id="pto-start-date" onchange="updatePTOPreview()" style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ced4da;">
+                        </div>
+                        <div>
+                            <label for="pto-end-date">End Date:</label>
+                            <input type="date" id="pto-end-date" onchange="updatePTOPreview()" style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ced4da;">
+                        </div>
+                    </div>
+                    
+                    <!-- Real-time impact preview -->
+                    <div id="pto-impact-preview" style="display: none; padding: 10px; margin-bottom: 15px; border-radius: 5px;">
+                        <!-- Impact preview will be shown here -->
+                    </div>
+                    
+                    <div style="margin-bottom: 15px;">
+                        <label for="pto-type">Reason/Type:</label>
+                        <select id="pto-type" style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ced4da;">
+                            <option value="vacation">Vacation</option>
+                            <option value="sick">Sick Leave</option>
+                            <option value="personal">Personal</option>
+                            <option value="emergency">Emergency</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                    <div style="margin-bottom: 15px;">
+                        <label for="pto-days-display">Days Requested:</label>
+                        <input type="text" id="pto-days-display" readonly style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ced4da; background: #e9ecef;">
+                    </div>
+                    <div style="margin-bottom: 15px;">
+                        <label for="pto-comments">Comments/Notes:</label>
+                        <textarea id="pto-comments" rows="3" style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ced4da;"></textarea>
+                    </div>
+                    <button class="btn btn-primary" onclick="submitPTORequest()" style="width: 100%;">Submit PTO Request</button>
+                </div>
+                <div id="pto-request-history" style="margin-top: 20px;">
+                    <h4>Your PTO Request History</h4>
+                    <div id="pto-history-list"></div>
+                </div>
+            </div>
         </div>
         
         <!-- Clock In/Out Section -->
@@ -1503,10 +1663,22 @@ const shiftTypes = {
     const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVsZWZ2ZnB2Z2ZkYXZ6dGx3bXB1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ0OTIzMDksImV4cCI6MjA3MDA2ODMwOX0.Se8nQg3BZUAYnt3bahw7iNePXm8G3X5PbH83XHY8edo";
     
     let supabaseClient = null;
+    let realtimeChannel = null;
+    
+    // Enhanced data structures for new features
+    let shiftNotes = {};          // { employeeId_date_shiftType: { managerNote: '', employeeNote: '', timestamp: '' } }
+    let shiftSwaps = [];          // Array of swap requests with approval status
+    let shiftBids = [];           // Array of shift bids with approval status
+    let shiftFeedback = [];       // Array of feedback/issue reports
+    let notificationQueue = [];   // Enhanced notification system
+    
     try {
         if (typeof supabase !== 'undefined') {
             supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
             console.log('Supabase client initialized successfully');
+            
+            // Initialize real-time subscriptions for live updates
+            initializeRealtimeSubscriptions();
         } else {
             console.error('Supabase library not available - application requires cloud database');
         }
@@ -1514,6 +1686,1125 @@ const shiftTypes = {
         console.warn('Failed to initialize Supabase client:', error);
         supabaseClient = null;
     }
+    
+    // Initialize real-time subscriptions for live data updates
+    async function initializeRealtimeSubscriptions() {
+        if (!supabaseClient) return;
+        
+        try {
+            // Subscribe to schedule data changes
+            realtimeChannel = supabaseClient
+                .channel('schedule-updates')
+                .on('postgres_changes', 
+                    { event: '*', schema: 'public', table: 'schedules' },
+                    (payload) => {
+                        console.log('Real-time update received:', payload);
+                        handleRealtimeUpdate(payload);
+                    }
+                )
+                .subscribe();
+                
+            console.log('Real-time subscriptions initialized');
+        } catch (error) {
+            console.warn('Failed to initialize real-time subscriptions:', error);
+        }
+    }
+    
+    // Handle real-time updates from Supabase
+    function handleRealtimeUpdate(payload) {
+        if (payload.new && payload.new.data) {
+            const newData = payload.new.data;
+            
+            // Update local data structures
+            if (newData.shiftNotes) shiftNotes = newData.shiftNotes;
+            if (newData.shiftSwaps) shiftSwaps = newData.shiftSwaps;
+            if (newData.shiftBids) shiftBids = newData.shiftBids;
+            if (newData.shiftFeedback) shiftFeedback = newData.shiftFeedback;
+            if (newData.notificationQueue) notificationQueue = newData.notificationQueue;
+            
+            // Refresh UI if in employee portal
+            const currentView = getCurrentView();
+            if (currentView === 'employee-portal') {
+                refreshEmployeePortalData();
+            } else if (currentView === 'manager-view') {
+                renderTable(); // Refresh scheduler grid
+            }
+            
+            // Update notification bell
+            updateNotificationBell();
+        }
+    }
+    
+    // Get current view (manager or employee portal)
+    function getCurrentView() {
+        const managerView = document.getElementById('manager-view');
+        const employeePortal = document.getElementById('employee-portal');
+        
+        if (managerView && managerView.style.display !== 'none') return 'manager-view';
+        if (employeePortal && employeePortal.style.display !== 'none') return 'employee-portal';
+        return 'unknown';
+    }
+    
+    // ================== SHIFT NOTES SYSTEM ==================
+    
+    // Get shift note key for storage
+    function getShiftNoteKey(employeeId, date, shiftType) {
+        return `${employeeId}_${date}_${shiftType}`;
+    }
+    
+    // Add or update shift note
+    async function updateShiftNote(employeeId, date, shiftType, noteType, noteText, isManager = false) {
+        const noteKey = getShiftNoteKey(employeeId, date, shiftType);
+        
+        if (!shiftNotes[noteKey]) {
+            shiftNotes[noteKey] = {
+                employeeId,
+                date,
+                shiftType,
+                managerNote: '',
+                employeeNote: '',
+                lastUpdated: new Date().toISOString()
+            };
+        }
+        
+        // Update the appropriate note type
+        if (noteType === 'manager' && isManager) {
+            shiftNotes[noteKey].managerNote = noteText;
+        } else if (noteType === 'employee' && !isManager) {
+            shiftNotes[noteKey].employeeNote = noteText;
+        } else {
+            throw new Error('Insufficient permissions to update this note type');
+        }
+        
+        shiftNotes[noteKey].lastUpdated = new Date().toISOString();
+        
+        // Save to Supabase
+        await saveState();
+        
+        // Add notification for note update
+        await addNotification(employeeId, {
+            type: 'shift_note',
+            title: 'Shift Note Updated',
+            message: `A note has been ${noteType === 'manager' ? 'added by management' : 'updated'} for your ${shiftType} shift on ${date}`,
+            date: new Date().toISOString(),
+            read: false
+        });
+        
+        return shiftNotes[noteKey];
+    }
+    
+    // Get shift note
+    function getShiftNote(employeeId, date, shiftType) {
+        const noteKey = getShiftNoteKey(employeeId, date, shiftType);
+        return shiftNotes[noteKey] || null;
+    }
+    
+    // Open shift notes modal
+    function openShiftNotesModal(employeeId, date, shiftType, isManager = false) {
+        const note = getShiftNote(employeeId, date, shiftType) || {
+            managerNote: '',
+            employeeNote: ''
+        };
+        
+        const employee = employees.find(e => e.name === employeeId);
+        const employeeName = employee ? employee.name : employeeId;
+        
+        const modalHTML = `
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Shift Notes - ${employeeName}</h3>
+                    <span class="close-button" onclick="closeAllModals()">&times;</span>
+                </div>
+                <div class="modal-body">
+                    <p><strong>Shift:</strong> ${shiftType} on ${date}</p>
+                    
+                    <div style="margin-bottom: 20px;">
+                        <label><strong>Manager Notes:</strong></label>
+                        <textarea id="manager-note-text" 
+                                  ${!isManager ? 'readonly' : ''} 
+                                  style="width: 100%; height: 80px; padding: 8px; border: 1px solid #ccc; border-radius: 4px; ${!isManager ? 'background: #f5f5f5;' : ''}"
+                                  placeholder="${isManager ? 'Add notes visible to the employee...' : 'No manager notes'}">${note.managerNote}</textarea>
+                    </div>
+                    
+                    <div style="margin-bottom: 20px;">
+                        <label><strong>Private Employee Notes:</strong></label>
+                        <textarea id="employee-note-text" 
+                                  ${isManager ? 'readonly' : ''} 
+                                  style="width: 100%; height: 80px; padding: 8px; border: 1px solid #ccc; border-radius: 4px; ${isManager ? 'background: #f5f5f5;' : ''}"
+                                  placeholder="${!isManager ? 'Add your private notes...' : 'Employee private notes (view only)'}">${note.employeeNote}</textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" onclick="closeAllModals()">Cancel</button>
+                    <button class="btn btn-primary" onclick="saveShiftNote('${employeeId}', '${date}', '${shiftType}', ${isManager})">Save Notes</button>
+                </div>
+            </div>
+        `;
+        
+        openModal('shift-notes-modal', modalHTML);
+    }
+    
+    // Save shift note from modal
+    async function saveShiftNote(employeeId, date, shiftType, isManager) {
+        const managerNoteText = document.getElementById('manager-note-text').value;
+        const employeeNoteText = document.getElementById('employee-note-text').value;
+        
+        try {
+            if (isManager) {
+                await updateShiftNote(employeeId, date, shiftType, 'manager', managerNoteText, true);
+            } else {
+                await updateShiftNote(employeeId, date, shiftType, 'employee', employeeNoteText, false);
+            }
+            
+            closeAllModals();
+            
+            // Refresh current view
+            const currentView = getCurrentView();
+            if (currentView === 'manager-view') {
+                renderTable();
+            } else if (currentView === 'employee-portal') {
+                refreshEmployeePortalData();
+            }
+            
+            alert('Shift note saved successfully!');
+        } catch (error) {
+            console.error('Error saving shift note:', error);
+            alert('Error saving shift note: ' + error.message);
+        }
+    }
+    
+    // ================== SHIFT SWAP SYSTEM ==================
+    
+    // Check if employee has open shift on date (business rule enforcement)
+    function hasOpenShiftOnDate(employeeId, date) {
+        const dateKey = date;
+        const openShiftsEmployee = employees.find(e => e.name.includes('OPEN SHIFTS'));
+        
+        if (openShiftsEmployee && scheduleData[openShiftsEmployee.name] && scheduleData[openShiftsEmployee.name][dateKey]) {
+            // Check if there are any open shifts on this date
+            const openShifts = scheduleData[openShiftsEmployee.name][dateKey];
+            return openShifts && openShifts.trim() !== '';
+        }
+        
+        return false;
+    }
+    
+    // Create shift swap request
+    async function createShiftSwapRequest(requestorId, requestorDate, requestorShift, targetEmployeeId, targetDate, targetShift, reason) {
+        // Business rule: Cannot swap if there's an open shift on the same day
+        if (hasOpenShiftOnDate(requestorId, requestorDate)) {
+            throw new Error('You cannot request a shift swap when there is an open shift available on the same day. Please bid on the open shift instead.');
+        }
+        
+        const swapId = generateUUID();
+        const swapRequest = {
+            id: swapId,
+            requestorId,
+            requestorDate,
+            requestorShift,
+            targetEmployeeId,
+            targetDate,
+            targetShift,
+            reason,
+            status: 'pending', // pending, approved_by_target, approved_by_manager, denied, cancelled
+            requestDate: new Date().toISOString(),
+            approvalDate: null,
+            targetApprovalDate: null,
+            managerApprovalDate: null,
+            targetResponse: null,
+            managerComments: ''
+        };
+        
+        shiftSwaps.push(swapRequest);
+        await saveState();
+        
+        // Add notifications
+        await addNotification(targetEmployeeId, {
+            type: 'shift_swap_request',
+            title: 'Shift Swap Request',
+            message: `${requestorId} wants to swap their ${requestorShift} shift on ${requestorDate} for your ${targetShift} shift on ${targetDate}`,
+            date: new Date().toISOString(),
+            read: false,
+            relatedId: swapId
+        });
+        
+        await addNotification(requestorId, {
+            type: 'shift_swap_sent',
+            title: 'Swap Request Sent',
+            message: `Your shift swap request has been sent to ${targetEmployeeId}`,
+            date: new Date().toISOString(),
+            read: false,
+            relatedId: swapId
+        });
+        
+        return swapRequest;
+    }
+    
+    // Respond to shift swap request (employee)
+    async function respondToShiftSwapRequest(swapId, response, comments = '') {
+        const swap = shiftSwaps.find(s => s.id === swapId);
+        if (!swap) throw new Error('Swap request not found');
+        
+        if (response === 'approve') {
+            swap.status = 'approved_by_target';
+            swap.targetApprovalDate = new Date().toISOString();
+            swap.targetResponse = 'approved';
+        } else {
+            swap.status = 'denied';
+            swap.targetResponse = 'denied';
+            swap.targetApprovalDate = new Date().toISOString();
+        }
+        
+        if (comments) {
+            swap.targetComments = comments;
+        }
+        
+        await saveState();
+        
+        // Notify requestor
+        await addNotification(swap.requestorId, {
+            type: 'shift_swap_response',
+            title: `Swap Request ${response === 'approve' ? 'Approved' : 'Denied'}`,
+            message: `${swap.targetEmployeeId} has ${response === 'approve' ? 'approved' : 'denied'} your shift swap request`,
+            date: new Date().toISOString(),
+            read: false,
+            relatedId: swapId
+        });
+        
+        // Notify manager if approved by target
+        if (response === 'approve') {
+            await addNotification('MANAGER', {
+                type: 'shift_swap_manager_approval',
+                title: 'Shift Swap Needs Manager Approval',
+                message: `${swap.requestorId} and ${swap.targetEmployeeId} have agreed to swap shifts. Manager approval required.`,
+                date: new Date().toISOString(),
+                read: false,
+                relatedId: swapId
+            });
+        }
+        
+        return swap;
+    }
+    
+    // Manager approval for shift swap
+    async function managerApproveShiftSwap(swapId, approved, managerComments = '') {
+        const swap = shiftSwaps.find(s => s.id === swapId);
+        if (!swap) throw new Error('Swap request not found');
+        
+        if (approved) {
+            swap.status = 'approved';
+            swap.managerApprovalDate = new Date().toISOString();
+            
+            // Execute the swap in scheduleData
+            const requestorCurrentShift = scheduleData[swap.requestorId]?.[swap.requestorDate];
+            const targetCurrentShift = scheduleData[swap.targetEmployeeId]?.[swap.targetDate];
+            
+            // Perform the swap
+            if (!scheduleData[swap.requestorId]) scheduleData[swap.requestorId] = {};
+            if (!scheduleData[swap.targetEmployeeId]) scheduleData[swap.targetEmployeeId] = {};
+            
+            scheduleData[swap.requestorId][swap.targetDate] = swap.targetShift;
+            scheduleData[swap.targetEmployeeId][swap.requestorDate] = swap.requestorShift;
+            
+            // Clear original shifts if they were just the ones being swapped
+            if (scheduleData[swap.requestorId][swap.requestorDate] === swap.requestorShift) {
+                scheduleData[swap.requestorId][swap.requestorDate] = '';
+            }
+            if (scheduleData[swap.targetEmployeeId][swap.targetDate] === swap.targetShift) {
+                scheduleData[swap.targetEmployeeId][swap.targetDate] = '';
+            }
+            
+        } else {
+            swap.status = 'denied';
+        }
+        
+        swap.managerComments = managerComments;
+        await saveState();
+        
+        // Notify both employees
+        const statusText = approved ? 'approved' : 'denied';
+        await addNotification(swap.requestorId, {
+            type: 'shift_swap_manager_decision',
+            title: `Swap Request ${approved ? 'Approved' : 'Denied'}`,
+            message: `Management has ${statusText} your shift swap request with ${swap.targetEmployeeId}`,
+            date: new Date().toISOString(),
+            read: false,
+            relatedId: swapId
+        });
+        
+        await addNotification(swap.targetEmployeeId, {
+            type: 'shift_swap_manager_decision',
+            title: `Swap Request ${approved ? 'Approved' : 'Denied'}`,
+            message: `Management has ${statusText} the shift swap request from ${swap.requestorId}`,
+            date: new Date().toISOString(),
+            read: false,
+            relatedId: swapId
+        });
+        
+        return swap;
+    }
+    
+    // Open shift swap modal
+    function openShiftSwapModal(employeeId) {
+        const employee = employees.find(e => e.name === employeeId);
+        if (!employee) {
+            alert('Employee not found');
+            return;
+        }
+        
+        // Check if employee has any upcoming shifts to swap
+        const currentDate = new Date();
+        const upcomingShifts = [];
+        
+        const employeeSchedule = scheduleData[employeeId] || {};
+        Object.keys(employeeSchedule).forEach(dateKey => {
+            const shiftDate = new Date(dateKey + 'T00:00:00');
+            if (shiftDate >= currentDate && employeeSchedule[dateKey] && employeeSchedule[dateKey].trim() !== '') {
+                upcomingShifts.push({
+                    date: dateKey,
+                    shift: employeeSchedule[dateKey]
+                });
+            }
+        });
+        
+        if (upcomingShifts.length === 0) {
+            alert('You have no upcoming shifts available for swapping.');
+            return;
+        }
+        
+        // Get list of other employees for swap targets
+        const otherEmployees = employees.filter(e => 
+            e.name !== employeeId && 
+            !e.name.includes('OPEN SHIFTS') && 
+            !e.name.includes('Archived')
+        );
+        
+        const modalHTML = `
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Request Shift Swap</h3>
+                    <span class="close-button" onclick="closeAllModals()">&times;</span>
+                </div>
+                <div class="modal-body">
+                    <div style="margin-bottom: 15px;">
+                        <label for="swap-my-shift"><strong>Your Shift to Swap:</strong></label>
+                        <select id="swap-my-shift" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+                            <option value="">Select your shift...</option>
+                            ${upcomingShifts.map(shift => 
+                                `<option value="${shift.date}|${shift.shift}">${shift.shift} on ${shift.date}</option>`
+                            ).join('')}
+                        </select>
+                    </div>
+                    
+                    <div style="margin-bottom: 15px;">
+                        <label for="swap-target-employee"><strong>Swap With:</strong></label>
+                        <select id="swap-target-employee" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;" onchange="loadTargetEmployeeShifts()">
+                            <option value="">Select employee...</option>
+                            ${otherEmployees.map(emp => 
+                                `<option value="${emp.name}">${emp.name}</option>`
+                            ).join('')}
+                        </select>
+                    </div>
+                    
+                    <div id="target-shifts-container" style="margin-bottom: 15px; display: none;">
+                        <label for="swap-target-shift"><strong>Their Shift:</strong></label>
+                        <select id="swap-target-shift" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+                            <option value="">Select their shift...</option>
+                        </select>
+                    </div>
+                    
+                    <div style="margin-bottom: 15px;">
+                        <label for="swap-reason"><strong>Reason for Swap:</strong></label>
+                        <textarea id="swap-reason" rows="3" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;" placeholder="Please explain why you need this swap..."></textarea>
+                    </div>
+                    
+                    <div id="swap-business-rule-warning" style="display: none; background: #fff3cd; border: 1px solid #ffeaa7; padding: 10px; border-radius: 4px; margin-bottom: 15px;">
+                        <strong>⚠️ Notice:</strong> There is an open shift available on your selected date. Please bid on the open shift instead of requesting a swap.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" onclick="closeAllModals()">Cancel</button>
+                    <button class="btn btn-primary" onclick="submitShiftSwapRequest('${employeeId}')">Send Swap Request</button>
+                </div>
+            </div>
+        `;
+        
+        openModal('shift-swap-modal', modalHTML);
+    }
+    
+    // Load target employee shifts for swap
+    function loadTargetEmployeeShifts() {
+        const targetEmployeeId = document.getElementById('swap-target-employee').value;
+        const targetShiftsContainer = document.getElementById('target-shifts-container');
+        const targetShiftSelect = document.getElementById('swap-target-shift');
+        
+        if (!targetEmployeeId) {
+            targetShiftsContainer.style.display = 'none';
+            return;
+        }
+        
+        const currentDate = new Date();
+        const targetUpcomingShifts = [];
+        
+        const targetSchedule = scheduleData[targetEmployeeId] || {};
+        Object.keys(targetSchedule).forEach(dateKey => {
+            const shiftDate = new Date(dateKey + 'T00:00:00');
+            if (shiftDate >= currentDate && targetSchedule[dateKey] && targetSchedule[dateKey].trim() !== '') {
+                targetUpcomingShifts.push({
+                    date: dateKey,
+                    shift: targetSchedule[dateKey]
+                });
+            }
+        });
+        
+        targetShiftSelect.innerHTML = '<option value="">Select their shift...</option>';
+        targetUpcomingShifts.forEach(shift => {
+            const option = document.createElement('option');
+            option.value = `${shift.date}|${shift.shift}`;
+            option.textContent = `${shift.shift} on ${shift.date}`;
+            targetShiftSelect.appendChild(option);
+        });
+        
+        targetShiftsContainer.style.display = 'block';
+    }
+    
+    // Submit shift swap request
+    async function submitShiftSwapRequest(employeeId) {
+        const myShiftValue = document.getElementById('swap-my-shift').value;
+        const targetEmployeeId = document.getElementById('swap-target-employee').value;
+        const targetShiftValue = document.getElementById('swap-target-shift').value;
+        const reason = document.getElementById('swap-reason').value;
+        
+        if (!myShiftValue || !targetEmployeeId || !targetShiftValue || !reason.trim()) {
+            alert('Please fill in all fields');
+            return;
+        }
+        
+        const [myDate, myShift] = myShiftValue.split('|');
+        const [targetDate, targetShift] = targetShiftValue.split('|');
+        
+        try {
+            await createShiftSwapRequest(employeeId, myDate, myShift, targetEmployeeId, targetDate, targetShift, reason);
+            closeAllModals();
+            alert('Shift swap request sent successfully!');
+            refreshEmployeePortalData();
+        } catch (error) {
+            console.error('Error creating swap request:', error);
+            alert('Error creating swap request: ' + error.message);
+        }
+    }
+    
+    // ================== SHIFT BIDDING SYSTEM ==================
+    
+    // Get available open shifts for bidding
+    function getAvailableOpenShifts(excludeEmployeeId = null, excludeDate = null) {
+        const openShiftsEmployee = employees.find(e => e.name.includes('OPEN SHIFTS'));
+        if (!openShiftsEmployee) return [];
+        
+        const currentDate = new Date();
+        const availableShifts = [];
+        
+        const openSchedule = scheduleData[openShiftsEmployee.name] || {};
+        Object.keys(openSchedule).forEach(dateKey => {
+            const shiftDate = new Date(dateKey + 'T00:00:00');
+            if (shiftDate >= currentDate && openSchedule[dateKey] && openSchedule[dateKey].trim() !== '') {
+                // Don't include shifts on dates where the employee already has shifts (business rule)
+                if (excludeEmployeeId && excludeDate && dateKey === excludeDate) {
+                    return; // Skip this date
+                }
+                
+                // Check if employee already has a shift on this date
+                if (excludeEmployeeId && scheduleData[excludeEmployeeId]?.[dateKey]?.trim()) {
+                    return; // Skip - employee already has shift this day
+                }
+                
+                availableShifts.push({
+                    date: dateKey,
+                    shift: openSchedule[dateKey],
+                    currentBids: shiftBids.filter(bid => 
+                        bid.date === dateKey && 
+                        bid.shiftType === openSchedule[dateKey] && 
+                        bid.status === 'pending'
+                    ).length
+                });
+            }
+        });
+        
+        return availableShifts;
+    }
+    
+    // Create shift bid
+    async function createShiftBid(employeeId, date, shiftType, reason) {
+        // Business rule: Cannot bid if employee already has a shift that day
+        if (scheduleData[employeeId]?.[date]?.trim()) {
+            throw new Error('You cannot bid on a shift when you already have a shift scheduled for that day.');
+        }
+        
+        // Check if already bid on this shift
+        const existingBid = shiftBids.find(bid => 
+            bid.employeeId === employeeId && 
+            bid.date === date && 
+            bid.shiftType === shiftType && 
+            bid.status === 'pending'
+        );
+        
+        if (existingBid) {
+            throw new Error('You have already placed a bid on this shift.');
+        }
+        
+        const bidId = generateUUID();
+        const bid = {
+            id: bidId,
+            employeeId,
+            date,
+            shiftType,
+            reason,
+            status: 'pending', // pending, awarded, denied
+            bidDate: new Date().toISOString(),
+            awardDate: null,
+            managerComments: ''
+        };
+        
+        shiftBids.push(bid);
+        await saveState();
+        
+        // Add notification to employee
+        await addNotification(employeeId, {
+            type: 'shift_bid_placed',
+            title: 'Shift Bid Placed',
+            message: `Your bid for ${shiftType} on ${date} has been submitted`,
+            date: new Date().toISOString(),
+            read: false,
+            relatedId: bidId
+        });
+        
+        // Add notification to manager
+        await addNotification('MANAGER', {
+            type: 'shift_bid_received',
+            title: 'New Shift Bid',
+            message: `${employeeId} has bid on ${shiftType} shift on ${date}`,
+            date: new Date().toISOString(),
+            read: false,
+            relatedId: bidId
+        });
+        
+        return bid;
+    }
+    
+    // Award shift bid (manager function)
+    async function awardShiftBid(bidId, awarded, managerComments = '') {
+        const bid = shiftBids.find(b => b.id === bidId);
+        if (!bid) throw new Error('Bid not found');
+        
+        if (awarded) {
+            bid.status = 'awarded';
+            bid.awardDate = new Date().toISOString();
+            
+            // Assign the shift to the employee
+            if (!scheduleData[bid.employeeId]) scheduleData[bid.employeeId] = {};
+            scheduleData[bid.employeeId][bid.date] = bid.shiftType;
+            
+            // Remove from open shifts
+            const openShiftsEmployee = employees.find(e => e.name.includes('OPEN SHIFTS'));
+            if (openShiftsEmployee && scheduleData[openShiftsEmployee.name]?.[bid.date]) {
+                delete scheduleData[openShiftsEmployee.name][bid.date];
+            }
+            
+            // Deny all other bids for this shift
+            shiftBids.forEach(otherBid => {
+                if (otherBid.id !== bidId && 
+                    otherBid.date === bid.date && 
+                    otherBid.shiftType === bid.shiftType && 
+                    otherBid.status === 'pending') {
+                    otherBid.status = 'denied';
+                    otherBid.managerComments = 'Shift awarded to another employee';
+                }
+            });
+            
+        } else {
+            bid.status = 'denied';
+        }
+        
+        bid.managerComments = managerComments;
+        await saveState();
+        
+        // Notify employee
+        await addNotification(bid.employeeId, {
+            type: 'shift_bid_decision',
+            title: `Shift Bid ${awarded ? 'Awarded' : 'Denied'}`,
+            message: `Your bid for ${bid.shiftType} on ${bid.date} has been ${awarded ? 'awarded' : 'denied'}`,
+            date: new Date().toISOString(),
+            read: false,
+            relatedId: bidId
+        });
+        
+        return bid;
+    }
+    
+    // Open shift bidding modal
+    function openShiftBiddingModal(employeeId) {
+        const availableShifts = getAvailableOpenShifts(employeeId);
+        
+        if (availableShifts.length === 0) {
+            alert('No open shifts available for bidding at this time.');
+            return;
+        }
+        
+        const modalHTML = `
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Bid on Open Shifts</h3>
+                    <span class="close-button" onclick="closeAllModals()">&times;</span>
+                </div>
+                <div class="modal-body">
+                    <p><strong>Available Open Shifts:</strong></p>
+                    <div style="margin-bottom: 15px;">
+                        <label for="bid-shift-select"><strong>Select Shift:</strong></label>
+                        <select id="bid-shift-select" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+                            <option value="">Choose a shift to bid on...</option>
+                            ${availableShifts.map(shift => 
+                                `<option value="${shift.date}|${shift.shift}">${shift.shift} on ${shift.date} (${shift.currentBids} current bids)</option>`
+                            ).join('')}
+                        </select>
+                    </div>
+                    
+                    <div style="margin-bottom: 15px;">
+                        <label for="bid-reason"><strong>Why do you want this shift?</strong></label>
+                        <textarea id="bid-reason" rows="3" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;" placeholder="Explain why you should be awarded this shift..."></textarea>
+                    </div>
+                    
+                    <div style="background: #e8f5e8; padding: 10px; border-radius: 4px; margin-bottom: 15px;">
+                        <strong>ℹ️ Bidding Rules:</strong>
+                        <ul style="margin: 5px 0; padding-left: 20px;">
+                            <li>You can only bid on shifts for days when you don't already have a shift</li>
+                            <li>Management will review all bids and award based on seniority, availability, and business needs</li>
+                            <li>You'll be notified when a decision is made</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" onclick="closeAllModals()">Cancel</button>
+                    <button class="btn btn-primary" onclick="submitShiftBid('${employeeId}')">Place Bid</button>
+                </div>
+            </div>
+        `;
+        
+        openModal('shift-bidding-modal', modalHTML);
+    }
+    
+    // Submit shift bid
+    async function submitShiftBid(employeeId) {
+        const shiftValue = document.getElementById('bid-shift-select').value;
+        const reason = document.getElementById('bid-reason').value;
+        
+        if (!shiftValue || !reason.trim()) {
+            alert('Please select a shift and provide a reason for your bid');
+            return;
+        }
+        
+        const [date, shiftType] = shiftValue.split('|');
+        
+        try {
+            await createShiftBid(employeeId, date, shiftType, reason);
+            closeAllModals();
+            alert('Shift bid placed successfully!');
+            refreshEmployeePortalData();
+        } catch (error) {
+            console.error('Error placing bid:', error);
+            alert('Error placing bid: ' + error.message);
+        }
+    }
+    
+    // ================== ENHANCED NOTIFICATION SYSTEM ==================
+    
+    // Add notification to queue
+    async function addNotification(employeeId, notification) {
+        if (!notifications[employeeId]) {
+            notifications[employeeId] = [];
+        }
+        
+        notifications[employeeId].push({
+            id: generateUUID(),
+            ...notification,
+            timestamp: new Date().toISOString()
+        });
+        
+        // Also add to central notification queue for real-time updates
+        notificationQueue.push({
+            employeeId,
+            notification: {
+                id: generateUUID(),
+                ...notification,
+                timestamp: new Date().toISOString()
+            }
+        });
+        
+        // Keep only last 50 notifications per employee
+        if (notifications[employeeId].length > 50) {
+            notifications[employeeId] = notifications[employeeId].slice(-50);
+        }
+        
+        // Update notification bell
+        updateNotificationBell();
+    }
+    
+    // Update notification bell appearance
+    function updateNotificationBell() {
+        const bellElement = document.getElementById('notification-bell');
+        if (!bellElement) return;
+        
+        const currentView = getCurrentView();
+        let unreadCount = 0;
+        
+        if (currentView === 'employee-portal') {
+            // Get current employee ID from URL or portal context
+            const urlParams = new URLSearchParams(window.location.search);
+            const employeeId = urlParams.get('portal');
+            
+            if (employeeId && notifications[employeeId]) {
+                unreadCount = notifications[employeeId].filter(n => !n.read).length;
+            }
+        } else if (currentView === 'manager-view') {
+            // Count all unread notifications for manager view
+            Object.keys(notifications).forEach(empId => {
+                if (notifications[empId]) {
+                    unreadCount += notifications[empId].filter(n => !n.read).length;
+                }
+            });
+        }
+        
+        if (unreadCount > 0) {
+            bellElement.innerHTML = `🔔 <span style="background: red; color: white; border-radius: 50%; padding: 2px 6px; font-size: 12px; position: absolute; top: -5px; right: -5px;">${unreadCount}</span>`;
+            bellElement.style.position = 'relative';
+        } else {
+            bellElement.innerHTML = '🔔';
+        }
+    }
+    
+    // ================== SHIFT FEEDBACK SYSTEM ==================
+    
+    // Submit shift feedback/issue report
+    async function submitShiftFeedback(employeeId, date, shiftType, feedbackType, description, severity = 'medium') {
+        const feedbackId = generateUUID();
+        const feedback = {
+            id: feedbackId,
+            employeeId,
+            date,
+            shiftType,
+            feedbackType, // 'issue', 'feedback', 'suggestion', 'complaint'
+            description,
+            severity, // 'low', 'medium', 'high', 'urgent'
+            status: 'pending', // pending, reviewed, resolved, dismissed
+            submitDate: new Date().toISOString(),
+            managerResponse: '',
+            responseDate: null
+        };
+        
+        shiftFeedback.push(feedback);
+        await saveState();
+        
+        // Notify manager
+        await addNotification('MANAGER', {
+            type: 'shift_feedback',
+            title: `New ${feedbackType.charAt(0).toUpperCase() + feedbackType.slice(1)}`,
+            message: `${employeeId} submitted a ${feedbackType} for ${shiftType} shift on ${date}`,
+            date: new Date().toISOString(),
+            read: false,
+            relatedId: feedbackId
+        });
+        
+        // Notify employee
+        await addNotification(employeeId, {
+            type: 'feedback_submitted',
+            title: 'Feedback Submitted',
+            message: `Your ${feedbackType} has been submitted and will be reviewed by management`,
+            date: new Date().toISOString(),
+            read: false,
+            relatedId: feedbackId
+        });
+        
+        return feedback;
+    }
+    
+    // Open shift feedback modal
+    function openShiftFeedbackModal(employeeId, date, shiftType) {
+        const modalHTML = `
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Report Issue / Leave Feedback</h3>
+                    <span class="close-button" onclick="closeAllModals()">&times;</span>
+                </div>
+                <div class="modal-body">
+                    <p><strong>Shift:</strong> ${shiftType} on ${date}</p>
+                    
+                    <div style="margin-bottom: 15px;">
+                        <label for="feedback-type"><strong>Type:</strong></label>
+                        <select id="feedback-type" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+                            <option value="issue">Report an Issue</option>
+                            <option value="feedback">General Feedback</option>
+                            <option value="suggestion">Suggestion</option>
+                            <option value="complaint">Formal Complaint</option>
+                        </select>
+                    </div>
+                    
+                    <div style="margin-bottom: 15px;">
+                        <label for="feedback-severity"><strong>Priority:</strong></label>
+                        <select id="feedback-severity" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+                            <option value="low">Low - Minor issue or suggestion</option>
+                            <option value="medium" selected>Medium - Standard issue</option>
+                            <option value="high">High - Significant problem</option>
+                            <option value="urgent">Urgent - Immediate attention needed</option>
+                        </select>
+                    </div>
+                    
+                    <div style="margin-bottom: 15px;">
+                        <label for="feedback-description"><strong>Description:</strong></label>
+                        <textarea id="feedback-description" rows="5" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;" placeholder="Please provide details about the issue or your feedback..."></textarea>
+                    </div>
+                    
+                    <div style="background: #f8f9fa; padding: 10px; border-radius: 4px; margin-bottom: 15px; font-size: 14px;">
+                        <strong>ℹ️ Note:</strong> All feedback is confidential and will be reviewed by management. For urgent issues, please also contact your supervisor directly.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" onclick="closeAllModals()">Cancel</button>
+                    <button class="btn btn-primary" onclick="submitFeedback('${employeeId}', '${date}', '${shiftType}')">Submit Feedback</button>
+                </div>
+            </div>
+        `;
+        
+        openModal('shift-feedback-modal', modalHTML);
+    }
+    
+    // Submit feedback from modal
+    async function submitFeedback(employeeId, date, shiftType) {
+        const feedbackType = document.getElementById('feedback-type').value;
+        const severity = document.getElementById('feedback-severity').value;
+        const description = document.getElementById('feedback-description').value;
+        
+        if (!description.trim()) {
+            alert('Please provide a description of your feedback');
+            return;
+        }
+        
+        try {
+            await submitShiftFeedback(employeeId, date, shiftType, feedbackType, description, severity);
+            closeAllModals();
+            alert('Feedback submitted successfully! Management will review and respond.');
+            refreshEmployeePortalData();
+        } catch (error) {
+            console.error('Error submitting feedback:', error);
+            alert('Error submitting feedback: ' + error.message);
+        }
+    }
+    
+    // ================== HELPER FUNCTIONS ==================
+    
+    // Open generic modal
+    function openModal(modalId, content) {
+        // Remove existing modal if present
+        const existingModal = document.getElementById(modalId);
+        if (existingModal) {
+            existingModal.remove();
+        }
+        
+        // Create new modal
+        const modal = document.createElement('div');
+        modal.id = modalId;
+        modal.className = 'modal';
+        modal.style.cssText = `
+            display: block;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        `;
+        
+        const modalContainer = document.createElement('div');
+        modalContainer.style.cssText = `
+            position: relative;
+            background-color: white;
+            margin: 5% auto;
+            padding: 0;
+            border: none;
+            width: 90%;
+            max-width: 600px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        `;
+        
+        modalContainer.innerHTML = content;
+        modal.appendChild(modalContainer);
+        document.body.appendChild(modal);
+        
+        // Close on background click
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                closeAllModals();
+            }
+        });
+    }
+    
+    // Refresh employee portal data
+    function refreshEmployeePortalData() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const employeeId = urlParams.get('portal');
+        
+        if (employeeId) {
+            loadAndRenderPortal(employeeId, {
+                employees,
+                schedule: scheduleData,
+                notesData,
+                bidsData,
+                notifications,
+                ptoRequests,
+                employeePTOBalances,
+                announcements,
+                auditLogs,
+                shiftNotes,
+                shiftSwaps,
+                shiftBids,
+                shiftFeedback,
+                notificationQueue
+            });
+        }
+    }
+    
+    // ================== EMPLOYEE PORTAL ENHANCEMENTS ==================
+    
+    // Get current employee ID from portal context
+    function getCurrentEmployeeId() {
+        const urlParams = new URLSearchParams(window.location.search);
+        return urlParams.get('portal') || '';
+    }
+    
+    // Show specific portal tab
+    function showPortalTab(tabName) {
+        // Hide all tab contents
+        const tabContents = document.querySelectorAll('.portal-tab-content');
+        tabContents.forEach(content => {
+            content.style.display = 'none';
+        });
+        
+        // Remove active class from all tabs
+        const tabs = document.querySelectorAll('.portal-tab');
+        tabs.forEach(tab => {
+            tab.classList.remove('active');
+            tab.style.borderBottomColor = 'transparent';
+            tab.style.fontWeight = 'normal';
+        });
+        
+        // Show selected tab content
+        const selectedContent = document.getElementById(`portal-tab-${tabName}`);
+        if (selectedContent) {
+            selectedContent.style.display = 'block';
+        }
+        
+        // Activate selected tab
+        const selectedTab = document.querySelector(`[data-tab="${tabName}"]`);
+        if (selectedTab) {
+            selectedTab.classList.add('active');
+            selectedTab.style.borderBottomColor = '#0f172a';
+            selectedTab.style.fontWeight = '600';
+        }
+        
+        // Load tab-specific content
+        switch (tabName) {
+            case 'schedule':
+                // Schedule content is loaded by default
+                break;
+            case 'pto':
+                // PTO content is already there
+                break;
+            case 'history':
+                loadShiftHistory();
+                break;
+            case 'requests':
+                loadMyRequests();
+                break;
+            case 'notifications':
+                loadNotifications();
+                break;
+        }
+    }
+    
+    // Mark all notifications as read
+    async function markAllNotificationsRead() {
+        const employeeId = getCurrentEmployeeId();
+        if (!employeeId) return;
+        
+        if (notifications[employeeId]) {
+            notifications[employeeId].forEach(notification => {
+                notification.read = true;
+            });
+            
+            await saveState();
+            updateNotificationBell();
+            loadNotifications();
+        }
+    }
+    
+    // Load notifications for current employee  
+    function loadNotifications() {
+        const employeeId = getCurrentEmployeeId();
+        if (!employeeId) return;
+        
+        const notificationsContent = document.getElementById('notifications-content');
+        if (!notificationsContent) return;
+        
+        const employeeNotifications = notifications[employeeId] || [];
+        
+        if (employeeNotifications.length === 0) {
+            notificationsContent.innerHTML = '<p>No notifications.</p>';
+            return;
+        }
+        
+        const sortedNotifications = [...employeeNotifications].sort((a, b) => 
+            new Date(b.timestamp || b.date) - new Date(a.timestamp || a.date)
+        );
+        
+        const notificationHTML = sortedNotifications.map(notification => {
+            const typeIcons = {
+                'shift_note': '📝',
+                'shift_swap_request': '🔄',
+                'shift_swap_response': '🔄',
+                'shift_swap_manager_decision': '🔄',
+                'shift_bid_placed': '🎯',
+                'shift_bid_decision': '🎯',
+                'feedback_submitted': '💬',
+                'pto_approved': '🏖️',
+                'pto_denied': '🏖️',
+                'schedule_change': '📅'
+            };
+            
+            const icon = typeIcons[notification.type] || '🔔';
+            const isUnread = !notification.read;
+            
+            return `
+                <div style="border: 1px solid #e2e8f0; padding: 10px; border-radius: 5px; margin-bottom: 10px; ${isUnread ? 'background: #fef3cd; border-color: #ffc107;' : 'background: white;'}">
+                    <div style="display: flex; justify-content: space-between; align-items: start;">
+                        <div style="flex: 1;">
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <span style="font-size: 18px;">${icon}</span>
+                                <strong style="${isUnread ? 'font-weight: 700;' : ''}">${notification.title}</strong>
+                                ${isUnread ? '<span style="background: #dc3545; color: white; padding: 2px 6px; border-radius: 10px; font-size: 10px;">NEW</span>' : ''}
+                            </div>
+                            <p style="margin: 5px 0; font-size: 14px; color: #6b7280;">${notification.message}</p>
+                        </div>
+                        <div style="text-align: right; font-size: 12px; color: #9ca3af;">
+                            ${new Date(notification.timestamp || notification.date).toLocaleDateString()}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+        
+        notificationsContent.innerHTML = notificationHTML;
+    }
+    
     document.addEventListener('DOMContentLoaded', async function() {
         console.log('DOM loaded, starting data initialization...');
         try {
@@ -1964,6 +3255,11 @@ async function saveState() {
         employeePTOBalances,
         announcements,
         auditLogs,
+        shiftNotes,
+        shiftSwaps,
+        shiftBids,
+        shiftFeedback,
+        notificationQueue,
         month: document.getElementById('scheduleMonth')?.value || '',
         config: {
             targetHours: document.getElementById('targetHours')?.value || '',
@@ -2036,6 +3332,11 @@ function exportBackup() {
                 employeePTOBalances,
                 announcements,
                 auditLogs,
+                shiftNotes,
+                shiftSwaps,
+                shiftBids,
+                shiftFeedback,
+                notificationQueue,
                 month: document.getElementById('scheduleMonth')?.value || '',
                 config: {
                     targetHours: document.getElementById('targetHours')?.value || '',
@@ -2555,6 +3856,11 @@ async function loadState() {
         employeePTOBalances = state.employeePTOBalances || {};
         announcements = state.announcements || [];
         auditLogs = state.auditLogs || [];
+        shiftNotes = state.shiftNotes || {};
+        shiftSwaps = state.shiftSwaps || [];
+        shiftBids = state.shiftBids || [];
+        shiftFeedback = state.shiftFeedback || [];
+        notificationQueue = state.notificationQueue || [];
         monthToLoad = state.month;
         autoApprovalRules = state.autoApprovalRules || { enabled: false, rule: 'firstCome' };
 
