@@ -1,8 +1,8 @@
 {
-  "name": "Schedule NSG - Employee Scheduling System",
-  "short_name": "Schedule NSG",
+  "name": "test scheduler - Employee Scheduling System",
+  "short_name": "test scheduler",
   "description": "Complete employee scheduling workspace with mobile support",
-  "start_url": "./final_fixed_schedule%20(1)_032416.html",
+  "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#f0f2f5",
   "theme_color": "#0d6efd",

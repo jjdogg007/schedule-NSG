@@ -5,10 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
-    <meta name="apple-mobile-web-app-title" content="Schedule NSG">
+    <meta name="apple-mobile-web-app-title" content="test scheduler">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="theme-color" content="#0d6efd">
-    <title>Schedule NSG - Employee Scheduling System</title>
+    <title>test scheduler - Employee Scheduling System</title>
     
     <!-- PWA Manifest -->
     <link rel="manifest" href="./manifest.json">
@@ -687,7 +687,7 @@
     <div class="mobile-nav">
         <div class="mobile-nav-header">
             <button class="hamburger" onclick="toggleMobileMenu()">☰</button>
-            <h1 style="margin: 0; font-size: 18px;">Schedule NSG</h1>
+            <h1 style="margin: 0; font-size: 18px;">test scheduler</h1>
             <div style="width: 32px;"></div> <!-- Spacer for centering -->
         </div>
         <div class="mobile-menu" id="mobile-menu">
@@ -716,7 +716,7 @@
     <div class="pwa-install-banner" id="pwa-install-banner">
         <div class="pwa-install-content">
             <div class="pwa-install-text">
-                <strong>Install Schedule NSG</strong><br>
+                <strong>Install test scheduler</strong><br>
                 Get the app experience with offline access and notifications.
             </div>
             <div class="pwa-install-buttons">
@@ -3894,7 +3894,7 @@ async function markNotificationsAsRead(employeeId) {
             // Company Header
             doc.setFontSize(20);
             doc.setFont("helvetica", "bold");
-            doc.text("NSG Schedule", 105, 20, { align: "center" });
+            doc.text("test scheduler", 105, 20, { align: "center" });
             
             doc.setFontSize(16);
             doc.text("PTO Request Form", 105, 30, { align: "center" });
@@ -4047,7 +4047,7 @@ async function markNotificationsAsRead(employeeId) {
             const pageHeight = doc.internal.pageSize.height;
             doc.setFontSize(8);
             doc.setFont("helvetica", "italic");
-            doc.text("This document was generated electronically by NSG Schedule System", 105, pageHeight - 20, { align: "center" });
+            doc.text("This document was generated electronically by test scheduler System", 105, pageHeight - 20, { align: "center" });
             doc.text(`Generated on: ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}`, 105, pageHeight - 15, { align: "center" });
 
             // Save the PDF
@@ -4136,7 +4136,7 @@ async function markNotificationsAsRead(employeeId) {
             // Header
             doc.setFontSize(18);
             doc.setFont("helvetica", "bold");
-            doc.text("NSG Schedule - PTO Management Report", 105, 20, { align: "center" });
+            doc.text("test scheduler - PTO Management Report", 105, 20, { align: "center" });
             
             doc.setFontSize(12);
             doc.setFont("helvetica", "normal");
@@ -4217,7 +4217,7 @@ async function markNotificationsAsRead(employeeId) {
             const pageHeight = doc.internal.pageSize.height;
             doc.setFontSize(8);
             doc.setFont("helvetica", "italic");
-            doc.text("NSG Schedule System - Confidential", 105, pageHeight - 10, { align: "center" });
+            doc.text("test scheduler System - Confidential", 105, pageHeight - 10, { align: "center" });
 
             // Save the PDF
             doc.save(`NSG_PTO_Report_${new Date().toISOString().split('T')[0]}.pdf`);
@@ -4249,7 +4249,7 @@ async function markNotificationsAsRead(employeeId) {
                 body += `- Comments: ${request.reason}\n`;
             }
             body += `\nYour time off has been added to the schedule. Please check your employee portal for the most up-to-date information.\n\n`;
-            body += `Thank you,\nNSG Schedule Management`;
+            body += `Thank you,\ntest scheduler Management`;
         } else if (status === 'denied') {
             subject = `PTO Request Decision - ${startDate} to ${endDate}`;
             body = `Dear ${employeeName.split(',')[1]?.trim() || employeeName},\n\n`;
@@ -4262,7 +4262,7 @@ async function markNotificationsAsRead(employeeId) {
                 body += `- Reason for denial: ${reason}\n`;
             }
             body += `\nPlease contact your manager if you have any questions or would like to discuss alternative dates.\n\n`;
-            body += `Thank you,\nNSG Schedule Management`;
+            body += `Thank you,\ntest scheduler Management`;
         }
         
         // Use mailto link for now - can be enhanced with SendGrid or other email service
@@ -4297,7 +4297,7 @@ async function markNotificationsAsRead(employeeId) {
         if (request.reason) {
             emailBody += `Comments: ${request.reason}\n`;
         }
-        emailBody += `\nPlease review and approve/deny this request in the NSG Schedule system.\n\n`;
+        emailBody += `\nPlease review and approve/deny this request in the test scheduler system.\n\n`;
         emailBody += `Access the system at: ${window.location.origin}${window.location.pathname}`;
         
         // Use mailto for manager notification
