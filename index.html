@@ -1285,8 +1285,8 @@
 
     // New Features Variables
     let teamDirectoryData = [];
-    let announcements = JSON.parse(localStorage.getItem('announcements')) || [];
-    let auditLogs = JSON.parse(localStorage.getItem('auditLogs')) || [];
+    let announcements = [];
+    let auditLogs = [];
 
 
 
@@ -1310,7 +1310,7 @@ const shiftTypes = {
             supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
             console.log('Supabase client initialized successfully');
         } else {
-            console.log('Supabase library not available, using localStorage only');
+            console.error('Supabase library not available - application requires cloud database');
         }
     } catch (error) {
         console.warn('Failed to initialize Supabase client:', error);
@@ -1717,6 +1717,8 @@ async function saveState() {
         notifications,
         ptoRequests,
         employeePTOBalances,
+        announcements,
+        auditLogs,
         month: document.getElementById('scheduleMonth')?.value || '',
         config: {
             targetHours: document.getElementById('targetHours')?.value || '',
@@ -1724,14 +1726,7 @@ async function saveState() {
         }
     };
 
-    // Always save to localStorage as backup
-    try {
-        localStorage.setItem('scheduleGeneratorState', JSON.stringify(stateToSave));
-    } catch (e) {
-        console.warn("Could not save to localStorage:", e);
-    }
-
-    // Try to save to Supabase
+    // Save to Supabase only
     try {
         if (typeof supabaseClient !== 'undefined' && supabaseClient !== null) {
             const { error } = await supabaseClient
@@ -1740,17 +1735,15 @@ async function saveState() {
 
             if (error) {
                 console.error("Supabase save error:", error);
-                console.log('✅ Data saved locally (cloud backup failed)');
-                return; // Don't throw error, data is saved locally
+                throw new Error(`Failed to save data: ${error.message}`);
             }
-            console.log('✅ Successfully saved to cloud and locally');
+            console.log('✅ Successfully saved to cloud');
         } else {
-            console.log('✅ Data saved locally (cloud service unavailable)');
+            throw new Error('Supabase client not available - cannot save data');
         }
     } catch (err) {
         console.error("Save failed:", err);
-        console.log('✅ Data saved locally (cloud backup failed)');
-        // Don't throw error, data is saved locally
+        throw err; // Re-throw error to notify user
     }
 }
 // Replace your existing loadState function with this final, complete version.
@@ -1763,7 +1756,15 @@ async function loadState() {
     let records = null;
     let error = null;
     
-    // Try to load from Supabase first
+async function loadState() {
+    console.log('Starting loadState function...');
+    const urlParams = new URLSearchParams(window.location.search);
+    const portalId = urlParams.get('portal');
+    
+    let records = null;
+    let error = null;
+    
+    // Load from Supabase only
     try {
         if (typeof supabaseClient !== 'undefined' && supabaseClient !== null) {
             console.log('Attempting to load from Supabase...');
@@ -1784,39 +1785,28 @@ async function loadState() {
                 return;
             }
 
-            // Manager view - try Supabase
+            // Manager view - load from Supabase
             const result = await supabaseClient.from('schedules').select('data').eq('id', 1).single();
             records = result.data;
             error = result.error;
             console.log('Supabase load result:', { records: !!records, error });
         } else {
-            console.log('Supabase client not available, skipping cloud load');
+            throw new Error('Supabase client not available - cannot load data');
         }
     } catch (err) {
-        console.warn("Could not load from cloud, trying localStorage:", err);
+        console.error("Could not load from cloud:", err);
         error = err;
-    }
-
-    // If Supabase failed, try localStorage
-    if (!records || error) {
-        console.log('Loading from localStorage...');
-        try {
-            const localData = localStorage.getItem('scheduleGeneratorState');
-            if (localData) {
-                records = { data: JSON.parse(localData) };
-                error = null;
-                console.log('✅ Loaded data from localStorage');
-            } else {
-                console.log('No localStorage data found');
-            }
-        } catch (err) {
-            console.warn("Could not load from localStorage:", err);
+        // Show user-friendly error message
+        if (err.message && err.message.includes('Supabase client not available')) {
+            alert('Error: Cloud database is not available. Please check your connection and refresh the page.');
         }
     }
 
     if (error && error.code !== 'PGRST116' && !records) {
         console.error("Error loading state:", error);
-        // Don't alert, just continue with default data
+        if (error.code !== 'PGRST116') { // Don't show error for "no data found"
+            alert('Failed to load data from cloud database. Please refresh the page and try again.');
+        }
     }
 
     let monthToLoad;
@@ -1832,6 +1822,8 @@ async function loadState() {
         notifications = state.notifications || {};
         ptoRequests = state.ptoRequests || {};
         employeePTOBalances = state.employeePTOBalances || {};
+        announcements = state.announcements || [];
+        auditLogs = state.auditLogs || [];
         monthToLoad = state.month;
         autoApprovalRules = state.autoApprovalRules || { enabled: false, rule: 'firstCome' };
 
@@ -2150,7 +2142,23 @@ function loadAndRenderPortal(portalId, state) {
     }
 }
 
-    function resetSavedState() { if (confirm("Are you sure you want to clear ALL saved data?")) { localStorage.removeItem('scheduleGeneratorState'); location.reload(); } }
+    async function resetSavedState() { 
+        if (confirm("Are you sure you want to clear ALL saved data?")) { 
+            try {
+                if (typeof supabaseClient !== 'undefined' && supabaseClient !== null) {
+                    const { error } = await supabaseClient.from('schedules').delete().eq('id', 1);
+                    if (error) throw error;
+                    console.log('✅ Data cleared from cloud');
+                } else {
+                    throw new Error('Supabase client not available');
+                }
+                location.reload();
+            } catch (err) {
+                console.error('Failed to clear data:', err);
+                alert('Failed to clear data from cloud database. Please try again.');
+            }
+        } 
+    }
     
     function openEmployeeModal(index = -1) {
         clearEmployeeForm();
@@ -3329,35 +3337,34 @@ async function markNotificationsAsRead(employeeId) {
                 validationWarnings: validation.warnings
             };
 
-            // Try to load current state from Supabase, fallback to localStorage
+            // Load current state from Supabase only
             let state = {};
             try {
-                if (typeof supabaseClient !== 'undefined') {
+                if (typeof supabaseClient !== 'undefined' && supabaseClient !== null) {
                     const { data: records, error: fetchError } = await supabaseClient.from('schedules').select('data').eq('id', 1).single();
                     if (!fetchError && records?.data) {
                         state = records.data;
+                    } else {
+                        // Create initial state structure if no data exists
+                        state = {
+                            employees,
+                            schedule: scheduleData,
+                            notesData,
+                            bidsData,
+                            notifications,
+                            ptoRequests: {},
+                            employeePTOBalances: {},
+                            announcements: [],
+                            auditLogs: []
+                        };
                     }
+                } else {
+                    throw new Error('Supabase client not available');
                 }
             } catch (err) {
-                console.warn('Could not load from Supabase, using local data:', err);
-            }
-            
-            // Fallback to localStorage or current data
-            if (!state.ptoRequests) {
-                const localData = localStorage.getItem('scheduleGeneratorState');
-                if (localData) {
-                    state = JSON.parse(localData);
-                } else {
-                    state = {
-                        employees,
-                        schedule: scheduleData,
-                        notesData,
-                        bidsData,
-                        notifications,
-                        ptoRequests,
-                        employeePTOBalances
-                    };
-                }
+                console.error('Could not load from Supabase:', err);
+                alert('Failed to submit PTO request. Cloud database is not available.');
+                return;
             }
 
             if (!state.ptoRequests) state.ptoRequests = {};
@@ -3378,18 +3385,20 @@ async function markNotificationsAsRead(employeeId) {
             }
             state.employeePTOBalances[employeeId].pendingPTODays += daysRequested;
 
-            // Save to both Supabase and localStorage
+            // Save to Supabase only
             try {
-                if (typeof supabaseClient !== 'undefined') {
+                if (typeof supabaseClient !== 'undefined' && supabaseClient !== null) {
                     const { error: saveError } = await supabaseClient.from('schedules').upsert({ id: 1, data: state });
                     if (saveError) throw new Error(saveError.message);
+                    console.log('✅ PTO request saved to cloud');
+                } else {
+                    throw new Error('Supabase client not available');
                 }
             } catch (err) {
-                console.warn('Could not save to Supabase, saving locally:', err);
+                console.error('Could not save to Supabase:', err);
+                alert('Failed to submit PTO request. Could not save to cloud database.');
+                return;
             }
-            
-            // Always save to localStorage as backup
-            localStorage.setItem('scheduleGeneratorState', JSON.stringify(state));
 
             // Update local state
             ptoRequests[requestId] = newRequest;
@@ -6669,7 +6678,15 @@ HR Department
         };
         
         announcements.unshift(announcement);
-        localStorage.setItem('announcements', JSON.stringify(announcements));
+        
+        // Save to Supabase
+        try {
+            await saveState();
+        } catch (err) {
+            console.error('Failed to save announcement:', err);
+            alert('Failed to save announcement to cloud database.');
+            return;
+        }
         
         // Clear form
         document.getElementById('announcement-title').value = '';
@@ -6755,7 +6772,12 @@ HR Department
             auditLogs = auditLogs.slice(0, 1000);
         }
         
-        localStorage.setItem('auditLogs', JSON.stringify(auditLogs));
+        // Save to Supabase (fire and forget for audit logs)
+        try {
+            saveState().catch(err => console.warn('Failed to save audit log:', err));
+        } catch (err) {
+            console.warn('Failed to save audit log:', err);
+        }
     }
 
     function openAuditLogsModal() {
