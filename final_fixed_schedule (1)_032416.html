@@ -542,12 +542,16 @@
                     <button class="btn btn-success" onclick="openBulkPTOModal()">📅 Bulk PTO</button>
                     <button class="btn btn-primary" onclick="openPTORequestsModal()">🏖️ Review PTO Requests</button>
                     <button class="btn btn-success" onclick="generateMonthlyPTOReports()">📊 Generate Monthly PTO Reports</button>
+                    <button class="btn btn-info" onclick="openPTOCalendarModal()">📅 Team PTO Calendar</button>
+                    <button class="btn btn-warning" onclick="openCoverageAnalysisModal()">👥 Coverage Analysis</button>
                 </div>
                 <div class="control-group">
                     <h3>🤖 Scheduling Actions</h3>
                     <button class="btn btn-primary" onclick="autoGenerateFullSchedule()">✨ Generate Full Schedule</button>
+                    <button class="btn btn-success" onclick="smartScheduleAssistant()">🤖 Smart Schedule Assistant</button>
                     <button class="btn btn-secondary" onclick="moveOpenPositionShifts()">➡️ Move 'Open Position' Shifts</button>
                     <button class="btn btn-warning" onclick="findConflicts()">🚨 Find Conflicts</button>
+                    <button class="btn btn-info" onclick="optimizeSchedule()">⚡ Optimize Schedule</button>
                     <div style="margin-top: 10px;">
                         <button class="btn btn-secondary" onclick="undo()" id="undoBtn" disabled>↩️ Undo</button>
                         <button class="btn btn-secondary" onclick="redo()" id="redoBtn" disabled>↪️ Redo</button>
@@ -640,6 +644,22 @@
         <!-- PTO Request Section -->
         <div id="portal-pto-section">
             <h2>Request Time Off</h2>
+            
+            <!-- Smart PTO Planning Assistant -->
+            <div id="smart-pto-assistant" style="background: #e8f5e8; padding: 15px; border-radius: 5px; margin-bottom: 20px;">
+                <h4>🤖 Smart PTO Assistant</h4>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                    <button class="btn btn-info" onclick="suggestBestPTODates()" style="font-size: 14px;">📅 Suggest Best Dates</button>
+                    <button class="btn btn-secondary" onclick="showTeamPTOCalendar()" style="font-size: 14px;">👥 View Team Calendar</button>
+                </div>
+                <div id="pto-suggestions" style="display: none; background: #fff; padding: 10px; border-radius: 3px; margin-top: 10px;">
+                    <!-- Smart suggestions will appear here -->
+                </div>
+                <div id="team-pto-preview" style="display: none; background: #fff; padding: 10px; border-radius: 3px; margin-top: 10px;">
+                    <!-- Team PTO preview will appear here -->
+                </div>
+            </div>
+            
             <div id="pto-balance-display" style="background: #e8f5e8; padding: 15px; border-radius: 5px; margin-bottom: 20px;">
                 <h4>Your PTO Balance</h4>
                 <div id="pto-balance-details"></div>
@@ -649,13 +669,19 @@
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
                     <div>
                         <label for="pto-start-date">Start Date:</label>
-                        <input type="date" id="pto-start-date" style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ced4da;">
+                        <input type="date" id="pto-start-date" onchange="updatePTOPreview()" style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ced4da;">
                     </div>
                     <div>
                         <label for="pto-end-date">End Date:</label>
-                        <input type="date" id="pto-end-date" style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ced4da;">
+                        <input type="date" id="pto-end-date" onchange="updatePTOPreview()" style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ced4da;">
                     </div>
                 </div>
+                
+                <!-- Real-time impact preview -->
+                <div id="pto-impact-preview" style="display: none; padding: 10px; margin-bottom: 15px; border-radius: 5px;">
+                    <!-- Impact preview will be shown here -->
+                </div>
+                
                 <div style="margin-bottom: 15px;">
                     <label for="pto-type">Reason/Type:</label>
                     <select id="pto-type" style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ced4da;">
@@ -859,6 +885,130 @@
                 <button class="btn btn-success" onclick="emailAllPTOReports()" style="margin-left: 10px;">📧 Email All Reports</button>
             </div>
             <div id="monthly-pto-reports-container" style="max-height: 600px; overflow-y: auto;"></div>
+        </div>
+    </div>
+
+    <!-- Team PTO Calendar Modal -->
+    <div id="ptoCalendarModal" class="modal">
+        <div class="modal-content" style="max-width: 1400px;">
+            <div class="modal-header">
+                <h2>Team PTO Calendar</h2>
+                <span class="close" onclick="closeAllModals()">×</span>
+            </div>
+            <hr>
+            <div style="display: flex; gap: 15px; margin-bottom: 20px; align-items: center;">
+                <label for="ptoCalendarMonth">View Month:</label>
+                <input type="month" id="ptoCalendarMonth" onchange="renderPTOCalendar()" style="padding: 5px;">
+                <label for="ptoCalendarView">View Type:</label>
+                <select id="ptoCalendarView" onchange="renderPTOCalendar()" style="padding: 5px;">
+                    <option value="monthly">Monthly View</option>
+                    <option value="weekly">Weekly View</option>
+                    <option value="timeline">Timeline View</option>
+                </select>
+                <label for="ptoCalendarFilter">Filter by:</label>
+                <select id="ptoCalendarFilter" onchange="renderPTOCalendar()" style="padding: 5px;">
+                    <option value="all">All PTO Types</option>
+                    <option value="vacation">Vacation Only</option>
+                    <option value="sick">Sick Leave Only</option>
+                    <option value="personal">Personal Only</option>
+                    <option value="approved">Approved Only</option>
+                    <option value="pending">Pending Only</option>
+                </select>
+            </div>
+            <div id="pto-calendar-container" style="background: #f8f9fa; padding: 20px; border-radius: 5px; min-height: 500px;">
+                <!-- PTO Calendar will be rendered here -->
+            </div>
+            <div id="pto-conflicts-alert" style="margin-top: 15px; padding: 10px; background: #f8d7da; border-radius: 5px; display: none;">
+                <strong>⚠️ Coverage Conflicts Detected:</strong>
+                <div id="conflicts-list"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Coverage Analysis Modal -->
+    <div id="coverageAnalysisModal" class="modal">
+        <div class="modal-content" style="max-width: 1200px;">
+            <div class="modal-header">
+                <h2>Coverage Analysis & Planning</h2>
+                <span class="close" onclick="closeAllModals()">×</span>
+            </div>
+            <hr>
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+                <div style="background: #d4edda; padding: 15px; border-radius: 5px; text-align: center;">
+                    <h4 style="margin: 0;">Adequate Coverage</h4>
+                    <div id="adequate-coverage-count" style="font-size: 24px; font-weight: bold;">0</div>
+                    <div style="font-size: 12px;">days this month</div>
+                </div>
+                <div style="background: #fff3cd; padding: 15px; border-radius: 5px; text-align: center;">
+                    <h4 style="margin: 0;">At Risk Days</h4>
+                    <div id="at-risk-count" style="font-size: 24px; font-weight: bold;">0</div>
+                    <div style="font-size: 12px;">need attention</div>
+                </div>
+                <div style="background: #f8d7da; padding: 15px; border-radius: 5px; text-align: center;">
+                    <h4 style="margin: 0;">Critical Shortages</h4>
+                    <div id="critical-shortage-count" style="font-size: 24px; font-weight: bold;">0</div>
+                    <div style="font-size: 12px;">immediate action needed</div>
+                </div>
+            </div>
+            <div id="coverage-analysis-container" style="max-height: 500px; overflow-y: auto;">
+                <!-- Coverage analysis will be rendered here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Smart Schedule Assistant Modal -->
+    <div id="smartScheduleModal" class="modal">
+        <div class="modal-content" style="max-width: 1000px;">
+            <div class="modal-header">
+                <h2>Smart Schedule Assistant</h2>
+                <span class="close" onclick="closeAllModals()">×</span>
+            </div>
+            <hr>
+            <div style="margin-bottom: 20px;">
+                <h3>Schedule Optimization Options</h3>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                    <div>
+                        <label for="optimization-priority">Optimization Priority:</label>
+                        <select id="optimization-priority" style="width: 100%; padding: 8px; margin-bottom: 10px;">
+                            <option value="coverage">Maximize Coverage</option>
+                            <option value="cost">Minimize Costs</option>
+                            <option value="fairness">Ensure Fairness</option>
+                            <option value="preferences">Employee Preferences</option>
+                        </select>
+                        <label for="shift-distribution">Shift Distribution:</label>
+                        <select id="shift-distribution" style="width: 100%; padding: 8px; margin-bottom: 10px;">
+                            <option value="balanced">Balanced Distribution</option>
+                            <option value="seniority">By Seniority</option>
+                            <option value="availability">By Availability</option>
+                            <option value="skills">By Skills</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="constraint-level">Constraint Level:</label>
+                        <select id="constraint-level" style="width: 100%; padding: 8px; margin-bottom: 10px;">
+                            <option value="flexible">Flexible</option>
+                            <option value="standard">Standard</option>
+                            <option value="strict">Strict</option>
+                        </select>
+                        <label for="planning-horizon">Planning Horizon:</label>
+                        <select id="planning-horizon" style="width: 100%; padding: 8px; margin-bottom: 10px;">
+                            <option value="current">Current Month</option>
+                            <option value="next">Next Month</option>
+                            <option value="quarter">Next Quarter</option>
+                        </select>
+                    </div>
+                </div>
+                <div style="text-align: center; margin-top: 20px;">
+                    <button class="btn btn-primary" onclick="runSmartScheduling()">🚀 Generate Smart Schedule</button>
+                    <button class="btn btn-secondary" onclick="previewScheduleChanges()">👁️ Preview Changes</button>
+                    <button class="btn btn-success" onclick="validateProposedSchedule()">✅ Validate Schedule</button>
+                </div>
+            </div>
+            <div id="smart-schedule-results" style="background: #f8f9fa; padding: 15px; border-radius: 5px; display: none;">
+                <h4>Optimization Results</h4>
+                <div id="optimization-summary"></div>
+                <div id="proposed-changes" style="margin-top: 15px;"></div>
+            </div>
         </div>
     </div>
 
@@ -4523,6 +4673,1287 @@ HR Department
         };
     }
 
+    // ===== SMART SCHEDULING ASSISTANT FUNCTIONS =====
+    
+    function smartScheduleAssistant() {
+        document.getElementById('smartScheduleModal').style.display = 'block';
+        
+        // Set default month to current schedule month
+        const currentMonth = document.getElementById('scheduleMonth').value;
+        document.getElementById('planning-horizon').value = 'current';
+    }
+
+    function runSmartScheduling() {
+        const priority = document.getElementById('optimization-priority').value;
+        const distribution = document.getElementById('shift-distribution').value;
+        const constraintLevel = document.getElementById('constraint-level').value;
+        const horizon = document.getElementById('planning-horizon').value;
+
+        // Show loading state
+        const resultsDiv = document.getElementById('smart-schedule-results');
+        resultsDiv.style.display = 'block';
+        resultsDiv.innerHTML = '<div style="text-align: center; padding: 20px;"><strong>🔄 Analyzing schedule patterns and generating optimized assignments...</strong></div>';
+
+        // Simulate processing time and then run the optimization
+        setTimeout(() => {
+            const optimizationResult = performScheduleOptimization(priority, distribution, constraintLevel);
+            displayOptimizationResults(optimizationResult);
+        }, 1500);
+    }
+
+    function performScheduleOptimization(priority, distribution, constraintLevel) {
+        const optimizedSchedule = JSON.parse(JSON.stringify(scheduleData));
+        const suggestions = [];
+        const metrics = {
+            coverageScore: 0,
+            fairnessScore: 0,
+            costSavings: 0,
+            conflictsResolved: 0
+        };
+
+        // Analyze current schedule
+        const currentProblems = analyzeScheduleProblems();
+        
+        // Generate optimization suggestions based on priority
+        switch (priority) {
+            case 'coverage':
+                suggestions.push(...optimizeForCoverage(currentProblems));
+                break;
+            case 'cost':
+                suggestions.push(...optimizeForCost(currentProblems));
+                break;
+            case 'fairness':
+                suggestions.push(...optimizeForFairness(currentProblems));
+                break;
+            case 'preferences':
+                suggestions.push(...optimizeForPreferences(currentProblems));
+                break;
+        }
+
+        // Calculate metrics for the optimization
+        metrics.coverageScore = calculateCoverageScore();
+        metrics.fairnessScore = calculateFairnessScore();
+        metrics.costSavings = calculatePotentialSavings(suggestions);
+        metrics.conflictsResolved = currentProblems.length;
+
+        return {
+            suggestions,
+            metrics,
+            problems: currentProblems,
+            optimizedSchedule
+        };
+    }
+
+    function analyzeScheduleProblems() {
+        const problems = [];
+        const minStaff = parseInt(document.getElementById('minStaff').value) || 3;
+
+        // Check each day for problems
+        currentDates.forEach(date => {
+            const dateKey = date.toISOString().split('T')[0];
+            let staffCount = 0;
+            let scheduledEmployees = [];
+
+            employees.forEach(emp => {
+                if (emp.name.startsWith('OPEN SHIFTS') || emp.type === 'Bank') return;
+                
+                const shift = scheduleData[emp.name]?.[dateKey];
+                if (shift && shift.toUpperCase() !== 'PTO' && shift.trim() !== '') {
+                    staffCount++;
+                    scheduledEmployees.push({ name: emp.name, shift: shift });
+                }
+            });
+
+            // Check for understaffing
+            if (staffCount < minStaff) {
+                problems.push({
+                    type: 'understaffing',
+                    date: dateKey,
+                    currentStaff: staffCount,
+                    requiredStaff: minStaff,
+                    severity: minStaff - staffCount
+                });
+            }
+
+            // Check for availability conflicts
+            scheduledEmployees.forEach(scheduled => {
+                const emp = employees.find(e => e.name === scheduled.name);
+                if (emp && emp.availability) {
+                    const dayOfWeek = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'][date.getDay()];
+                    if (!emp.availability.toLowerCase().includes(dayOfWeek)) {
+                        problems.push({
+                            type: 'availability_conflict',
+                            date: dateKey,
+                            employee: scheduled.name,
+                            shift: scheduled.shift
+                        });
+                    }
+                }
+            });
+        });
+
+        return problems;
+    }
+
+    function optimizeForCoverage(problems) {
+        const suggestions = [];
+        
+        problems.filter(p => p.type === 'understaffing').forEach(problem => {
+            const availableEmployees = getAvailableEmployees(problem.date);
+            const date = new Date(problem.date);
+            const dayOfWeek = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'][date.getDay()];
+            
+            availableEmployees.forEach(emp => {
+                if (emp.availability.toLowerCase().includes(dayOfWeek)) {
+                    suggestions.push({
+                        type: 'add_shift',
+                        employee: emp.name,
+                        date: problem.date,
+                        suggestedShift: emp.shifts || '10a-6:30p',
+                        reason: `Add ${emp.name} to resolve understaffing (${problem.currentStaff}/${problem.requiredStaff})`
+                    });
+                }
+            });
+        });
+
+        return suggestions;
+    }
+
+    function optimizeForCost(problems) {
+        const suggestions = [];
+        
+        // Look for overtime opportunities to reduce
+        const overtimeAnalysis = analyzeOvertimePatterns();
+        
+        overtimeAnalysis.forEach(overtime => {
+            suggestions.push({
+                type: 'reduce_overtime',
+                employee: overtime.employee,
+                currentHours: overtime.hours,
+                suggestedReduction: overtime.excessHours,
+                reason: `Reduce ${overtime.employee}'s hours by ${overtime.excessHours} to minimize overtime costs`
+            });
+        });
+
+        return suggestions;
+    }
+
+    function optimizeForFairness(problems) {
+        const suggestions = [];
+        const workloadAnalysis = analyzeWorkloadDistribution();
+        
+        workloadAnalysis.unbalanced.forEach(emp => {
+            if (emp.variance > 10) { // More than 10 hours difference from average
+                suggestions.push({
+                    type: 'rebalance_workload',
+                    employee: emp.name,
+                    currentHours: emp.hours,
+                    targetHours: emp.targetHours,
+                    adjustment: emp.variance > 0 ? 'decrease' : 'increase',
+                    reason: `Rebalance ${emp.name}'s workload (currently ${emp.hours}h, target: ${emp.targetHours}h)`
+                });
+            }
+        });
+
+        return suggestions;
+    }
+
+    function optimizeForPreferences(problems) {
+        // This would integrate with employee preference data when available
+        return [{
+            type: 'preference_optimization',
+            reason: 'Employee preference optimization requires preference data setup'
+        }];
+    }
+
+    function getAvailableEmployees(dateKey) {
+        return employees.filter(emp => {
+            if (emp.name.startsWith('OPEN SHIFTS') || emp.type === 'Bank') return false;
+            
+            const shift = scheduleData[emp.name]?.[dateKey];
+            return !shift || shift.trim() === '';
+        });
+    }
+
+    function analyzeOvertimePatterns() {
+        const targetHours = parseFloat(document.getElementById('targetHours').value) || 160;
+        const overtimeEmployees = [];
+
+        employees.forEach(emp => {
+            if (emp.name.startsWith('OPEN SHIFTS') || emp.type === 'Bank') return;
+            
+            let totalHours = 0;
+            if (scheduleData[emp.name]) {
+                Object.values(scheduleData[emp.name]).forEach(shift => {
+                    if (shift && shift.toUpperCase() !== 'PTO') {
+                        totalHours += shiftsInfo[shift] || 0;
+                    }
+                });
+            }
+
+            const empTargetHours = emp.targetHours || (emp.type === 'FT' ? targetHours : 80);
+            if (totalHours > empTargetHours * 1.1) {
+                overtimeEmployees.push({
+                    employee: emp.name,
+                    hours: totalHours,
+                    targetHours: empTargetHours,
+                    excessHours: totalHours - empTargetHours
+                });
+            }
+        });
+
+        return overtimeEmployees;
+    }
+
+    function analyzeWorkloadDistribution() {
+        const targetHours = parseFloat(document.getElementById('targetHours').value) || 160;
+        const balanced = [];
+        const unbalanced = [];
+
+        employees.forEach(emp => {
+            if (emp.name.startsWith('OPEN SHIFTS') || emp.type === 'Bank') return;
+            
+            let totalHours = 0;
+            if (scheduleData[emp.name]) {
+                Object.values(scheduleData[emp.name]).forEach(shift => {
+                    if (shift && shift.toUpperCase() !== 'PTO') {
+                        totalHours += shiftsInfo[shift] || 0;
+                    }
+                });
+            }
+
+            const empTargetHours = emp.targetHours || (emp.type === 'FT' ? targetHours : 80);
+            const variance = totalHours - empTargetHours;
+
+            const empData = {
+                name: emp.name,
+                hours: totalHours,
+                targetHours: empTargetHours,
+                variance: variance
+            };
+
+            if (Math.abs(variance) > 5) {
+                unbalanced.push(empData);
+            } else {
+                balanced.push(empData);
+            }
+        });
+
+        return { balanced, unbalanced };
+    }
+
+    function calculateCoverageScore() {
+        const minStaff = parseInt(document.getElementById('minStaff').value) || 3;
+        let adequateDays = 0;
+
+        currentDates.forEach(date => {
+            const dateKey = date.toISOString().split('T')[0];
+            let staffCount = 0;
+
+            employees.forEach(emp => {
+                if (emp.name.startsWith('OPEN SHIFTS') || emp.type === 'Bank') return;
+                
+                const shift = scheduleData[emp.name]?.[dateKey];
+                if (shift && shift.toUpperCase() !== 'PTO' && shift.trim() !== '') {
+                    staffCount++;
+                }
+            });
+
+            if (staffCount >= minStaff) adequateDays++;
+        });
+
+        return Math.round((adequateDays / currentDates.length) * 100);
+    }
+
+    function calculateFairnessScore() {
+        const workloadAnalysis = analyzeWorkloadDistribution();
+        const fairEmployees = workloadAnalysis.balanced.length;
+        const totalEmployees = workloadAnalysis.balanced.length + workloadAnalysis.unbalanced.length;
+        
+        return totalEmployees > 0 ? Math.round((fairEmployees / totalEmployees) * 100) : 100;
+    }
+
+    function calculatePotentialSavings(suggestions) {
+        let savings = 0;
+        
+        suggestions.forEach(suggestion => {
+            if (suggestion.type === 'reduce_overtime') {
+                savings += suggestion.suggestedReduction * 15; // Assume $15/hour overtime premium
+            }
+        });
+
+        return savings;
+    }
+
+    function displayOptimizationResults(result) {
+        const { suggestions, metrics, problems } = result;
+        
+        let summaryHTML = `
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 15px; margin-bottom: 20px;">
+                <div style="text-align: center; padding: 10px; background: #d4edda; border-radius: 5px;">
+                    <strong>Coverage Score</strong><br>
+                    <span style="font-size: 24px;">${metrics.coverageScore}%</span>
+                </div>
+                <div style="text-align: center; padding: 10px; background: #cce5ff; border-radius: 5px;">
+                    <strong>Fairness Score</strong><br>
+                    <span style="font-size: 24px;">${metrics.fairnessScore}%</span>
+                </div>
+                <div style="text-align: center; padding: 10px; background: #d1ecf1; border-radius: 5px;">
+                    <strong>Potential Savings</strong><br>
+                    <span style="font-size: 24px;">$${metrics.costSavings}</span>
+                </div>
+                <div style="text-align: center; padding: 10px; background: #fff3cd; border-radius: 5px;">
+                    <strong>Issues Found</strong><br>
+                    <span style="font-size: 24px;">${problems.length}</span>
+                </div>
+            </div>
+        `;
+
+        let changesHTML = '<h5>Suggested Optimizations:</h5>';
+        
+        if (suggestions.length === 0) {
+            changesHTML += '<p style="color: #28a745; font-weight: bold;">✅ No optimizations needed - schedule looks good!</p>';
+        } else {
+            changesHTML += '<div style="max-height: 300px; overflow-y: auto;">';
+            suggestions.forEach((suggestion, index) => {
+                changesHTML += `
+                    <div style="padding: 10px; border: 1px solid #ddd; border-radius: 5px; margin-bottom: 10px; background: #f9f9f9;">
+                        <strong>${index + 1}. ${suggestion.type.replace(/_/g, ' ').toUpperCase()}</strong><br>
+                        <span style="color: #666;">${suggestion.reason}</span>
+                        <div style="margin-top: 5px;">
+                            <button class="btn btn-success" onclick="applySuggestion(${index})" style="font-size: 12px; padding: 5px 10px;">Apply</button>
+                            <button class="btn btn-secondary" onclick="ignoreSuggestion(${index})" style="font-size: 12px; padding: 5px 10px;">Ignore</button>
+                        </div>
+                    </div>
+                `;
+            });
+            changesHTML += '</div>';
+        }
+
+        document.getElementById('optimization-summary').innerHTML = summaryHTML;
+        document.getElementById('proposed-changes').innerHTML = changesHTML;
+        
+        // Store suggestions globally for applying later
+        window.currentOptimizationSuggestions = suggestions;
+    }
+
+    function applySuggestion(index) {
+        const suggestion = window.currentOptimizationSuggestions[index];
+        if (!suggestion) return;
+
+        recordHistory();
+
+        switch (suggestion.type) {
+            case 'add_shift':
+                if (!scheduleData[suggestion.employee]) {
+                    scheduleData[suggestion.employee] = {};
+                }
+                scheduleData[suggestion.employee][suggestion.date] = suggestion.suggestedShift;
+                break;
+            // Add more cases as needed
+        }
+
+        saveState();
+        renderTable();
+        alert('✅ Suggestion applied successfully!');
+        
+        // Remove the applied suggestion from the list
+        window.currentOptimizationSuggestions.splice(index, 1);
+        
+        // Re-run optimization to show updated results
+        runSmartScheduling();
+    }
+
+    function ignoreSuggestion(index) {
+        window.currentOptimizationSuggestions.splice(index, 1);
+        alert('Suggestion ignored.');
+        
+        // Re-display without the ignored suggestion
+        const result = {
+            suggestions: window.currentOptimizationSuggestions,
+            metrics: window.lastOptimizationMetrics || {},
+            problems: window.lastOptimizationProblems || []
+        };
+        displayOptimizationResults(result);
+    }
+
+    function previewScheduleChanges() {
+        alert('Schedule preview functionality - would show a side-by-side comparison of current vs. optimized schedule');
+    }
+
+    function validateProposedSchedule() {
+        const validation = performScheduleValidation();
+        alert(`Schedule Validation Results:\n\n✅ Valid shifts: ${validation.validShifts}\n⚠️ Conflicts: ${validation.conflicts}\n📊 Coverage score: ${validation.coverageScore}%\n💰 Cost efficiency: ${validation.costScore}%`);
+    }
+
+    function performScheduleValidation() {
+        let validShifts = 0;
+        let conflictCount = 0;
+        const minStaff = parseInt(document.getElementById('minStaff').value) || 3;
+
+        currentDates.forEach(date => {
+            const dateKey = date.toISOString().split('T')[0];
+            let staffCount = 0;
+
+            employees.forEach(emp => {
+                if (emp.name.startsWith('OPEN SHIFTS') || emp.type === 'Bank') return;
+                
+                const shift = scheduleData[emp.name]?.[dateKey];
+                if (shift && shift.toUpperCase() !== 'PTO' && shift.trim() !== '') {
+                    validShifts++;
+                    staffCount++;
+                    
+                    // Check availability conflicts
+                    if (emp.availability) {
+                        const dayOfWeek = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'][date.getDay()];
+                        if (!emp.availability.toLowerCase().includes(dayOfWeek)) {
+                            conflictCount++;
+                        }
+                    }
+                }
+            });
+
+            if (staffCount < minStaff) {
+                conflictCount++;
+            }
+        });
+
+        const coverageScore = calculateCoverageScore();
+        const costScore = calculateCostEfficiency();
+
+        return {
+            validShifts,
+            conflicts: conflictCount,
+            coverageScore,
+            costScore
+        };
+    }
+
+    function calculateCostEfficiency() {
+        // Simple cost efficiency calculation based on overtime vs. regular hours
+        let regularHours = 0;
+        let overtimeHours = 0;
+        const targetHours = parseFloat(document.getElementById('targetHours').value) || 160;
+
+        employees.forEach(emp => {
+            if (emp.name.startsWith('OPEN SHIFTS') || emp.type === 'Bank') return;
+            
+            let totalHours = 0;
+            if (scheduleData[emp.name]) {
+                Object.values(scheduleData[emp.name]).forEach(shift => {
+                    if (shift && shift.toUpperCase() !== 'PTO') {
+                        totalHours += shiftsInfo[shift] || 0;
+                    }
+                });
+            }
+
+            const empTargetHours = emp.targetHours || (emp.type === 'FT' ? targetHours : 80);
+            if (totalHours > empTargetHours) {
+                overtimeHours += totalHours - empTargetHours;
+                regularHours += empTargetHours;
+            } else {
+                regularHours += totalHours;
+            }
+        });
+
+        const totalHours = regularHours + overtimeHours;
+        return totalHours > 0 ? Math.round((regularHours / totalHours) * 100) : 100;
+    }
+
+    function optimizeSchedule() {
+        if (!confirm('This will automatically optimize the current schedule. Continue?')) return;
+        
+        recordHistory();
+        
+        // Run a simplified optimization
+        const priority = 'coverage'; // Default to coverage optimization
+        const optimizationResult = performScheduleOptimization(priority, 'balanced', 'standard');
+        
+        // Apply the first few suggestions automatically
+        const autoApplySuggestions = optimizationResult.suggestions.slice(0, 3);
+        
+        autoApplySuggestions.forEach(suggestion => {
+            switch (suggestion.type) {
+                case 'add_shift':
+                    if (!scheduleData[suggestion.employee]) {
+                        scheduleData[suggestion.employee] = {};
+                    }
+                    scheduleData[suggestion.employee][suggestion.date] = suggestion.suggestedShift;
+                    break;
+            }
+        });
+
+        saveState();
+        renderTable();
+        
+        alert(`✨ Schedule optimized! Applied ${autoApplySuggestions.length} improvements.\n\nCoverage Score: ${optimizationResult.metrics.coverageScore}%\nIssues Resolved: ${autoApplySuggestions.length}`);
+    }
+
+    // ===== TEAM PTO CALENDAR FUNCTIONS =====
+    
+    function openPTOCalendarModal() {
+        // Set default month to current schedule month
+        const currentMonth = document.getElementById('scheduleMonth').value;
+        document.getElementById('ptoCalendarMonth').value = currentMonth;
+        
+        document.getElementById('ptoCalendarModal').style.display = 'block';
+        renderPTOCalendar();
+    }
+
+    function renderPTOCalendar() {
+        const selectedMonth = document.getElementById('ptoCalendarMonth').value;
+        const viewType = document.getElementById('ptoCalendarView').value;
+        const filter = document.getElementById('ptoCalendarFilter').value;
+        
+        if (!selectedMonth) return;
+
+        const container = document.getElementById('pto-calendar-container');
+        
+        switch (viewType) {
+            case 'monthly':
+                renderMonthlyPTOView(container, selectedMonth, filter);
+                break;
+            case 'weekly':
+                renderWeeklyPTOView(container, selectedMonth, filter);
+                break;
+            case 'timeline':
+                renderTimelinePTOView(container, selectedMonth, filter);
+                break;
+        }
+
+        // Check for conflicts and display alerts
+        checkAndDisplayPTOConflicts(selectedMonth);
+    }
+
+    function renderMonthlyPTOView(container, month, filter) {
+        const [year, monthNum] = month.split('-').map(Number);
+        const daysInMonth = new Date(year, monthNum, 0).getDate();
+        const firstDay = new Date(year, monthNum - 1, 1).getDay();
+        
+        let calendarHTML = `
+            <h4>PTO Calendar - ${new Date(year, monthNum - 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</h4>
+            <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; margin-top: 15px;">
+        `;
+        
+        // Add day headers
+        const dayHeaders = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+        dayHeaders.forEach(day => {
+            calendarHTML += `<div style="padding: 10px; background: #dee2e6; text-align: center; font-weight: bold;">${day}</div>`;
+        });
+        
+        // Add empty cells for days before month starts
+        for (let i = 0; i < firstDay; i++) {
+            calendarHTML += '<div style="padding: 10px; background: #f8f9fa;"></div>';
+        }
+        
+        // Add days of the month
+        for (let day = 1; day <= daysInMonth; day++) {
+            const date = new Date(year, monthNum - 1, day);
+            const dateKey = date.toISOString().split('T')[0];
+            const ptoInfo = getPTOInfoForDate(dateKey, filter);
+            
+            let cellClass = 'background: #fff; border: 1px solid #ddd;';
+            if (ptoInfo.hasConflicts) cellClass = 'background: #f8d7da; border: 2px solid #dc3545;';
+            else if (ptoInfo.count > 0) cellClass = 'background: #fff3cd; border: 1px solid #ffc107;';
+            
+            calendarHTML += `
+                <div style="padding: 8px; ${cellClass} min-height: 80px; position: relative;">
+                    <div style="font-weight: bold; margin-bottom: 5px;">${day}</div>
+                    ${ptoInfo.details.map(detail => `
+                        <div style="font-size: 10px; padding: 2px; margin: 1px 0; background: ${getPTOTypeColor(detail.type)}; border-radius: 3px;">
+                            ${detail.employee}: ${detail.type}
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+        
+        calendarHTML += '</div>';
+        
+        // Add legend
+        calendarHTML += `
+            <div style="margin-top: 20px; display: flex; gap: 15px; align-items: center; flex-wrap: wrap;">
+                <div style="display: flex; align-items: center; gap: 5px;">
+                    <div style="width: 15px; height: 15px; background: #fff3cd; border: 1px solid #ffc107;"></div>
+                    <span style="font-size: 12px;">PTO Scheduled</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 5px;">
+                    <div style="width: 15px; height: 15px; background: #f8d7da; border: 2px solid #dc3545;"></div>
+                    <span style="font-size: 12px;">Coverage Conflict</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 5px;">
+                    <div style="width: 15px; height: 15px; background: #d4edda;"></div>
+                    <span style="font-size: 12px;">Approved PTO</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 5px;">
+                    <div style="width: 15px; height: 15px; background: #cce5ff;"></div>
+                    <span style="font-size: 12px;">Pending PTO</span>
+                </div>
+            </div>
+        `;
+        
+        container.innerHTML = calendarHTML;
+    }
+
+    function renderWeeklyPTOView(container, month, filter) {
+        container.innerHTML = `
+            <h4>Weekly PTO View - ${month}</h4>
+            <p style="color: #666; text-align: center; padding: 40px;">Weekly view implementation - would show PTO by week with more detail</p>
+        `;
+    }
+
+    function renderTimelinePTOView(container, month, filter) {
+        const [year, monthNum] = month.split('-').map(Number);
+        const daysInMonth = new Date(year, monthNum, 0).getDate();
+        
+        let timelineHTML = `
+            <h4>PTO Timeline - ${new Date(year, monthNum - 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</h4>
+            <div style="margin-top: 20px;">
+        `;
+        
+        // Get all PTO requests for the month
+        const ptoByEmployee = {};
+        employees.forEach(emp => {
+            if (emp.name.startsWith('OPEN SHIFTS') || emp.type === 'Bank') return;
+            ptoByEmployee[emp.name] = [];
+        });
+
+        // Collect PTO data
+        for (let day = 1; day <= daysInMonth; day++) {
+            const date = new Date(year, monthNum - 1, day);
+            const dateKey = date.toISOString().split('T')[0];
+            
+            // Check schedule data
+            Object.keys(ptoByEmployee).forEach(empName => {
+                const shift = scheduleData[empName]?.[dateKey];
+                if (shift && shift.toUpperCase() === 'PTO') {
+                    ptoByEmployee[empName].push({
+                        date: dateKey,
+                        type: 'scheduled',
+                        status: 'approved'
+                    });
+                }
+            });
+
+            // Check PTO requests
+            Object.values(ptoRequests || {}).forEach(request => {
+                const requestDate = new Date(request.startDate);
+                const endDate = new Date(request.endDate);
+                if (date >= requestDate && date <= endDate) {
+                    if (ptoByEmployee[request.employeeName]) {
+                        ptoByEmployee[request.employeeName].push({
+                            date: dateKey,
+                            type: request.requestType,
+                            status: request.status
+                        });
+                    }
+                }
+            });
+        }
+
+        // Render timeline for each employee
+        Object.keys(ptoByEmployee).forEach(empName => {
+            const ptoDays = ptoByEmployee[empName];
+            if (ptoDays.length === 0 && filter !== 'all') return;
+
+            timelineHTML += `
+                <div style="margin-bottom: 15px; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+                    <strong>${empName}</strong>
+                    <div style="display: flex; align-items: center; margin-top: 8px; position: relative; height: 30px;">
+            `;
+
+            // Create timeline bar
+            for (let day = 1; day <= daysInMonth; day++) {
+                const date = new Date(year, monthNum - 1, day);
+                const dateKey = date.toISOString().split('T')[0];
+                const hasPTO = ptoDays.find(p => p.date === dateKey);
+                
+                const width = 100 / daysInMonth;
+                let backgroundColor = '#f8f9fa';
+                
+                if (hasPTO) {
+                    backgroundColor = hasPTO.status === 'approved' ? '#d4edda' : 
+                                   hasPTO.status === 'pending' ? '#fff3cd' : '#f8d7da';
+                }
+
+                timelineHTML += `
+                    <div style="width: ${width}%; height: 20px; background: ${backgroundColor}; border: 1px solid #ddd; display: inline-block; position: relative;" 
+                         title="${day}/${monthNum} ${hasPTO ? `- ${hasPTO.type} (${hasPTO.status})` : ''}">
+                    </div>
+                `;
+            }
+
+            timelineHTML += `
+                    </div>
+                    <div style="font-size: 12px; color: #666; margin-top: 5px;">
+                        ${ptoDays.length} PTO day(s) this month
+                    </div>
+                </div>
+            `;
+        });
+
+        timelineHTML += '</div>';
+        container.innerHTML = timelineHTML;
+    }
+
+    function getPTOInfoForDate(dateKey, filter) {
+        const info = {
+            count: 0,
+            hasConflicts: false,
+            details: []
+        };
+
+        // Check scheduled PTO in the grid
+        employees.forEach(emp => {
+            if (emp.name.startsWith('OPEN SHIFTS') || emp.type === 'Bank') return;
+            
+            const shift = scheduleData[emp.name]?.[dateKey];
+            if (shift && shift.toUpperCase() === 'PTO') {
+                info.count++;
+                info.details.push({
+                    employee: emp.name.split(',')[0] || emp.name,
+                    type: 'PTO',
+                    status: 'approved'
+                });
+            }
+        });
+
+        // Check PTO requests
+        Object.values(ptoRequests || {}).forEach(request => {
+            const requestDate = new Date(dateKey);
+            const startDate = new Date(request.startDate);
+            const endDate = new Date(request.endDate);
+            
+            if (requestDate >= startDate && requestDate <= endDate) {
+                if (filter === 'all' || filter === request.requestType || filter === request.status) {
+                    info.count++;
+                    info.details.push({
+                        employee: request.employeeName.split(',')[0] || request.employeeName,
+                        type: request.requestType,
+                        status: request.status
+                    });
+                }
+            }
+        });
+
+        // Check for conflicts (too many people off)
+        const minStaff = parseInt(document.getElementById('minStaff').value) || 3;
+        if (info.count >= minStaff) {
+            info.hasConflicts = true;
+        }
+
+        return info;
+    }
+
+    function getPTOTypeColor(type) {
+        const colors = {
+            'vacation': '#d4edda',
+            'sick': '#f8d7da', 
+            'personal': '#cce5ff',
+            'emergency': '#ffe6cc',
+            'approved': '#d4edda',
+            'pending': '#fff3cd',
+            'denied': '#f8d7da',
+            'PTO': '#d4edda'
+        };
+        return colors[type] || '#e9ecef';
+    }
+
+    function checkAndDisplayPTOConflicts(month) {
+        const conflicts = detectMonthlyPTOConflicts(month);
+        const alertDiv = document.getElementById('pto-conflicts-alert');
+        
+        if (conflicts.length > 0) {
+            let conflictHTML = '<ul style="margin: 10px 0; padding-left: 20px;">';
+            conflicts.forEach(conflict => {
+                conflictHTML += `<li>${conflict.date}: ${conflict.message}</li>`;
+            });
+            conflictHTML += '</ul>';
+            
+            document.getElementById('conflicts-list').innerHTML = conflictHTML;
+            alertDiv.style.display = 'block';
+        } else {
+            alertDiv.style.display = 'none';
+        }
+    }
+
+    function detectMonthlyPTOConflicts(month) {
+        const conflicts = [];
+        const [year, monthNum] = month.split('-').map(Number);
+        const daysInMonth = new Date(year, monthNum, 0).getDate();
+        const minStaff = parseInt(document.getElementById('minStaff').value) || 3;
+
+        for (let day = 1; day <= daysInMonth; day++) {
+            const date = new Date(year, monthNum - 1, day);
+            const dateKey = date.toISOString().split('T')[0];
+            const ptoInfo = getPTOInfoForDate(dateKey, 'all');
+            
+            if (ptoInfo.count >= minStaff) {
+                conflicts.push({
+                    date: date.toLocaleDateString(),
+                    message: `${ptoInfo.count} employees off, minimum ${minStaff} required`
+                });
+            }
+        }
+
+        return conflicts;
+    }
+
+    // ===== COVERAGE ANALYSIS FUNCTIONS =====
+    
+    function openCoverageAnalysisModal() {
+        document.getElementById('coverageAnalysisModal').style.display = 'block';
+        renderCoverageAnalysis();
+    }
+
+    function renderCoverageAnalysis() {
+        const analysis = performCoverageAnalysis();
+        
+        // Update dashboard counters
+        document.getElementById('adequate-coverage-count').textContent = analysis.adequate;
+        document.getElementById('at-risk-count').textContent = analysis.atRisk;
+        document.getElementById('critical-shortage-count').textContent = analysis.critical;
+        
+        // Render detailed analysis
+        const container = document.getElementById('coverage-analysis-container');
+        let analysisHTML = '<h4>Daily Coverage Analysis</h4>';
+        
+        currentDates.forEach(date => {
+            const dateKey = date.toISOString().split('T')[0];
+            const coverageData = analyzeDailyCoverage(dateKey);
+            
+            let statusClass = 'background: #d4edda;'; // Good
+            if (coverageData.status === 'at-risk') statusClass = 'background: #fff3cd;';
+            if (coverageData.status === 'critical') statusClass = 'background: #f8d7da;';
+            
+            analysisHTML += `
+                <div style="padding: 10px; margin: 5px 0; border-radius: 5px; ${statusClass}">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <strong>${date.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}</strong>
+                        <span style="font-weight: bold;">${coverageData.staffCount}/${coverageData.requiredStaff} Staff</span>
+                    </div>
+                    <div style="font-size: 12px; margin-top: 5px;">
+                        ${coverageData.message}
+                    </div>
+                    ${coverageData.suggestions.length > 0 ? `
+                        <div style="margin-top: 8px; font-size: 12px;">
+                            <strong>Suggestions:</strong> ${coverageData.suggestions.join(', ')}
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+        });
+        
+        container.innerHTML = analysisHTML;
+    }
+
+    function performCoverageAnalysis() {
+        const minStaff = parseInt(document.getElementById('minStaff').value) || 3;
+        let adequate = 0, atRisk = 0, critical = 0;
+
+        currentDates.forEach(date => {
+            const dateKey = date.toISOString().split('T')[0];
+            const coverage = analyzeDailyCoverage(dateKey);
+            
+            if (coverage.status === 'adequate') adequate++;
+            else if (coverage.status === 'at-risk') atRisk++;
+            else if (coverage.status === 'critical') critical++;
+        });
+
+        return { adequate, atRisk, critical };
+    }
+
+    function analyzeDailyCoverage(dateKey) {
+        const minStaff = parseInt(document.getElementById('minStaff').value) || 3;
+        let staffCount = 0;
+        let availableEmployees = [];
+        let onPTO = [];
+
+        employees.forEach(emp => {
+            if (emp.name.startsWith('OPEN SHIFTS') || emp.type === 'Bank') return;
+            
+            const shift = scheduleData[emp.name]?.[dateKey];
+            if (shift && shift.toUpperCase() === 'PTO') {
+                onPTO.push(emp.name);
+            } else if (shift && shift.trim() !== '') {
+                staffCount++;
+                availableEmployees.push(emp.name);
+            }
+        });
+
+        let status = 'adequate';
+        let message = `${staffCount} employees scheduled`;
+        let suggestions = [];
+
+        if (staffCount < minStaff) {
+            status = staffCount === 0 ? 'critical' : 'at-risk';
+            message = `Understaffed: ${minStaff - staffCount} more employees needed`;
+            
+            // Generate suggestions
+            const date = new Date(dateKey);
+            const dayOfWeek = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'][date.getDay()];
+            
+            employees.forEach(emp => {
+                if (emp.name.startsWith('OPEN SHIFTS') || emp.type === 'Bank') return;
+                if (availableEmployees.includes(emp.name) || onPTO.includes(emp.name)) return;
+                
+                if (emp.availability && emp.availability.toLowerCase().includes(dayOfWeek)) {
+                    suggestions.push(`Schedule ${emp.name.split(',')[0]}`);
+                }
+            });
+        }
+
+        if (onPTO.length > 0) {
+            message += `, ${onPTO.length} on PTO`;
+        }
+
+        return {
+            status,
+            staffCount,
+            requiredStaff: minStaff,
+            message,
+            suggestions: suggestions.slice(0, 3), // Limit to 3 suggestions
+            onPTO,
+            availableEmployees
+        };
+    }
+
+    // ===== ENHANCED EMPLOYEE PORTAL FUNCTIONS =====
+    
+    function updatePTOPreview() {
+        const startDate = document.getElementById('pto-start-date').value;
+        const endDate = document.getElementById('pto-end-date').value;
+        
+        if (!startDate || !endDate) {
+            document.getElementById('pto-impact-preview').style.display = 'none';
+            document.getElementById('pto-days-display').value = '';
+            return;
+        }
+
+        const start = new Date(startDate);
+        const end = new Date(endDate);
+        const daysRequested = Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
+        
+        document.getElementById('pto-days-display').value = daysRequested;
+        
+        // Show impact preview
+        const urlParams = new URLSearchParams(window.location.search);
+        const portalId = urlParams.get('portal');
+        
+        if (portalId) {
+            const employee = employees.find(e => e.id === portalId);
+            if (employee) {
+                showPTOImpactPreview(employee.name, startDate, endDate, daysRequested);
+            }
+        }
+    }
+
+    function showPTOImpactPreview(employeeName, startDate, endDate, daysRequested) {
+        const previewDiv = document.getElementById('pto-impact-preview');
+        const conflicts = checkPTOConflicts(employeeName, startDate, endDate);
+        
+        let previewHTML = '<h5>📊 Request Impact Analysis</h5>';
+        
+        // Check team impact
+        const teamImpact = analyzeTeamImpact(startDate, endDate);
+        
+        if (conflicts.length === 0) {
+            previewHTML += '<div style="color: #28a745; font-weight: bold;">✅ No conflicts detected - good time to request!</div>';
+        } else {
+            previewHTML += '<div style="color: #dc3545; font-weight: bold;">⚠️ Potential issues detected:</div>';
+            previewHTML += '<ul style="margin: 10px 0; padding-left: 20px; color: #dc3545;">';
+            conflicts.forEach(conflict => {
+                previewHTML += `<li>${conflict.message}</li>`;
+            });
+            previewHTML += '</ul>';
+        }
+        
+        // Show team impact
+        previewHTML += `
+            <div style="margin-top: 10px;">
+                <strong>Team Impact:</strong><br>
+                <div style="font-size: 12px;">
+                    • Others on PTO during this period: ${teamImpact.othersOnPTO}<br>
+                    • Team coverage level: ${teamImpact.coverageLevel}<br>
+                    • Recommended alternative dates: ${teamImpact.alternatives}
+                </div>
+            </div>
+        `;
+        
+        previewDiv.innerHTML = previewHTML;
+        previewDiv.style.display = 'block';
+        previewDiv.style.background = conflicts.length > 0 ? '#f8d7da' : '#d4edda';
+    }
+
+    function analyzeTeamImpact(startDate, endDate) {
+        const start = new Date(startDate);
+        const end = new Date(endDate);
+        let othersOnPTO = 0;
+        let coverageLevel = 'Good';
+        let alternatives = 'None needed';
+
+        // Count others on PTO during the requested period
+        const dateRange = getDateRange(start, end);
+        const ptoEmployees = new Set();
+
+        dateRange.forEach(date => {
+            const dateKey = date.toISOString().split('T')[0];
+            employees.forEach(emp => {
+                if (emp.name.startsWith('OPEN SHIFTS') || emp.type === 'Bank') return;
+                
+                const shift = scheduleData[emp.name]?.[dateKey];
+                if (shift && shift.toUpperCase() === 'PTO') {
+                    ptoEmployees.add(emp.name);
+                }
+            });
+        });
+
+        othersOnPTO = ptoEmployees.size;
+        
+        // Determine coverage level
+        const totalEmployees = employees.filter(emp => 
+            !emp.name.startsWith('OPEN SHIFTS') && emp.type !== 'Bank'
+        ).length;
+        
+        const availableStaff = totalEmployees - othersOnPTO - 1; // -1 for requesting employee
+        const minStaff = parseInt(document.getElementById('minStaff').value) || 3;
+        
+        if (availableStaff < minStaff) {
+            coverageLevel = 'Critical';
+            alternatives = generateAlternativeDates(startDate, endDate);
+        } else if (availableStaff < minStaff + 1) {
+            coverageLevel = 'At Risk';
+        }
+
+        return {
+            othersOnPTO,
+            coverageLevel,
+            alternatives
+        };
+    }
+
+    function generateAlternativeDates(originalStart, originalEnd) {
+        const start = new Date(originalStart);
+        const end = new Date(originalEnd);
+        const durationDays = Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
+        const alternatives = [];
+
+        // Check weeks before and after
+        for (let weekOffset = -2; weekOffset <= 2; weekOffset++) {
+            if (weekOffset === 0) continue; // Skip the original week
+            
+            const altStart = new Date(start);
+            altStart.setDate(start.getDate() + (weekOffset * 7));
+            
+            const altEnd = new Date(altStart);
+            altEnd.setDate(altStart.getDate() + durationDays - 1);
+            
+            // Check if this alternative has better coverage
+            const altImpact = analyzeTeamImpact(
+                altStart.toISOString().split('T')[0],
+                altEnd.toISOString().split('T')[0]
+            );
+            
+            if (altImpact.coverageLevel === 'Good') {
+                alternatives.push(altStart.toLocaleDateString());
+                if (alternatives.length >= 2) break; // Limit to 2 alternatives
+            }
+        }
+
+        return alternatives.length > 0 ? alternatives.join(', ') : 'Consider shorter duration';
+    }
+
+    function suggestBestPTODates() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const portalId = urlParams.get('portal');
+        
+        if (!portalId) return;
+        
+        const employee = employees.find(e => e.id === portalId);
+        if (!employee) return;
+
+        const suggestionsDiv = document.getElementById('pto-suggestions');
+        suggestionsDiv.innerHTML = '<div style="text-align: center; padding: 10px;">🔄 Analyzing best dates for PTO...</div>';
+        suggestionsDiv.style.display = 'block';
+
+        // Simulate analysis time
+        setTimeout(() => {
+            const suggestions = generatePTOSuggestions(employee);
+            displayPTOSuggestions(suggestions);
+        }, 1000);
+    }
+
+    function generatePTOSuggestions(employee) {
+        const suggestions = [];
+        const currentDate = new Date();
+        
+        // Analyze next 90 days for good PTO opportunities
+        for (let i = 7; i < 90; i += 7) { // Check weekly intervals
+            const checkDate = new Date(currentDate);
+            checkDate.setDate(currentDate.getDate() + i);
+            
+            // Check a 3-day period starting from this date
+            const endDate = new Date(checkDate);
+            endDate.setDate(checkDate.getDate() + 2);
+            
+            const impact = analyzeTeamImpact(
+                checkDate.toISOString().split('T')[0],
+                endDate.toISOString().split('T')[0]
+            );
+            
+            if (impact.coverageLevel === 'Good') {
+                suggestions.push({
+                    startDate: checkDate.toLocaleDateString(),
+                    endDate: endDate.toLocaleDateString(),
+                    reason: 'Good team coverage',
+                    score: 100 - impact.othersOnPTO * 10
+                });
+            }
+        }
+
+        // Sort by score and return top 3
+        return suggestions.sort((a, b) => b.score - a.score).slice(0, 3);
+    }
+
+    function displayPTOSuggestions(suggestions) {
+        const suggestionsDiv = document.getElementById('pto-suggestions');
+        
+        if (suggestions.length === 0) {
+            suggestionsDiv.innerHTML = '<div style="text-align: center; color: #666;">No optimal dates found in the next 90 days. Consider requesting shorter periods.</div>';
+            return;
+        }
+
+        let suggestionsHTML = '<h5>🎯 Recommended PTO Dates</h5>';
+        
+        suggestions.forEach((suggestion, index) => {
+            suggestionsHTML += `
+                <div style="padding: 8px; border: 1px solid #28a745; border-radius: 3px; margin: 5px 0; background: #f8fff8;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <strong>${suggestion.startDate} - ${suggestion.endDate}</strong>
+                        <button class="btn btn-success" onclick="useSuggestedDates('${suggestion.startDate}', '${suggestion.endDate}')" style="font-size: 12px; padding: 3px 8px;">Use These Dates</button>
+                    </div>
+                    <div style="font-size: 12px; color: #666; margin-top: 3px;">
+                        ${suggestion.reason} (Score: ${suggestion.score}/100)
+                    </div>
+                </div>
+            `;
+        });
+        
+        suggestionsDiv.innerHTML = suggestionsHTML;
+    }
+
+    function useSuggestedDates(startDateStr, endDateStr) {
+        // Convert display format to input format
+        const startDate = new Date(startDateStr);
+        const endDate = new Date(endDateStr);
+        
+        document.getElementById('pto-start-date').value = startDate.toISOString().split('T')[0];
+        document.getElementById('pto-end-date').value = endDate.toISOString().split('T')[0];
+        
+        updatePTOPreview();
+        
+        // Hide suggestions
+        document.getElementById('pto-suggestions').style.display = 'none';
+        
+        alert('✅ Suggested dates have been filled in the form!');
+    }
+
+    function showTeamPTOCalendar() {
+        const previewDiv = document.getElementById('team-pto-preview');
+        previewDiv.innerHTML = '<div style="text-align: center; padding: 10px;">🔄 Loading team PTO calendar...</div>';
+        previewDiv.style.display = 'block';
+
+        // Simulate loading time
+        setTimeout(() => {
+            const teamCalendar = generateTeamPTOPreview();
+            displayTeamPTOPreview(teamCalendar);
+        }, 800);
+    }
+
+    function generateTeamPTOPreview() {
+        const currentDate = new Date();
+        const calendar = [];
+        
+        // Generate next 30 days
+        for (let i = 0; i < 30; i++) {
+            const date = new Date(currentDate);
+            date.setDate(currentDate.getDate() + i);
+            const dateKey = date.toISOString().split('T')[0];
+            
+            const dayData = {
+                date: date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }),
+                dateKey: dateKey,
+                ptoEmployees: []
+            };
+            
+            // Check who's on PTO this day
+            employees.forEach(emp => {
+                if (emp.name.startsWith('OPEN SHIFTS') || emp.type === 'Bank') return;
+                
+                const shift = scheduleData[emp.name]?.[dateKey];
+                if (shift && shift.toUpperCase() === 'PTO') {
+                    dayData.ptoEmployees.push(emp.name.split(',')[0] || emp.name);
+                }
+            });
+            
+            calendar.push(dayData);
+        }
+        
+        return calendar;
+    }
+
+    function displayTeamPTOPreview(calendar) {
+        const previewDiv = document.getElementById('team-pto-preview');
+        
+        let calendarHTML = '<h5>📅 Team PTO - Next 30 Days</h5>';
+        calendarHTML += '<div style="max-height: 200px; overflow-y: auto;">';
+        
+        calendar.forEach(day => {
+            if (day.ptoEmployees.length > 0) {
+                calendarHTML += `
+                    <div style="padding: 5px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between;">
+                        <strong>${day.date}</strong>
+                        <span style="color: #dc3545;">${day.ptoEmployees.join(', ')}</span>
+                    </div>
+                `;
+            }
+        });
+        
+        if (calendar.every(day => day.ptoEmployees.length === 0)) {
+            calendarHTML += '<div style="text-align: center; padding: 20px; color: #666;">No team PTO scheduled in the next 30 days</div>';
+        }
+        
+        calendarHTML += '</div>';
+        calendarHTML += '<div style="text-align: center; margin-top: 10px;"><button class="btn btn-secondary" onclick="document.getElementById(\'team-pto-preview\').style.display=\'none\'" style="font-size: 12px;">Close</button></div>';
+        
+        previewDiv.innerHTML = calendarHTML;
+    }
+
+    // Enhanced PTO form listeners for the employee portal
+    function setupPTOFormListeners() {
+        const startDateInput = document.getElementById('pto-start-date');
+        const endDateInput = document.getElementById('pto-end-date');
+        
+        if (startDateInput && endDateInput) {
+            startDateInput.addEventListener('change', updatePTOPreview);
+            endDateInput.addEventListener('change', updatePTOPreview);
+            
+            // Set minimum date to today
+            const today = new Date().toISOString().split('T')[0];
+            startDateInput.min = today;
+            endDateInput.min = today;
+            
+            // Update end date minimum when start date changes
+            startDateInput.addEventListener('change', function() {
+                endDateInput.min = this.value;
+                if (endDateInput.value && endDateInput.value < this.value) {
+                    endDateInput.value = this.value;
+                }
+                updatePTOPreview();
+            });
+        }
+    }
+
     // ================== PWA AND MOBILE FEATURES ==================
     
     // PWA Installation
@@ -5596,7 +7027,6 @@ HR Department
         
         document.body.appendChild(modal);
     }
-
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </body>
