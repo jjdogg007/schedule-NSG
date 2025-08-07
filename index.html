@@ -1421,7 +1421,7 @@
                  <input id="empIndex" type="hidden"/>
                  <input id="empId" type="hidden"/>
                  <input id="newName" placeholder="Last, First" type="text"/>
-                 <select id="newType"><option value="FT">Full Time (FT)</option><option value="PT">Part Time (PT)</option></select>
+                 <select id="newType" onchange="handleEmployeeTypeChange()"><option value="FT">Full Time (FT)</option><option value="PT">Part Time (PT)</option></select>
                  <input id="newShifts" placeholder="Regular Shifts (e.g., 10a-6:30p)" type="text"/>
                  <div>
                     <label for="newTargetHours" style="font-size:12px;display:block;">Target Hours/Month</label>
@@ -1920,7 +1920,9 @@
 
 
 
+<!-- Temporarily disabled for offline testing
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.js"></script>
+-->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
@@ -1981,8 +1983,11 @@ const shiftTypes = {
     
     try {
         if (typeof supabase !== 'undefined') {
-            supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
-            console.log('Supabase client initialized successfully');
+            // Temporarily disable Supabase for testing
+            // supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
+            supabaseClient = null;
+            console.log('Supabase disabled for offline testing');
+            console.log('Running in localStorage-only mode');
             
             // Initialize real-time subscriptions for live updates
             initializeRealtimeSubscriptions();
@@ -4104,8 +4109,12 @@ function recordHistory() {
     }
 
 async function saveState() {
-    // Prevent accidental employee wipe: warn if employee list is empty
-    if (!employees || employees.length === 0) {
+    // Check if we're in manager view - only show empty employee warning for managers/admins
+    const isManagerView = document.getElementById('manager-view').style.display !== 'none';
+    const isEmployeePortalView = document.getElementById('employee-portal').style.display !== 'none';
+    
+    // Prevent accidental employee wipe: warn if employee list is empty BUT only in manager view
+    if ((!employees || employees.length === 0) && isManagerView && !isEmployeePortalView) {
         const confirmSave = confirm(
             "⚠️ WARNING: You are about to save with an empty employee list!\n\n" +
             "This will permanently delete all employee data from the database.\n\n" +
@@ -4139,7 +4148,22 @@ async function saveState() {
         }
     };
 
-    // Save to Supabase only
+    // Save to localStorage as fallback for offline testing
+    try {
+        localStorage.setItem('schedule-nsg-state', JSON.stringify(stateToSave));
+        console.log('✅ Successfully saved to localStorage (offline mode)');
+        
+        // Show success message
+        const saveTime = new Date().toLocaleTimeString();
+        updateLastSavedIndicator(saveTime);
+        return; // Exit early for offline mode
+    } catch (storageError) {
+        console.error('localStorage save failed:', storageError);
+        alert('❌ Failed to save data to local storage. Storage may be full.');
+        return;
+    }
+
+    // Save to Supabase only (disabled for testing)
     try {
         if (typeof supabaseClient !== 'undefined' && supabaseClient !== null) {
             const { error } = await supabaseClient
@@ -4171,9 +4195,11 @@ async function saveState() {
             updateLastSavedIndicator(saveTime);
             
         } else {
-            const errorMsg = 'Cloud database not available - cannot save data';
-            alert(`❌ Save Failed\n\n${errorMsg}\n\nPlease check your internet connection and refresh the page.`);
-            throw new Error(errorMsg);
+            console.log('💾 Cloud database disabled - data saved to localStorage only');
+            // Don't show error in offline mode
+            // const errorMsg = 'Cloud database not available - cannot save data';
+            // alert(`❌ Save Failed\n\n${errorMsg}\n\nPlease check your internet connection and refresh the page.`);
+            // throw new Error(errorMsg);
         }
     } catch (err) {
         console.error("Save failed:", err);
@@ -4653,7 +4679,63 @@ async function loadState() {
     let records = null;
     let error = null;
     
-    // Load from Supabase only
+async function loadState() {
+    console.log('Starting loadState function...');
+    const urlParams = new URLSearchParams(window.location.search);
+    const portalId = urlParams.get('portal');
+    
+    let records = null;
+    let error = null;
+    
+    // First try to load from localStorage for offline mode
+    try {
+        const localData = localStorage.getItem('schedule-nsg-state');
+        if (localData) {
+            const parsedData = JSON.parse(localData);
+            console.log('✅ Successfully loaded from localStorage (offline mode)');
+            
+            if (portalId) {
+                document.getElementById('manager-view').style.display = 'none';
+                document.getElementById('employee-portal').style.display = 'block';
+                loadAndRenderPortal(portalId, parsedData);
+                return;
+            }
+            
+            // Manager view - load from localStorage
+            const state = parsedData;
+            employees = state.employees || [];
+            scheduleData = state.schedule || {};
+            notesData = state.notesData || {};
+            bidsData = state.bidsData || {};
+            notifications = state.notifications || {};
+            ptoRequests = state.ptoRequests || {};
+            employeePTOBalances = state.employeePTOBalances || {};
+            announcements = state.announcements || [];
+            auditLogs = state.auditLogs || [];
+            shiftNotes = state.shiftNotes || {};
+            shiftSwaps = state.shiftSwaps || [];
+            shiftBids = state.shiftBids || [];
+            shiftFeedback = state.shiftFeedback || [];
+            notificationQueue = state.notificationQueue || [];
+            autoApprovalRules = state.autoApprovalRules || { enabled: false, rule: 'firstCome' };
+
+            if (state.config) {
+                document.getElementById('targetHours').value = state.config.targetHours || 160;
+                document.getElementById('minStaff').value = state.config.minStaff || 3;
+            }
+            
+            if (state.month) {
+                document.getElementById('scheduleMonth').value = state.month;
+            }
+            renderTable();
+            renderEmployeeList();
+            return;
+        }
+    } catch (localError) {
+        console.warn('Could not load from localStorage:', localError);
+    }
+    
+    // Fallback: Load from Supabase only (disabled for testing)
     try {
         if (typeof supabaseClient !== 'undefined' && supabaseClient !== null) {
             console.log('Attempting to load from Supabase...');
@@ -4680,32 +4762,40 @@ async function loadState() {
             error = result.error;
             console.log('Supabase load result:', { records: !!records, error });
         } else {
-            throw new Error('Supabase client not available - cannot load data');
+            console.log('💾 Cloud database disabled - using localStorage only');
+            // Don't throw error in offline mode
+            // throw new Error('Supabase client not available - cannot load data');
         }
     } catch (err) {
         console.error("Could not load from cloud:", err);
         error = err;
         
-        // Show user-friendly error message
-        let userMessage = "Failed to load data from cloud database. ";
-        if (err.message && err.message.includes('Supabase client not available')) {
-            userMessage = "Cloud database is not available. ";
-        } else if (err.code === 'PGRST301') {
-            userMessage = "Database connection timeout. ";
-        } else if (err.message) {
-            userMessage += `Error: ${err.message} `;
-        }
-        userMessage += "Please check your internet connection and refresh the page.";
-        
-        // Only show alert for serious errors, not missing data
-        if (err.code !== 'PGRST116') { // PGRST116 = no data found, which is normal for new instances
-            alert(`❌ Load Failed\n\n${userMessage}`);
+        // Don't show alerts in offline mode (when supabaseClient is disabled)
+        if (typeof supabaseClient !== 'undefined' && supabaseClient !== null) {
+            // Show user-friendly error message only if cloud is expected to work
+            let userMessage = "Failed to load data from cloud database. ";
+            if (err.message && err.message.includes('Supabase client not available')) {
+                userMessage = "Cloud database is not available. ";
+            } else if (err.code === 'PGRST301') {
+                userMessage = "Database connection timeout. ";
+            } else if (err.message) {
+                userMessage += `Error: ${err.message} `;
+            }
+            userMessage += "Please check your internet connection and refresh the page.";
+            
+            // Only show alert for serious errors, not missing data
+            if (err.code !== 'PGRST116') { // PGRST116 = no data found, which is normal for new instances
+                alert(`❌ Load Failed\n\n${userMessage}`);
+            }
+        } else {
+            console.log('💾 Cloud database disabled - continuing with empty state or localStorage');
         }
     }
 
-    if (error && error.code !== 'PGRST116' && !records) {
+    if (error && error.code !== 'PGRST116' && !records && supabaseClient !== null) {
         console.error("Error loading state:", error);
         // Don't show error for "no data found" (PGRST116) as this is expected for new instances
+        // Also don't show error if we're in offline mode
         if (error.code !== 'PGRST116') {
             let errorDetail = error.message || 'Unknown database error';
             console.warn('Load error details:', errorDetail);
@@ -5422,6 +5512,37 @@ function exportPersonalSchedule(portalId) {
         document.getElementById('empIndex').value = '-1';
         document.getElementById('empId').value = '';
         document.getElementById('newName').value = ''; document.getElementById('newType').value = 'FT'; document.getElementById('newShifts').value = ''; document.getElementById('newAvailability').value = ''; document.getElementById('newMaxDays').value = '0'; document.getElementById('newTargetHours').value = '0'; document.getElementById('newEmail').value = ''; document.getElementById('newHireDate').value = '';
+        // Trigger auto-hours for default FT selection
+        handleEmployeeTypeChange();
+    }
+
+    function handleEmployeeTypeChange() {
+        const typeSelect = document.getElementById('newType');
+        const hoursInput = document.getElementById('newTargetHours');
+        const selectedType = typeSelect.value;
+        
+        if (selectedType === 'FT') {
+            // Full Time: Set to 80 hours (2 weeks) and make read-only unless overridden
+            hoursInput.value = '80';
+            hoursInput.style.backgroundColor = '#f8f9fa';
+            hoursInput.title = 'FT default: 80 hours per 2 weeks. Double-click to override.';
+            hoursInput.readOnly = true;
+            
+            // Allow admin override with double-click
+            hoursInput.addEventListener('dblclick', function() {
+                this.readOnly = false;
+                this.style.backgroundColor = '#fff';
+                this.title = 'Custom hours (overriding FT default)';
+                this.focus();
+            });
+        } else if (selectedType === 'PT') {
+            // Part Time: Allow manual entry with suggested default
+            hoursInput.value = '60';
+            hoursInput.style.backgroundColor = '#fff';
+            hoursInput.title = 'Enter target hours for part-time employee';
+            hoursInput.readOnly = false;
+            hoursInput.focus();
+        }
     }
 
     function renderEmployeeList() {
