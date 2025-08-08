@@ -92,7 +92,7 @@ class ScheduleDataManager {
         }
     }
 
-    aasync loadFromSupabase() {
+    async loadFromSupabase() {
     try {
         // Fetch employees
         const { data: employeesData, error: employeesError } = await this.supabaseClient
