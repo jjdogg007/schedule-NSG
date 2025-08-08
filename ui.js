@@ -57,23 +57,10 @@ export class UIManager {
     }
 
     async initializeDashboard() {
-        console.log("Running initializeDashboard...");
         const managerView = document.getElementById('manager-view');
-
-        if (!managerView) {
-            console.error("FATAL: manager-view element not found in the DOM.");
-            return;
-        }
-        console.log("manager-view element found.");
-
-        if (managerView.innerHTML.trim() !== '') {
-            console.warn("manager-view is not empty. Skipping dashboard initialization.");
-            return;
-        }
-        console.log("manager-view is empty. Proceeding with initialization.");
+        if (!managerView || managerView.innerHTML.trim() !== '') return;
 
         const currentMonth = new Date().toISOString().slice(0, 7);
-        console.log("Setting dashboard HTML...");
         managerView.innerHTML = `
         <div class="dashboard-header">
             <div class="dashboard-title">
