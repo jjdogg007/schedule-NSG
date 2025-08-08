@@ -28,8 +28,8 @@ class ScheduleApp {
             window.apiManager = this.apiManager;
             window.uiManager = this.uiManager;
             
-            // Load and render initial data
-            await this.uiManager.initializeData();
+            // Initialize the UI, which includes setting up listeners and loading data
+            await this.uiManager.initialize();
             
             this.isInitialized = true;
             console.log('Schedule NSG application initialized successfully');
