@@ -28,10 +28,45 @@
         </div>
     </div>
 
-    <div id="manager-view"></div>
-    
+    <div id="manager-view">
+        <div class="dashboard-header">
+            <div class="dashboard-title">
+                <div>
+                    <h1>Schedule Dashboard</h1>
+                    <p class="dashboard-subtitle">Complete employee scheduling workspace</p>
+                </div>
+                <div style="text-align: right;">
+                    <label for="scheduleMonth" style="display: block; font-size: 0.875rem; color: #cbd5e1; margin-bottom: 0.5rem;">Current Month:</label>
+                    <input id="scheduleMonth" type="month" style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: white; padding: 0.5rem; border-radius: 0.5rem;"/>
+                </div>
+            </div>
+        </div>
+        <div class="dashboard-main">
+            <div class="schedule-section">
+                <div class="schedule-header">
+                    <h2>📅 Current Schedule</h2>
+                </div>
+                <div class="schedule-content">
+                    <div class="table-container">
+                        <table id="schedule-table"><thead></thead><tbody></tbody></table>
+                    </div>
+                </div>
+            </div>
+            <div class="action-cards">
+                <div class="action-card">
+                    <h3>Team Management</h3>
+                    <button class="btn btn-primary" data-action="openEmployeeModal">👥 Manage Employees</button>
+                </div>
+                <div class="action-card">
+                    <h3>Time Off Center</h3>
+                    <button class="btn btn-primary" data-action="openPTORequestsModal">🏖️ Review Requests</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div id="employee-portal" style="display:none;">
-        <!-- The UIManager will populate this -->
+        <!-- Employee portal content will be generated here -->
     </div>
 
     <!-- MODALS -->
