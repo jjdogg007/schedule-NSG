@@ -1927,6 +1927,7 @@
 <script>
     let notifications = {};
     let employees = [];
+    let isInitialLoadComplete = false;
     let scheduleData = {};
     let notesData = {};
     let currentDates = [];
@@ -3901,6 +3902,52 @@ const shiftTypes = {
             const class_ = staffCount < minStaff ? 'dashboard-low-staff' : '';
             return `<tr class="${class_}"><td>${date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</td><td>${staffCount}</td><td>${dailyHours.toFixed(1)}</td></tr>`;
         }).join('') + '</tbody>';
+        
+        // Update main dashboard metrics
+        updateMainMetrics();
+    }
+
+    function updateMainMetrics() {
+        // Update total employees count (excluding OPEN SHIFTS rows)
+        const actualEmployees = employees.filter(emp => !emp.name.startsWith('OPEN SHIFTS'));
+        const totalEmployeesElement = document.getElementById('total-employees-metric');
+        if (totalEmployeesElement) {
+            totalEmployeesElement.textContent = actualEmployees.length;
+        }
+        
+        // Update PTO requests count
+        const pendingPTORequests = Object.values(ptoRequests || {}).filter(req => req.status === 'pending').length;
+        const ptoMetricElement = document.getElementById('pto-requests-metric');
+        if (ptoMetricElement) {
+            ptoMetricElement.textContent = pendingPTORequests;
+        }
+        
+        // Update schedule coverage percentage (basic calculation)
+        let totalPossibleShifts = 0;
+        let filledShifts = 0;
+        const currentMonth = document.getElementById('scheduleMonth')?.value;
+        if (currentMonth && scheduleData) {
+            actualEmployees.forEach(emp => {
+                if (scheduleData[emp.name]) {
+                    Object.keys(scheduleData[emp.name]).forEach(dateKey => {
+                        if (dateKey.startsWith(currentMonth)) {
+                            totalPossibleShifts++;
+                            if (scheduleData[emp.name][dateKey] && scheduleData[emp.name][dateKey].trim() !== '') {
+                                filledShifts++;
+                            }
+                        }
+                    });
+                }
+            });
+        }
+        
+        const coveragePercentage = totalPossibleShifts > 0 ? Math.round((filledShifts / totalPossibleShifts) * 100) : 0;
+        const coverageMetricElement = document.getElementById('coverage-metric');
+        if (coverageMetricElement) {
+            coverageMetricElement.textContent = `${coveragePercentage}%`;
+        }
+        
+        console.log(`Updated metrics: ${actualEmployees.length} employees, ${pendingPTORequests} PTO requests, ${coveragePercentage}% coverage`);
     }
 
   function updateShift(element, employeeName, dateKey) {
@@ -4117,7 +4164,8 @@ async function saveState() {
     const isEmployeePortalView = document.getElementById('employee-portal').style.display !== 'none';
     
     // Prevent accidental employee wipe: warn if employee list is empty BUT only in manager view
-    if ((!employees || employees.length === 0) && isManagerView && !isEmployeePortalView) {
+    // AND only after initial data loading is complete
+    if ((!employees || employees.length === 0) && isManagerView && !isEmployeePortalView && isInitialLoadComplete) {
         const confirmSave = confirm(
             "⚠️ WARNING: You are about to save with an empty employee list!\n\n" +
             "This will permanently delete all employee data from the database.\n\n" +
@@ -4920,6 +4968,15 @@ async function loadState() {
     
     console.log('Recording history...');
     recordHistory();
+    
+    // Mark initial loading as complete
+    isInitialLoadComplete = true;
+    console.log('Initial data loading completed, warnings now enabled');
+    
+    // Update dashboard metrics after data loads
+    if (typeof updateMainMetrics === 'function') {
+        updateMainMetrics();
+    }
     
     console.log('loadState completed successfully');
 }
@@ -9697,7 +9754,7 @@ HR Department
             <!-- Key Metrics Dashboard -->
             <div class="metrics-dashboard">
                 <div class="metric-card">
-                    <div class="metric-value" id="total-employees-metric">${employees.length}</div>
+                    <div class="metric-value" id="total-employees-metric">0</div>
                     <div class="metric-label">Total Employees</div>
                     <div class="metric-change neutral" id="employee-change">Current roster</div>
                 </div>
