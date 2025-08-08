@@ -1984,12 +1984,20 @@ const shiftTypes = {
             supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
             console.log('Supabase client initialized successfully');
             
-            // Initialize real-time subscriptions for live updates
-            initializeRealtimeSubscriptions();
-        } else {
-            console.error('Supabase library not available - application requires cloud database');
-        }
-    } catch (error) {
+           // TEST: Fetch from employees table and log result
+        supabaseClient
+            .from('employees')
+            .select('*')
+            .then(({ data, error }) => {
+                console.log('TEST FETCH from employees table:', data, error);
+            });
+
+        // Initialize real-time subscriptions for live updates
+        initializeRealtimeSubscriptions();
+    } else {
+        console.error('Supabase library not available - application requires cloud database');
+    }
+} catch (error) {
         console.warn('Failed to initialize Supabase client:', error);
         supabaseClient = null;
     }
