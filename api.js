@@ -146,45 +146,32 @@ export class ApiManager {
         return { employees, auditLog };
     }
 
-    async saveEmployeeData(employees, auditLog) {
+    async saveEmployeeData(stateToSave) {
         // Always save to localStorage first
-        localStorage.setItem('employees', JSON.stringify(employees));
-        localStorage.setItem('auditLog', JSON.stringify(auditLog));
+        localStorage.setItem('schedule-nsg-state', JSON.stringify(stateToSave));
 
         // If online, sync to Supabase
         if (this.isOnline && this.supabaseClient) {
             try {
-                await this.syncToSupabase(employees, auditLog);
+                await this.syncToSupabase(stateToSave);
                 this.updateLastSavedIndicator('Saved to cloud');
             } catch (error) {
                 console.error('Failed to sync to Supabase:', error);
-                this.addToSyncQueue({ employees, auditLog });
+                this.addToSyncQueue(stateToSave);
                 this.updateLastSavedIndicator('Saved locally, will sync later');
             }
         } else {
-            this.addToSyncQueue({ employees, auditLog });
+            this.addToSyncQueue(stateToSave);
             this.updateLastSavedIndicator('Saved locally');
         }
     }
 
-    async syncToSupabase(employees, auditLog) {
-        // Sync employees
-        for (const employee of employees) {
-            const { error } = await this.supabaseClient
-                .from('employees')
-                .upsert(employee, { onConflict: 'id' });
-            
-            if (error) throw error;
-        }
+    async syncToSupabase(stateToSave) {
+        const { error } = await this.supabaseClient
+            .from('schedules')
+            .upsert({ id: 1, data: stateToSave }, { onConflict: 'id' });
 
-        // Sync audit log
-        for (const logEntry of auditLog) {
-            const { error } = await this.supabaseClient
-                .from('audit_log')
-                .upsert(logEntry, { onConflict: 'id' });
-            
-            if (error) throw error;
-        }
+        if (error) throw error;
 
         console.log('Successfully synced to Supabase');
     }

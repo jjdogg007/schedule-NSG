@@ -51,76 +51,37 @@ export class UIManager {
     }
 
     async initialize() {
-        await this.initializeDashboard(); // Create the basic HTML structure first
-        this.setupEventListeners(); // Then attach listeners to it
-        await this.initializeData(); // Finally, load the data
-    }
-
-    async initializeDashboard() {
-        const managerView = document.getElementById('manager-view');
-        if (!managerView || managerView.innerHTML.trim() !== '') return;
-
-        const currentMonth = new Date().toISOString().slice(0, 7);
-        managerView.innerHTML = `
-        <div class="dashboard-header">
-            <div class="dashboard-title">
-                <div>
-                    <h1>Schedule Dashboard</h1>
-                    <p class="dashboard-subtitle">Complete employee scheduling workspace</p>
-                </div>
-                <div style="text-align: right;">
-                    <label for="scheduleMonth" style="display: block; font-size: 0.875rem; color: #cbd5e1; margin-bottom: 0.5rem;">Current Month:</label>
-                    <input id="scheduleMonth" type="month" value="${currentMonth}" style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: white; padding: 0.5rem; border-radius: 0.5rem;"/>
-                </div>
-            </div>
-        </div>
-        <div class="dashboard-main">
-            <div class="schedule-section">
-                <div class="schedule-header">
-                    <h2>📅 Current Schedule</h2>
-                </div>
-                <div class="schedule-content">
-                    <div class="table-container">
-                        <table id="schedule-table"><thead></thead><tbody></tbody></table>
-                    </div>
-                </div>
-            </div>
-            <div class="action-cards">
-                <div class="action-card">
-                    <h3>Team Management</h3>
-                    <button class="btn btn-primary" data-action="openEmployeeModal">👥 Manage Employees</button>
-                </div>
-            </div>
-        </div>
-        `;
-
-        // Allow the DOM to update
-        await new Promise(resolve => setTimeout(resolve, 0));
+        this.setupEventListeners();
+        await this.initializeData();
     }
 
     setupEventListeners() {
-        // Use a single delegated event listener for simplicity and performance
         document.body.addEventListener('click', (event) => {
-            const target = event.target;
-            const actionTarget = target.closest('[data-action]');
-
+            const actionTarget = event.target.closest('[data-action]');
             if (!actionTarget) return;
 
             const action = actionTarget.dataset.action;
             const params = actionTarget.dataset.params;
 
-            if (action === 'closeAllModals' || target.classList.contains('close')) this.closeAllModals();
-            if (action === 'openEmployeeModal') this.openEmployeeModal();
-            if (action === 'saveEmployee') this.saveEmployee();
-            if (action === 'clearEmployeeForm') this.clearEmployeeForm();
-            if (action === 'deleteEmployee' && params) this.deleteEmployee(parseInt(params));
-            if (action === 'editEmployee' && params) this.editEmployee(parseInt(params));
-            if (action === 'copyPortalLink' && params) this.copyPortalLink(parseInt(params));
-            if (action === 'openNoteModal') this.openNoteModal();
-            if (action === 'saveNote') this.saveNote();
+            const actions = {
+                openEmployeeModal: () => this.openEmployeeModal(),
+                openPTORequestsModal: () => this.openPTORequestsModal(),
+                saveEmployee: () => this.saveEmployee(),
+                clearEmployeeForm: () => this.clearEmployeeForm(),
+                deleteEmployee: () => this.deleteEmployee(parseInt(params)),
+                editEmployee: () => this.editEmployee(parseInt(params)),
+                copyPortalLink: () => this.copyPortalLink(parseInt(params)),
+                openNoteModal: () => this.openNoteModal(),
+                saveNote: () => this.saveNote(),
+                closeAllModals: () => this.closeAllModals(),
+                sendChangeNotification: () => this.sendChangeNotification(),
+            };
+
+            if (actions[action]) {
+                actions[action]();
+            }
         });
 
-        // Listeners that aren't simple clicks
         const scheduleMonthInput = document.getElementById('scheduleMonth');
         if (scheduleMonthInput) {
             scheduleMonthInput.addEventListener('change', (e) => {
@@ -331,7 +292,7 @@ export class UIManager {
         if (totalEmployeesElement) {
             totalEmployeesElement.textContent = actualEmployees.length;
         }
-        
+
         const pendingPTORequests = Object.values(this.ptoRequests || {}).filter(req => req.status === 'pending').length;
         const ptoMetricElement = document.getElementById('pto-requests-metric');
         if (ptoMetricElement) {
@@ -355,7 +316,7 @@ export class UIManager {
                 }
             });
         }
-        
+
         const coveragePercentage = totalPossibleShifts > 0 ? Math.round((filledShifts / totalPossibleShifts) * 100) : 0;
         const coverageMetricElement = document.getElementById('coverage-metric');
         if (coverageMetricElement) {
@@ -393,7 +354,8 @@ export class UIManager {
             this.scheduleData[employeeName][dateKey] = newShift;
         }
 
-        this.saveState();
+        this.saveData();
+        this.saveData();
         this.renderTable();
     }
 
@@ -442,7 +404,7 @@ export class UIManager {
         menu.style.display = 'block';
     }
 
-    async saveState() {
+    async saveData() {
         const stateToSave = {
             employees: this.employees,
             schedule: this.scheduleData,
@@ -461,7 +423,7 @@ export class UIManager {
         };
 
         try {
-            await this.apiManager.saveData(stateToSave);
+            await this.apiManager.saveEmployeeData(stateToSave);
             this.showNotification('Data saved successfully!', 'success');
         } catch (error) {
             this.showNotification('Failed to save data. ' + error.message, 'error');
@@ -596,7 +558,7 @@ export class UIManager {
         }
         this.renderEmployeeList();
         this.renderTable();
-        this.saveState();
+        this.saveData();
         this.closeAllModals();
     }
 
@@ -674,10 +636,55 @@ export class UIManager {
 
             this.renderEmployeeList();
             this.renderTable();
-            this.saveState();
+            this.saveData();
 
             alert(`✅ ${employee.name} has been archived.\n\nTheir history is preserved and they can be restored from the admin panel.`);
         }
+    }
+
+    openPTORequestsModal() {
+        const modal = document.getElementById('ptoRequestsModal');
+        if(modal) modal.style.display = 'block';
+    }
+
+    openTeamDirectory() {
+        // Placeholder
+    }
+
+    openAnnouncementsModal() {
+        // Placeholder
+    }
+
+    openAuditLogsModal() {
+        // Placeholder
+    }
+
+    requestNotificationPermission() {
+        // Placeholder
+    }
+
+    installPWA() {
+        // Placeholder
+    }
+
+    dismissPWABanner() {
+        // Placeholder
+    }
+
+    setActiveBottomNav() {
+        // Placeholder
+    }
+
+    openTrainingModal() {
+        // Placeholder
+    }
+
+    sendChangeNotification() {
+        if (!this.notificationInfo) return;
+        const { employeeName, dateKey, originalShift, newShift } = this.notificationInfo;
+        // ... rest of logic
+        this.closeAllModals();
+        this.notificationInfo = null;
     }
 
     initializeDefaultData() {
@@ -701,7 +708,7 @@ export class UIManager {
             this.notesData[employeeName][dateKey] = document.getElementById('noteText').value;
             this.closeAllModals();
             this.renderTable();
-            this.saveState();
+            this.saveData();
         }
     }
 
@@ -780,7 +787,7 @@ export class UIManager {
                         }
 
                         this.generateSchedule(content.month);
-                        this.saveState();
+                        this.saveData();
                         this.closeAllModals();
                         this.showNotification('✅ Data imported successfully!', 'success');
                     }
@@ -815,7 +822,7 @@ export class UIManager {
         a.download = `schedule_backup_${backupData.month}.json`;
         a.click();
         URL.revokeObjectURL(a.href);
-        
+
         this.closeAllModals();
         this.showNotification('✅ Data exported successfully!', 'success');
     }
@@ -824,7 +831,7 @@ export class UIManager {
         const select = document.getElementById('emailEmployee');
         select.innerHTML = this.employees.filter(e => !e.name.startsWith('OPEN SHIFTS'))
             .map(e => `<option value="${e.name}">${e.name}</option>`).join('');
-        
+
         document.getElementById('emailModal').style.display = 'block';
     }
 
@@ -990,7 +997,7 @@ export class UIManager {
                 }
 
                 this.renderTable();
-                this.saveState();
+                this.saveData();
                 this.closeAllModals();
 
                 let alertMessage = `✅ Import successful! ${shiftsImported} shifts were loaded from sheet "${firstVisibleSheetName}".`;
