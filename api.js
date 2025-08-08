@@ -3,6 +3,7 @@
 
 export class ApiManager {
     constructor() {
+        this.uiManager = null;
         this.isOnline = navigator.onLine;
         this.supabaseClient = null;
         this.syncQueue = JSON.parse(localStorage.getItem('syncQueue')) || [];
@@ -13,6 +14,10 @@ export class ApiManager {
         
         this.initializeSupabase();
         this.setupConnectionListeners();
+
+        // Start periodic online check
+        this.checkOnlineStatus(); // Initial check
+        setInterval(() => this.checkOnlineStatus(), 10000); // Check every 10 seconds
     }
 
     async initializeSupabase() {
@@ -34,28 +39,53 @@ export class ApiManager {
         }
     }
 
-    setupConnectionListeners() {
-        // Online/offline detection
-        window.addEventListener('online', () => {
-            this.isOnline = true;
-            console.log('Connection restored - syncing data...');
-            this.syncPendingChanges();
-            this.updateConnectionStatus(true);
-        });
-
-        window.addEventListener('offline', () => {
-            this.isOnline = false;
-            console.log('Connection lost - switching to offline mode');
-            this.updateConnectionStatus(false);
-        });
+    setUIManager(uiManager) {
+        this.uiManager = uiManager;
+        if (this.uiManager) {
+            this.uiManager.updateConnectionStatus(this.isOnline);
+        }
     }
 
-    updateConnectionStatus(isOnline) {
-        const statusElement = document.getElementById('connection-status');
-        if (statusElement) {
-            statusElement.textContent = isOnline ? '🟢 Connected' : '🔴 Offline';
-            statusElement.style.color = isOnline ? '#059669' : '#dc2626';
+    async checkOnlineStatus() {
+        console.log('Running online status check at', new Date().toLocaleTimeString());
+        try {
+            // Fetch a small, non-cached resource to be sure.
+            const response = await fetch('https://httpbin.org/get?d=' + Date.now(), {
+                method: 'GET',
+                cache: 'no-store',
+                headers: {
+                    'Cache-Control': 'no-cache',
+                    'Pragma': 'no-cache'
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error('Network response was not ok.');
+            }
+
+            if (!this.isOnline) {
+                console.log('Connection restored - syncing data...');
+                this.isOnline = true;
+                if (this.uiManager) this.uiManager.updateConnectionStatus(true);
+                this.syncPendingChanges();
+            }
+        } catch (error) {
+            if (this.isOnline) {
+                console.log('Connection lost - switching to offline mode');
+                this.isOnline = false;
+                if (this.uiManager) this.uiManager.updateConnectionStatus(false);
+            }
         }
+    }
+
+    setupConnectionListeners() {
+        // These listeners provide immediate feedback but are verified by checkOnlineStatus
+        window.addEventListener('online', () => this.checkOnlineStatus());
+        window.addEventListener('offline', () => {
+            console.log("Offline event triggered!");
+            this.isOnline = false;
+            if (this.uiManager) this.uiManager.updateConnectionStatus(false);
+        });
     }
 
     async loadEmployeeData() {
