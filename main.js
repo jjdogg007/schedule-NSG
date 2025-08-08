@@ -94,37 +94,33 @@ class ScheduleDataManager {
 
     async loadFromSupabase() {
         try {
-            // Load employees
-            const { data: employeesData, error: employeesError } = await this.supabaseClient
-                .from('employees')
-                .select('*')
-                 console.log('Fetched employees from Supabase:', employeesData, employeesError);
-                .order('created_at', { ascending: true });
+    // Fetch employees
+    const { data: employeesData, error: employeesError } = await this.supabaseClient
+        .from('employees')
+        .select('*')
+        .order('created_at', { ascending: true });
+    if (employeesError) throw employeesError;
 
-            if (employeesError) throw employeesError;
+    // Fetch audit log
+    const { data: auditData, error: auditError } = await this.supabaseClient
+        .from('audit_log')
+        .select('*')
+        .order('timestamp', { ascending: false });
+    if (auditError) throw auditError;
 
-            // Load audit log
-            const { data: auditData, error: auditError } = await this.supabaseClient
-                .from('audit_log')
-                .select('*')
-                .order('timestamp', { ascending: false });
+    // Assign the results
+    this.employees = employeesData || [];
+    this.auditLog = auditData || [];
 
-            if (auditError) throw auditError;
+    // Optionally update localStorage
+    localStorage.setItem('employees', JSON.stringify(this.employees));
+    localStorage.setItem('auditLog', JSON.stringify(this.auditLog));
 
-            this.employees = employeesData || [];
-            this.auditLog = auditData || [];
-
-            // Update localStorage cache
-            localStorage.setItem('employees', JSON.stringify(this.employees));
-            localStorage.setItem('auditLog', JSON.stringify(this.auditLog));
-
-            console.log('Data loaded from Supabase successfully');
-        } catch (error) {
-            console.error('Error loading from Supabase:', error);
-            throw error;
-        }
-    }
-
+    console.log('Data loaded from Supabase successfully');
+} catch (error) {
+    console.error('Error loading from Supabase:', error);
+    throw error;
+}
     loadFromLocalStorage() {
         this.employees = JSON.parse(localStorage.getItem('employees')) || [];
         this.auditLog = JSON.parse(localStorage.getItem('auditLog')) || [];
