@@ -222,7 +222,8 @@ export class UIManager {
     renderTable() {
         const table = document.getElementById('schedule-table');
         if (!table) {
-            console.error('schedule-table element not found');
+            console.error('schedule-table element not found. Retrying in 100ms...');
+            setTimeout(() => this.renderTable(), 100);
             return;
         }
 
