@@ -49,9 +49,9 @@ export class ApiManager {
     async checkOnlineStatus() {
         console.log('Running online status check at', new Date().toLocaleTimeString());
         try {
-            // Fetch a small, non-cached resource to be sure.
-            const response = await fetch('https://httpbin.org/get?d=' + Date.now(), {
-                method: 'GET',
+            // Fetch a small, non-cached local resource to be sure.
+            const response = await fetch('/icon-192.svg?d=' + Date.now(), {
+                method: 'HEAD',
                 cache: 'no-store',
                 headers: {
                     'Cache-Control': 'no-cache',
@@ -88,7 +88,7 @@ export class ApiManager {
         });
     }
 
-    async loadEmployeeData() {
+    async loadData() {
         try {
             // Try to load from Supabase first (source of truth)
             if (this.isOnline && this.supabaseClient) {
