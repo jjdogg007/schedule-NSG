@@ -9844,6 +9844,38 @@ HR Department
 
                 <div class="action-card">
                     <div class="card-header">
+                        <span class="card-icon">☁️</span>
+                        <h3 class="card-title">Cloud Employee Management</h3>
+                    </div>
+                    <p class="card-description">Supabase-powered employee management with offline sync capability</p>
+                    <div class="quick-actions">
+                        <button class="btn btn-primary" onclick="toggleEmployeeManagementPanel()">👥 Employee Manager</button>
+                        <button class="btn btn-outline" onclick="toggleAuditLogPanel()">📋 Cloud Audit Log</button>
+                    </div>
+                    <!-- Employee Management Panel -->
+                    <div id="employee-management-panel" style="display: none; margin-top: 15px; padding: 15px; background: #f8f9fa; border-radius: 8px; border: 1px solid #e9ecef;">
+                        <h4>Add New Employee</h4>
+                        <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 10px;">
+                            <input type="text" id="employee-name" placeholder="Employee Name" style="flex: 1; padding: 8px; border: 1px solid #ced4da; border-radius: 4px;">
+                            <button id="add-employee" class="btn btn-success">Add</button>
+                            <button id="save-employees" class="btn btn-primary">Bulk Save</button>
+                        </div>
+                        <h5>Current Employees</h5>
+                        <ul id="employee-list" style="list-style: none; padding: 0; max-height: 200px; overflow-y: auto; background: white; border: 1px solid #dee2e6; border-radius: 4px; padding: 10px;">
+                            <!-- Employees will be populated here -->
+                        </ul>
+                    </div>
+                    <!-- Audit Log Panel -->
+                    <div id="audit-log-panel" style="display: none; margin-top: 15px; padding: 15px; background: #f8f9fa; border-radius: 8px; border: 1px solid #e9ecef;">
+                        <h4>System Audit Log</h4>
+                        <ul id="audit-log" style="list-style: none; padding: 0; max-height: 300px; overflow-y: auto; background: white; border: 1px solid #dee2e6; border-radius: 4px; padding: 10px;">
+                            <!-- Audit log entries will be populated here -->
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="action-card">
+                    <div class="card-header">
                         <span class="card-icon">⚠️</span>
                         <h3 class="card-title">Employee Archive</h3>
                     </div>
@@ -11220,9 +11252,35 @@ HR Department
         updateWaitlistMetrics();
     });
 
+    // ==== Cloud Employee Management Panel Functions ====
+    function toggleEmployeeManagementPanel() {
+        const panel = document.getElementById('employee-management-panel');
+        const auditPanel = document.getElementById('audit-log-panel');
+        
+        if (panel.style.display === 'none') {
+            panel.style.display = 'block';
+            auditPanel.style.display = 'none'; // Hide audit log panel
+        } else {
+            panel.style.display = 'none';
+        }
+    }
+
+    function toggleAuditLogPanel() {
+        const panel = document.getElementById('audit-log-panel');
+        const empPanel = document.getElementById('employee-management-panel');
+        
+        if (panel.style.display === 'none') {
+            panel.style.display = 'block';
+            empPanel.style.display = 'none'; // Hide employee panel
+        } else {
+            panel.style.display = 'none';
+        }
+    }
+
     // ==== END NEW FEATURES ====
 
 </script>
+<script src="main.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </body>
 </html>
