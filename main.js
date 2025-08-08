@@ -1,443 +1,265 @@
-// Main.js - Supabase integration with localStorage fallback
-// Implements offline-first architecture with automatic sync
+// main.js - Coordinates app lifecycle and event listeners
+// Entry point for the modular schedule application
 
-class ScheduleDataManager {
+import { ApiManager } from './api.js';
+import { UIManager } from './ui.js';
+
+class ScheduleApp {
     constructor() {
-        this.isOnline = navigator.onLine;
-        this.supabaseClient = null;
-        this.syncQueue = JSON.parse(localStorage.getItem('syncQueue')) || [];
-        this.employees = [];
-        this.auditLog = [];
+        this.apiManager = null;
+        this.uiManager = null;
+        this.isInitialized = false;
         
-        // Supabase configuration
-        this.supabaseUrl = "https://ulefvfpvgfdavztlwmpu.supabase.co";
-        this.supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVsZWZ2ZnB2Z2ZkYXZ6dGx3bXB1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ0OTIzMDksImV4cCI6MjA3MDA2ODMwOX0.Se8nQg3BZUAYnt3bahw7iNePXm8G3X5PbH83XHY8edo";
-        
-        this.initializeSupabase();
-        this.setupEventListeners();
-        this.loadInitialData();
+        this.initialize();
     }
 
-    async initializeSupabase() {
+    async initialize() {
         try {
-            if (typeof supabase !== 'undefined') {
-                this.supabaseClient = supabase.createClient(this.supabaseUrl, this.supabaseKey);
-                console.log('Supabase client initialized successfully');
-                
-                // Test connection and sync if online
-                if (this.isOnline) {
-                    await this.syncPendingChanges();
-                }
-            } else {
-                console.warn('Supabase library not available, using localStorage only');
-            }
+            console.log('Initializing Schedule NSG application...');
+            
+            // Initialize API manager
+            this.apiManager = new ApiManager();
+            
+            // Initialize UI manager with API manager reference
+            this.uiManager = new UIManager(this.apiManager);
+            
+            // Make managers globally accessible for event handlers
+            window.apiManager = this.apiManager;
+            window.uiManager = this.uiManager;
+            
+            // Load and render initial data
+            await this.uiManager.initializeData();
+            
+            // Setup app-level event listeners
+            this.setupAppEventListeners();
+            
+            // Focus management for accessibility
+            this.uiManager.focusFirstInput();
+            
+            this.isInitialized = true;
+            console.log('Schedule NSG application initialized successfully');
+            
         } catch (error) {
-            console.error('Failed to initialize Supabase:', error);
-            this.supabaseClient = null;
+            console.error('Failed to initialize application:', error);
+            this.handleInitializationError(error);
         }
     }
 
-    setupEventListeners() {
-        // Online/offline detection
-        window.addEventListener('online', () => {
-            this.isOnline = true;
-            console.log('Connection restored - syncing data...');
-            this.syncPendingChanges();
+    setupAppEventListeners() {
+        // Global error handler
+        window.addEventListener('error', (event) => {
+            console.error('Global error:', event.error);
+            this.uiManager.showErrorFeedback('An unexpected error occurred');
         });
 
-        window.addEventListener('offline', () => {
-            this.isOnline = false;
-            console.log('Connection lost - switching to offline mode');
+        // Unhandled promise rejection handler
+        window.addEventListener('unhandledrejection', (event) => {
+            console.error('Unhandled promise rejection:', event.reason);
+            this.uiManager.showErrorFeedback('A system error occurred');
         });
 
-        // UI Event listeners
-        const addButton = document.getElementById('add-employee');
-        const saveButton = document.getElementById('save-employees');
-        const employeeNameInput = document.getElementById('employee-name');
+        // Page visibility change (for potential sync on focus)
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden && this.apiManager.isOnline) {
+                // Page became visible and we're online - could trigger sync
+                this.apiManager.syncPendingChanges();
+            }
+        });
 
-        if (addButton) {
-            addButton.addEventListener('click', () => this.addEmployee());
-        }
-
-        if (saveButton) {
-            saveButton.addEventListener('click', () => this.bulkSaveEmployees());
-        }
-
-        if (employeeNameInput) {
-            employeeNameInput.addEventListener('keypress', (e) => {
-                if (e.key === 'Enter') {
-                    this.addEmployee();
-                }
-            });
-        }
-    }
-
-    async loadInitialData() {
-        try {
-            // Try to load from Supabase first (source of truth)
-            if (this.isOnline && this.supabaseClient) {
-                await this.loadFromSupabase();
-            } else {
-                // Fall back to localStorage
-                this.loadFromLocalStorage();
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (event) => {
+            // Ctrl/Cmd + S to save
+            if ((event.ctrlKey || event.metaKey) && event.key === 's') {
+                event.preventDefault();
+                this.uiManager.bulkSaveEmployees();
             }
             
-            this.renderEmployees();
-            this.renderAuditLog();
-        } catch (error) {
-            console.error('Error loading initial data:', error);
-            this.loadFromLocalStorage();
-            this.renderEmployees();
-            this.renderAuditLog();
-        }
-    }
-
-    async loadFromSupabase() {
-    try {
-        // Fetch employees
-        const { data: employeesData, error: employeesError } = await this.supabaseClient
-            .from('employees')
-            .select('*')
-            .order('created_at', { ascending: true });
-        if (employeesError) throw employeesError;
-
-        // Fetch audit log
-        const { data: auditData, error: auditError } = await this.supabaseClient
-            .from('audit_log')
-            .select('*')
-            .order('timestamp', { ascending: false });
-        if (auditError) throw auditError;
-
-        // Assign the results
-        this.employees = employeesData || [];
-        this.auditLog = auditData || [];
-
-        // Optionally update localStorage
-        localStorage.setItem('employees', JSON.stringify(this.employees));
-        localStorage.setItem('auditLog', JSON.stringify(this.auditLog));
-
-        console.log('Data loaded from Supabase successfully');
-    } catch (error) {
-        console.error('Error loading from Supabase:', error);
-        throw error;
-    }
-} // <-- END OF FUNCTION
-    loadFromLocalStorage() {
-        this.employees = JSON.parse(localStorage.getItem('employees')) || [];
-        this.auditLog = JSON.parse(localStorage.getItem('auditLog')) || [];
-        console.log('Data loaded from localStorage');
-    }
-
-    async addEmployee() {
-        const nameInput = document.getElementById('employee-name');
-        const name = nameInput?.value?.trim();
-
-        if (!name) {
-            alert('Please enter an employee name');
-            return;
-        }
-
-        const employee = {
-            id: Date.now().toString(),
-            name: name,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-        };
-
-        try {
-            if (this.isOnline && this.supabaseClient) {
-                // Save directly to Supabase
-                const { data, error } = await this.supabaseClient
-                    .from('employees')
-                    .insert([employee])
-                    .select();
-
-                if (error) throw error;
-
-                this.employees.push(data[0]);
-                await this.addAuditEntry('employee_added', `Employee "${name}" was added`);
-            } else {
-                // Queue for sync when back online
-                this.employees.push(employee);
-                this.queueAction('add_employee', employee);
-                await this.addAuditEntry('employee_added', `Employee "${name}" was added (offline)`);
-            }
-
-            // Update localStorage and UI
-            localStorage.setItem('employees', JSON.stringify(this.employees));
-            this.renderEmployees();
-            nameInput.value = '';
-
-        } catch (error) {
-            console.error('Error adding employee:', error);
-            // Fall back to offline mode
-            this.employees.push(employee);
-            this.queueAction('add_employee', employee);
-            localStorage.setItem('employees', JSON.stringify(this.employees));
-            this.renderEmployees();
-            nameInput.value = '';
-        }
-    }
-
-    async deleteEmployee(employeeId) {
-        const employee = this.employees.find(emp => emp.id === employeeId);
-        if (!employee) return;
-
-        try {
-            if (this.isOnline && this.supabaseClient) {
-                // Delete from Supabase
-                const { error } = await this.supabaseClient
-                    .from('employees')
-                    .delete()
-                    .eq('id', employeeId);
-
-                if (error) throw error;
-
-                await this.addAuditEntry('employee_deleted', `Employee "${employee.name}" was deleted`);
-            } else {
-                // Queue for sync when back online
-                this.queueAction('delete_employee', { id: employeeId });
-                await this.addAuditEntry('employee_deleted', `Employee "${employee.name}" was deleted (offline)`);
-            }
-
-            // Update local data
-            this.employees = this.employees.filter(emp => emp.id !== employeeId);
-            localStorage.setItem('employees', JSON.stringify(this.employees));
-            this.renderEmployees();
-
-        } catch (error) {
-            console.error('Error deleting employee:', error);
-            // Fall back to offline mode
-            this.employees = this.employees.filter(emp => emp.id !== employeeId);
-            this.queueAction('delete_employee', { id: employeeId });
-            localStorage.setItem('employees', JSON.stringify(this.employees));
-            this.renderEmployees();
-        }
-    }
-
-    async bulkSaveEmployees() {
-        try {
-            if (this.isOnline && this.supabaseClient) {
-                // Bulk save to Supabase
-                const { error } = await this.supabaseClient
-                    .from('employees')
-                    .upsert(this.employees);
-
-                if (error) throw error;
-
-                await this.addAuditEntry('bulk_save', `Bulk save of ${this.employees.length} employees completed`);
-            } else {
-                // Queue for sync when back online
-                this.queueAction('bulk_save_employees', this.employees);
-                await this.addAuditEntry('bulk_save', `Bulk save of ${this.employees.length} employees queued (offline)`);
-            }
-
-            // Update localStorage
-            localStorage.setItem('employees', JSON.stringify(this.employees));
-            alert('Employees saved successfully!');
-
-        } catch (error) {
-            console.error('Error bulk saving employees:', error);
-            // Fall back to offline mode
-            this.queueAction('bulk_save_employees', this.employees);
-            localStorage.setItem('employees', JSON.stringify(this.employees));
-            alert('Employees saved offline - will sync when connection is restored');
-        }
-    }
-
-    async addAuditEntry(action, description) {
-        const entry = {
-            id: Date.now().toString(),
-            action: action,
-            description: description,
-            timestamp: new Date().toISOString(),
-            user: 'System' // Can be enhanced to track actual user
-        };
-
-        try {
-            if (this.isOnline && this.supabaseClient) {
-                const { data, error } = await this.supabaseClient
-                    .from('audit_log')
-                    .insert([entry])
-                    .select();
-
-                if (error) throw error;
-
-                this.auditLog.unshift(data[0]);
-            } else {
-                this.auditLog.unshift(entry);
-                this.queueAction('add_audit_entry', entry);
-            }
-
-            localStorage.setItem('auditLog', JSON.stringify(this.auditLog));
-            this.renderAuditLog();
-
-        } catch (error) {
-            console.error('Error adding audit entry:', error);
-            this.auditLog.unshift(entry);
-            this.queueAction('add_audit_entry', entry);
-            localStorage.setItem('auditLog', JSON.stringify(this.auditLog));
-            this.renderAuditLog();
-        }
-    }
-
-    queueAction(actionType, data) {
-        const queueItem = {
-            id: Date.now().toString(),
-            actionType: actionType,
-            data: data,
-            timestamp: new Date().toISOString()
-        };
-
-        this.syncQueue.push(queueItem);
-        localStorage.setItem('syncQueue', JSON.stringify(this.syncQueue));
-        console.log('Action queued for sync:', actionType);
-    }
-
-    async syncPendingChanges() {
-        if (!this.isOnline || !this.supabaseClient || this.syncQueue.length === 0) {
-            return;
-        }
-
-        console.log(`Syncing ${this.syncQueue.length} pending changes...`);
-
-        const syncPromises = this.syncQueue.map(async (item) => {
-            try {
-                switch (item.actionType) {
-                    case 'add_employee':
-                        await this.supabaseClient
-                            .from('employees')
-                            .insert([item.data]);
-                        break;
-
-                    case 'delete_employee':
-                        await this.supabaseClient
-                            .from('employees')
-                            .delete()
-                            .eq('id', item.data.id);
-                        break;
-
-                    case 'bulk_save_employees':
-                        await this.supabaseClient
-                            .from('employees')
-                            .upsert(item.data);
-                        break;
-
-                    case 'add_audit_entry':
-                        await this.supabaseClient
-                            .from('audit_log')
-                            .insert([item.data]);
-                        break;
+            // Ctrl/Cmd + N to add new employee (if name input is focused)
+            if ((event.ctrlKey || event.metaKey) && event.key === 'n') {
+                const nameInput = document.getElementById('employee-name');
+                if (nameInput) {
+                    event.preventDefault();
+                    nameInput.focus();
                 }
-
-                return item.id; // Return ID of successfully synced item
-            } catch (error) {
-                console.error('Error syncing item:', item, error);
-                return null; // Keep in queue
             }
         });
+    }
 
-        const results = await Promise.allSettled(syncPromises);
+    handleInitializationError(error) {
+        console.error('Initialization failed:', error);
         
-        // Remove successfully synced items from queue
-        const syncedIds = results
-            .filter(result => result.status === 'fulfilled' && result.value)
-            .map(result => result.value);
-
-        this.syncQueue = this.syncQueue.filter(item => !syncedIds.includes(item.id));
-        localStorage.setItem('syncQueue', JSON.stringify(this.syncQueue));
-
-        console.log(`Sync completed. ${syncedIds.length} items synced, ${this.syncQueue.length} items remaining.`);
-
-        // Reload data from Supabase to ensure consistency
-        await this.loadFromSupabase();
-        this.renderEmployees();
-        this.renderAuditLog();
+        // Show fallback error UI
+        const errorContainer = document.createElement('div');
+        errorContainer.style.cssText = `
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            border: 2px solid #dc2626;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            z-index: 10000;
+            max-width: 400px;
+        `;
+        
+        errorContainer.innerHTML = `
+            <div style="color: #dc2626; font-size: 2rem; margin-bottom: 10px;">⚠️</div>
+            <h3 style="color: #dc2626; margin: 0 0 10px 0;">Application Error</h3>
+            <p style="margin: 0 0 15px 0;">Failed to initialize the application. Please refresh the page to try again.</p>
+            <button onclick="location.reload()" style="background: #dc2626; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer;">
+                Refresh Page
+            </button>
+        `;
+        
+        document.body.appendChild(errorContainer);
     }
 
-    renderEmployees() {
-        const employeeList = document.getElementById('employee-list');
-        if (!employeeList) return;
-
-        employeeList.innerHTML = '';
-
-        this.employees.forEach(employee => {
-            const li = document.createElement('li');
-            li.innerHTML = `
-                <span>${employee.name}</span>
-                <button onclick="dataManager.deleteEmployee('${employee.id}')" style="margin-left: 10px; background: #dc3545; color: white; border: none; padding: 2px 8px; border-radius: 3px; cursor: pointer;">Delete</button>
-            `;
-            employeeList.appendChild(li);
-        });
+    // Public methods for external access
+    getEmployees() {
+        return this.uiManager ? this.uiManager.employees : [];
     }
 
-    renderAuditLog() {
-        const auditLogList = document.getElementById('audit-log');
-        if (!auditLogList) return;
-
-        auditLogList.innerHTML = '';
-
-        this.auditLog.slice(0, 20).forEach(entry => { // Show only last 20 entries
-            const li = document.createElement('li');
-            li.innerHTML = `
-                <div style="margin-bottom: 10px; padding: 8px; border-left: 3px solid #007bff; background: #f8f9fa;">
-                    <strong>${entry.action}</strong> - ${entry.description}
-                    <br><small style="color: #6c757d;">${new Date(entry.timestamp).toLocaleString()}</small>
-                </div>
-            `;
-            auditLogList.appendChild(li);
-        });
+    getAuditLog() {
+        return this.uiManager ? this.uiManager.auditLog : [];
     }
 
-    // Public method to get connection status
-    getConnectionStatus() {
-        return {
-            isOnline: this.isOnline,
-            hasSupabase: !!this.supabaseClient,
-            queueLength: this.syncQueue.length
+    async refreshData() {
+        if (this.uiManager) {
+            await this.uiManager.initializeData();
+        }
+    }
+}
+
+// Legacy compatibility - maintain existing global functions
+// These ensure the existing HTML event handlers still work
+class LegacyCompatibility {
+    constructor() {
+        // Wait for DOM to be ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => this.initialize());
+        } else {
+            this.initialize();
+        }
+    }
+
+    initialize() {
+        // Legacy data manager for backward compatibility
+        window.dataManager = {
+            employees: [],
+            auditLog: [],
+            
+            addEmployee: () => {
+                if (window.uiManager) {
+                    window.uiManager.addEmployee();
+                }
+            },
+            
+            deleteEmployee: (id) => {
+                if (window.uiManager) {
+                    window.uiManager.deleteEmployee(id);
+                }
+            },
+            
+            bulkSaveEmployees: () => {
+                if (window.uiManager) {
+                    window.uiManager.bulkSaveEmployees();
+                }
+            },
+            
+            renderEmployees: () => {
+                if (window.uiManager) {
+                    window.uiManager.renderEmployees();
+                }
+            },
+            
+            renderAuditLog: () => {
+                if (window.uiManager) {
+                    window.uiManager.renderAuditLog();
+                }
+            }
         };
     }
 }
 
-// Initialize the data manager when DOM is loaded
-let dataManager;
-
-document.addEventListener('DOMContentLoaded', () => {
-    dataManager = new ScheduleDataManager();
-    
-    // Add status indicator to show connection state
-    const statusIndicator = document.createElement('div');
-    statusIndicator.id = 'connection-status';
-    statusIndicator.style.cssText = `
-        position: fixed;
-        top: 10px;
-        right: 10px;
-        padding: 5px 10px;
-        border-radius: 5px;
-        color: white;
-        font-size: 12px;
-        z-index: 1000;
-    `;
-    document.body.appendChild(statusIndicator);
-    
-    // Update status indicator
-    function updateStatusIndicator() {
-        const status = dataManager.getConnectionStatus();
-        const indicator = document.getElementById('connection-status');
-        
-        if (status.isOnline && status.hasSupabase) {
-            indicator.textContent = `Online (${status.queueLength} queued)`;
-            indicator.style.backgroundColor = '#28a745';
-        } else if (status.isOnline) {
-            indicator.textContent = 'Online (No Supabase)';
-            indicator.style.backgroundColor = '#ffc107';
-        } else {
-            indicator.textContent = `Offline (${status.queueLength} queued)`;
-            indicator.style.backgroundColor = '#dc3545';
+// Employee data functions for unit testing
+export const EmployeeUtils = {
+    validateEmployeeName(name) {
+        if (typeof name !== 'string') {
+            return { isValid: false, error: 'Name must be a string' };
         }
-    }
+        
+        if (name.trim().length === 0) {
+            return { isValid: false, error: 'Name cannot be empty' };
+        }
+        
+        if (name.length > 100) {
+            return { isValid: false, error: 'Name must be less than 100 characters' };
+        }
+        
+        return { isValid: true };
+    },
     
-    // Update status every 5 seconds
-    updateStatusIndicator();
-    setInterval(updateStatusIndicator, 5000);
-});
+    formatEmployeeName(name) {
+        if (typeof name !== 'string') return '';
+        return name.trim().replace(/\s+/g, ' ');
+    },
+    
+    generateEmployeeId() {
+        return 'emp_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+    },
+    
+    createEmployee(name, email = '') {
+        const nameValidation = this.validateEmployeeName(name);
+        if (!nameValidation.isValid) {
+            throw new Error(nameValidation.error);
+        }
+        
+        return {
+            id: this.generateEmployeeId(),
+            name: this.formatEmployeeName(name),
+            email: email.trim(),
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+        };
+    },
+    
+    updateEmployee(employee, updates) {
+        if (!employee || typeof employee !== 'object') {
+            throw new Error('Invalid employee object');
+        }
+        
+        const updatedEmployee = { ...employee };
+        
+        if (updates.name !== undefined) {
+            const nameValidation = this.validateEmployeeName(updates.name);
+            if (!nameValidation.isValid) {
+                throw new Error(nameValidation.error);
+            }
+            updatedEmployee.name = this.formatEmployeeName(updates.name);
+        }
+        
+        if (updates.email !== undefined) {
+            updatedEmployee.email = updates.email.trim();
+        }
+        
+        updatedEmployee.updatedAt = new Date().toISOString();
+        return updatedEmployee;
+    },
+    
+    isValidEmail(email) {
+        if (!email || typeof email !== 'string') return false;
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        return emailRegex.test(email.trim());
+    }
+};
+
+// Initialize the application only if we're in a browser environment
+if (typeof window !== 'undefined' && typeof document !== 'undefined') {
+    const scheduleApp = new ScheduleApp();
+    const legacyCompat = new LegacyCompatibility();
+}
+
+// Export for module access
+export { scheduleApp: typeof window !== 'undefined' ? window.scheduleApp : null };
