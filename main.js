@@ -98,6 +98,7 @@ class ScheduleDataManager {
             const { data: employeesData, error: employeesError } = await this.supabaseClient
                 .from('employees')
                 .select('*')
+                 console.log('Fetched employees from Supabase:', employeesData, employeesError);
                 .order('created_at', { ascending: true });
 
             if (employeesError) throw employeesError;
