@@ -9920,10 +9920,15 @@ HR Department
                     <!-- Employee Management Panel -->
                     <div id="employee-management-panel" style="display: none; margin-top: 15px; padding: 15px; background: #f8f9fa; border-radius: 8px; border: 1px solid #e9ecef;">
                         <h4>Add New Employee</h4>
-                        <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 10px;">
-                            <input type="text" id="employee-name" placeholder="Employee Name" style="flex: 1; padding: 8px; border: 1px solid #ced4da; border-radius: 4px;">
-                            <button id="add-employee" class="btn btn-success">Add</button>
-                            <button id="save-employees" class="btn btn-primary">Bulk Save</button>
+                        <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 10px;">
+                            <div style="display: flex; gap: 10px;">
+                                <input type="text" id="employee-name" placeholder="Employee Name" style="flex: 1; padding: 8px; border: 1px solid #ced4da; border-radius: 4px;" required>
+                                <input type="email" id="employee-email" placeholder="Email (optional)" style="flex: 1; padding: 8px; border: 1px solid #ced4da; border-radius: 4px;">
+                            </div>
+                            <div style="display: flex; gap: 10px;">
+                                <button id="add-employee" class="btn btn-success">Add Employee</button>
+                                <button id="save-employees" class="btn btn-primary">Bulk Save</button>
+                            </div>
                         </div>
                         <h5>Current Employees</h5>
                         <ul id="employee-list" style="list-style: none; padding: 0; max-height: 200px; overflow-y: auto; background: white; border: 1px solid #dee2e6; border-radius: 4px; padding: 10px;">
@@ -11345,7 +11350,7 @@ HR Department
     // ==== END NEW FEATURES ====
 
 </script>
-<script src="main.js"></script>
+<script src="main.js" type="module"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </body>
 </html>
