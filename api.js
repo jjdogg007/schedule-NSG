@@ -50,7 +50,7 @@ export class ApiManager {
         console.log('Running online status check at', new Date().toLocaleTimeString());
         try {
             // Fetch a small, non-cached local resource to be sure.
-            const response = await fetch('/icon-192.svg?d=' + Date.now(), {
+            const response = await fetch('./icon-192.svg?d=' + Date.now(), {
                 method: 'HEAD',
                 cache: 'no-store',
                 headers: {

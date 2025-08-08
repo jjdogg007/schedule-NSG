@@ -50,13 +50,13 @@ export class UIManager {
         }
     }
 
-    initialize() {
-        this.initializeDashboard(); // Create the basic HTML structure first
+    async initialize() {
+        await this.initializeDashboard(); // Create the basic HTML structure first
         this.setupEventListeners(); // Then attach listeners to it
-        this.initializeData(); // Finally, load the data
+        await this.initializeData(); // Finally, load the data
     }
 
-    initializeDashboard() {
+    async initializeDashboard() {
         const managerView = document.getElementById('manager-view');
         if (!managerView || managerView.innerHTML.trim() !== '') return;
 
@@ -93,6 +93,9 @@ export class UIManager {
             </div>
         </div>
         `;
+
+        // Allow the DOM to update
+        await new Promise(resolve => setTimeout(resolve, 0));
     }
 
     setupEventListeners() {
