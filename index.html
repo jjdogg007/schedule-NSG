@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Employee Scheduling System</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="./manifest.json">
+    <link rel="apple-touch-icon" href="./icon-192.svg">
+</head>
+<body>
+    <!-- Loading Spinner -->
+    <div id="loading-spinner" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 10000; justify-content: center; align-items: center;">
+        <div style="background: white; padding: 2rem; border-radius: 0.5rem; text-align: center; max-width: 300px;">
+            <div style="font-size: 2rem; margin-bottom: 1rem;">⏳</div>
+            <div class="loading-message" style="font-weight: 600; margin-bottom: 0.5rem;">Loading...</div>
+            <div style="font-size: 0.875rem; color: #6b7280;">Please wait...</div>
+        </div>
+    </div>
+
+    <!-- Status Bar -->
+    <div id="status-bar" style="background: #f8fafc; border-bottom: 1px solid #e2e8f0; padding: 0.5rem 1rem; font-size: 0.875rem; color: #6b7280; display: flex; justify-content: space-between; align-items: center;">
+        <div>
+            <span id="connection-status">Connected</span>
+        </div>
+        <div>
+            <span id="last-saved-indicator"></span>
+        </div>
+    </div>
+
+    <div id="manager-view">
+        <div class="dashboard-header">
+            <div class="dashboard-title">
+                <div>
+                    <h1>Schedule Dashboard</h1>
+                    <p class="dashboard-subtitle">Complete employee scheduling workspace</p>
+                </div>
+                <div style="text-align: right;">
+                    <label for="scheduleMonth" style="display: block; font-size: 0.875rem; color: #cbd5e1; margin-bottom: 0.5rem;">Current Month:</label>
+                    <input id="scheduleMonth" type="month" style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: white; padding: 0.5rem; border-radius: 0.5rem;"/>
+                </div>
+            </div>
+        </div>
+        <div class="dashboard-main">
+            <div class="schedule-section">
+                <div class="schedule-header">
+                    <h2>📅 Current Schedule</h2>
+                </div>
+                <div class="schedule-content">
+                    <div class="table-container">
+                        <table id="schedule-table"><thead></thead><tbody></tbody></table>
+                    </div>
+                </div>
+            </div>
+            <div class="action-cards">
+                <div class="action-card">
+                    <h3>Team Management</h3>
+                    <button class="btn btn-primary" data-action="openEmployeeModal">👥 Manage Employees</button>
+                </div>
+                <div class="action-card">
+                    <h3>Time Off Center</h3>
+                    <button class="btn btn-primary" data-action="openPTORequestsModal">🏖️ Review Requests</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="employee-portal" style="display:none;">
+        <!-- Employee portal content will be generated here -->
+    </div>
+
+    <!-- MODALS -->
+    <div id="employeeModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header"><h2>Manage Employees</h2><span class="close" data-action="closeAllModals">×</span></div><hr>
+            <h3 id="modal-title">Add New Employee</h3>
+            <div>
+                 <input id="empIndex" type="hidden"/>
+                 <input id="empId" type="hidden"/>
+                 <input id="newName" placeholder="Last, First" type="text"/>
+                 <select id="newType"><option value="FT">Full Time (FT)</option><option value="PT">Part Time (PT)</option></select>
+                 <input id="newShifts" placeholder="Regular Shifts (e.g., 10a-6:30p)" type="text"/>
+                 <input id="newTargetHours" type="number" value="0" min="0" placeholder="Target Hours/Month"/>
+                 <input id="newAvailability" placeholder="Availability (e.g., Mon,Tue,Fri)" type="text"/>
+		         <input id="newEmail" placeholder="employee@email.com" type="email"/>
+                 <input id="newHireDate" type="date" required/>
+                 <input id="newMaxDays" type="number" value="0" min="0" max="7" placeholder="Max Days/Week"/>
+            </div>
+            <button class="btn btn-primary" data-action="saveEmployee">💾 Save Employee</button>
+            <button class="btn btn-secondary" data-action="clearEmployeeForm">Clear Form</button>
+            <hr>
+            <h3>Current Roster</h3>
+            <div id="employee-list-container" style="max-height: 300px; overflow-y: auto;">
+                <table id="employee-list-table"></table>
+            </div>
+        </div>
+    </div>
+    <div id="noteModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header"><h2>Add/Edit Note</h2><span class="close" data-action="closeAllModals">×</span></div><hr>
+            <textarea id="noteText" rows="4" style="width: 100%;"></textarea>
+            <button class="btn btn-primary" data-action="saveNote">Save Note</button>
+        </div>
+    </div>
+    <div id="contextMenu"></div>
+    <div id="notificationModal" class="modal">
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header"><h2>Notify Employee of Change?</h2><span class="close" data-action="closeAllModals">×</span></div><hr>
+            <p id="notification-text"></p>
+            <div style="text-align: right;">
+                <button class="btn btn-secondary" data-action="closeAllModals">Don't Notify</button>
+                <button class="btn btn-primary" data-action="sendChangeNotification">Notify Employee</button>
+            </div>
+        </div>
+    </div>
+    <div id="bidsModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header"><h2>Manage Open Shift Bids</h2><span class="close" data-action="closeAllModals">×</span></div><hr>
+            <div id="bids-container" style="max-height: 400px; overflow-y: auto;"></div>
+        </div>
+    </div>
+    <div id="reportsModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header"><h2>Schedule Reports</h2><span class="close" data-action="closeAllModals">×</span></div><hr>
+            <div id="reports-container"></div>
+        </div>
+    </div>
+    <div id="ptoRequestsModal" class="modal">
+        <div class="modal-content" style="max-width: 1200px;">
+            <div class="modal-header">
+                <h2>PTO Requests Management</h2>
+                <span class="close" data-action="closeAllModals">×</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- External Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+    <!-- Application Entry Point -->
+    <script src="main.js" type="module" defer></script>
+</body>
+</html>
